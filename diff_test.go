@@ -15,6 +15,9 @@
 package diff
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"math/rand/v2"
 	"strings"
 	"testing"
 
@@ -378,6 +381,69 @@ func TestEdits(t *testing.T) {
 			got := Edits(tt.x, tt.y)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("Diff result is different (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func BenchmarkHunks(b *testing.B) {
+	params := []struct {
+		N, M int // Length of x and y respectively
+		D    int // Number of edits (besides edits due to size differences)
+	}{
+		{50, 50, 10},
+		{500, 50, 10},
+		{50, 500, 10},
+		{500, 500, 10},
+		{500, 500, 100},
+		{5000, 5500, 100},
+	}
+
+	for _, p := range params {
+		name := fmt.Sprintf("N=%d_M=%d_D=%d", p.N, p.M, p.D)
+		b.Run(name, func(b *testing.B) {
+			b.ReportAllocs()
+
+			rng := rand.New(rand.NewChaCha8(sha256.Sum256([]byte(name))))
+
+			// Construct inputs based on the N, M, D specification.
+			flipped := false
+			n, m := p.N, p.M
+			if n < m {
+				n, m = m, n
+				flipped = true
+			}
+
+			x := make([]int, n)
+			for i := range x {
+				x[i] = rng.IntN(100)
+			}
+
+			y := make([]int, m)
+			delta := 0
+			if n != m {
+				delta = rng.IntN((n - m) / 2)
+			}
+			for i := range y {
+				y[i] = x[i+delta]
+			}
+
+			// We might already have some changes due to the different sizes for N and M, add D
+			// additional changes.
+			for d := p.D; d > 0; {
+				i := rng.IntN(len(y))
+				if y[i] >= 0 {
+					y[i] = -y[i]
+					d--
+				}
+			}
+
+			if flipped {
+				x, y = y, x
+			}
+
+			for b.Loop() {
+				_ = Hunks(x, y)
 			}
 		})
 	}
