@@ -14,6 +14,16 @@
 
 // Package myers contains an implementation of Myers' algorithm.
 //
+// The implementation in this package uses the linear space variant described in section 4.2. In
+// addition, the TOO_EXPENSIVE heuristic by Paul Eggert is used to limit the amount of time spend
+// for large files with many differences.
+//
+// Without the heuristic, the runtime of Myers' algorithm is O(ND) where N is the sum of the length
+// of both inputs and D is the number of differences. The TOO_EXPENSIVE heuristic reduces the time
+// complexity to O(N^1.5 log N) but it produces suboptimal diffs.
+//
+// # Myers Algorithm
+//
 // The algorithm is a graph search on the graph modelling all possible edits that transform x to y.
 // For simplicity, let's say that T is the []byte representation of string and the inputs are x =
 // "ABCABBA" and y = "CBABAC". Then we can represent all possible edits from x to y with the graph:
@@ -84,7 +94,7 @@
 //
 // Moreover, both D/2-paths are contained within D-paths from (0,0) to (N,M).
 //
-// References:
+// ## References:
 //
 // Myers, E.W. An O(ND) difference algorithm and its variations. Algorithmica 1, 251-266 (1986).
 // https://doi.org/10.1007/BF01840446
@@ -93,12 +103,23 @@
 //
 // Ukkonen, E. Algorithms for approximate string matching. Information and Control, Volume 64,
 // Issues 1–3, 100-118 (1985). https://doi.org/10.1016/S0019-9958(85)80046-2
+//
+// # Heuristics
+//
+// TOO_EXPENSIVE: A heuristic by Paul Eggert that reduces the time complexity significantly for
+// large files with many differences at the cost of suboptimal diffs. If the search for an optimal
+// d-path exceeds a cost limit (in terms of d), the search is aborted and the furthest reaching
+// d-path that optimizes x + y is used to determine a split.
 package myers
 
 import (
 	"fmt"
 	"math"
 )
+
+// minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
+// applied when the cost exceeds this number (large files with a lot of differences).
+const minCostLimit = 4096
 
 // EditFlag is a flag describing the edits for elements in both inputs.
 //
@@ -128,12 +149,17 @@ func (e EditFlag) String() string {
 	}
 }
 
+// Options allows configuration of the diffing algorithm.
+type Options struct {
+	Optimal bool // find an optimal path irrespective of the cost
+}
+
 // Diff compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
-func Diff[T any](x, y []T, eq func(a, b T) bool) []EditFlag {
+func Diff[T any](x, y []T, eq func(a, b T) bool, opts Options) []EditFlag {
 	var m myers[T]
 	smin, smax, tmin, tmax := m.init(x, y, eq)
-	m.compare(smin, smax, tmin, tmax, eq)
+	m.compare(smin, smax, tmin, tmax, opts.Optimal, eq)
 	return m.edits
 }
 
@@ -147,6 +173,10 @@ type myers[T any] struct {
 	// since t = s - k.
 	vf, vb []int
 	v0     int
+
+	// The costLimit parameter controls the TOO_EXPENSIVE heuristic that limit the runtime of
+	// the algorithm for large inputs.
+	costLimit int
 
 	// Result is stored in edits. See the documentation of Diff for more details about the format.
 	edits []EditFlag
@@ -177,7 +207,16 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 	m.y = y
 	m.vf = buf[:vlen]
 	m.vb = buf[vlen:]
-	m.v0 = diagonals + 1                              // +1 for the middle point
+	m.v0 = diagonals + 1 // +1 for the middle point
+
+	// Set the costLimit to the approximate square root of the number of diagonals bounded by
+	// minCostLimit.
+	costLimit := 1
+	for i := diagonals; i != 0; i >>= 2 {
+		costLimit <<= 1
+	}
+	m.costLimit = max(minCostLimit, costLimit)
+
 	m.edits = make([]EditFlag, max(len(x), len(y))+1) // The +1 for the right border (simplifies iteration)
 	return
 }
@@ -185,7 +224,7 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 // compare finds an optimal d-path from (smin, tmin) to (smax, tmax).
 //
 // Important: x[smin:smax] and y[tmin:tmax] must not have a common prefix or a common suffix.
-func (m *myers[T]) compare(smin, smax, tmin, tmax int, eq func(x, y T) bool) {
+func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, y T) bool) {
 	if smin == smax {
 		// s is empty, therefore everything in tmin to tmax is an insertion.
 		for t := tmin; t < tmax; t++ {
@@ -205,11 +244,11 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, eq func(x, y T) bool) {
 		//
 		// (1) and (3) will not have a common suffix or a common prefix, so we can use them directly
 		// as inputs to compare.
-		s0, s1, t0, t1 := m.split(smin, smax, tmin, tmax, eq)
+		s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, optimal, eq)
 
 		// Recurse into (1) and (3).
-		m.compare(smin, s0, tmin, t0, eq)
-		m.compare(s1, smax, t1, tmax, eq)
+		m.compare(smin, s0, tmin, t0, opt0, eq)
+		m.compare(s1, smax, t1, tmax, opt1, eq)
 	}
 }
 
@@ -218,7 +257,7 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, eq func(x, y T) bool) {
 //
 // Important: x[smin:smax] and y[tmin:tmax] must not have a common prefix or a common suffix and
 // they may not both be empty.
-func (m *myers[T]) split(smin, smax, tmin, tmax int, eq func(x, y T) bool) (s0, s1, t0, t1 int) {
+func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y T) bool) (s0, s1, t0, t1 int, opt0, opt1 bool) {
 	N, M := smax-smin, tmax-tmin
 	x, y := m.x, m.y
 	vf, vb := m.vf, m.vb
@@ -319,7 +358,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, eq func(x, y T) bool) (s0, 
 			// Potentially, check for an overlap with a backwards d-path. We're done when we found
 			// it.
 			if odd && bmin <= k && k <= bmax && s >= vb[k0] {
-				return s0, s, t0, t
+				return s0, s, t0, t, true, true
 			}
 		}
 
@@ -354,10 +393,84 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, eq func(x, y T) bool) (s0, 
 				t--
 			}
 
-			vb[v0+k] = s
+			vb[v0+k] = max(smin, s)
 
 			if !odd && fmin <= k && k <= fmax && s <= vf[v0+k] {
-				return s, s0, t, t0
+				return s, s0, t, t0, true, true
+			}
+		}
+
+		if optimal {
+			continue
+		}
+
+		// Heuristic (TOO_EXPENSIVE): Limit the amount of work to find an optimal path by picking
+		// a good-enough middle diagonal if we're over the cost limit.
+		if d >= m.costLimit {
+			// Find endpoint of the furthest reaching forward d-path that maximizes x+y.
+			fbest, fbestk := math.MinInt, math.MinInt
+			for k := fmin; k <= fmax; k += 2 {
+				k0 := k + v0
+				s := vf[k0]
+				t := s - k
+				if fbest < s+t {
+					fbest = s + t
+					fbestk = k
+				}
+			}
+
+			// Find endpoint of the furthest reaching backward d-path that minimizes x+y.
+			bbest, bbestk := math.MaxInt, math.MaxInt
+			for k := bmin; k <= bmax; k += 2 {
+				k0 := k + v0
+				s := vb[k0]
+				t := s - k
+				if s+t < bbest {
+					bbest = s + t
+					bbestk = k
+				}
+			}
+
+			// Use better of the two d-paths.
+			if (smax+tmax)-bbest < fbest-(smin+tmin) {
+				k := fbestk
+				k0 := k + v0
+				s := vf[k0]
+				t := s - k
+
+				// Find find the previous k, by doing the decision as in the forward iteration. And
+				// use it to reconstruct the middle diagonal: By construction, the path from (s,t)
+				// to (ps, pt) consists of horizontal or vertical step plus a possibly empty
+				// sequence of diagonals.
+				var pk int
+				if vf[k0-1] < vf[k0+1] {
+					pk = k + 1
+				} else {
+					pk = k - 1
+				}
+				ps := vf[pk+v0]
+				pt := ps - pk
+				diag := min(s-ps, t-pt)  // number of diagonal steps
+				s0, t0 := s-diag, t-diag // start of diagonal
+				return s0, s, t0, t, true, false
+			} else {
+				k := bbestk
+				k0 := k + v0
+				s := vb[k0]
+				t := s - k
+
+				// Analogous to forward case.
+				var pk int
+				if vb[k0-1] < vb[k0+1] {
+					pk = k - 1
+				} else {
+					pk = k + 1
+				}
+				ps := vb[pk+v0]
+				pt := ps - pk
+				diag := min(ps-s, pt-t)  // number of diagonal steps
+				s0, t0 := s+diag, t+diag // start of diagonal
+				return s, s0, t, t0, false, true
 			}
 		}
 	}

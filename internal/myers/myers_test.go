@@ -15,7 +15,9 @@
 package myers
 
 import (
+	"crypto/sha256"
 	"math"
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"testing"
@@ -110,7 +112,7 @@ func TestMyersDiff(t *testing.T) {
 	eq := func(a, b string) bool { return a == b }
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Diff(tt.x, tt.y, eq)
+			got := Diff(tt.x, tt.y, eq, Options{})
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("edits differs [-want,+got]:\n%s", diff)
 			}
@@ -188,7 +190,7 @@ func TestMyersSplit(t *testing.T) {
 		if smin == smax && tmin == tmax {
 			t.Fatalf("invalid test case: both ranges are empty.")
 		}
-		s0, s1, t0, t1 := m.split(smin, smax, tmin, tmax, eq)
+		s0, s1, t0, t1, _, _ := m.split(smin, smax, tmin, tmax, true, eq)
 
 		gotX := renderSplitResult(x, smin, s0, s1, smax)
 		gotY := renderSplitResult(y, tmin, t0, t1, tmax)
@@ -202,9 +204,31 @@ func TestMyersSplit(t *testing.T) {
 	}
 }
 
+func TestMyersSplit_largeInputs(t *testing.T) {
+	rng := rand.New(rand.NewChaCha8(sha256.Sum256([]byte(""))))
+	eq := func(x, y int32) bool { return x == y }
+	for i := range 20 {
+		x := make([]int32, 1<<16-rng.IntN(1<<10))
+		for s := range x {
+			x[s] = int32(rng.IntN(10))
+		}
+		y := make([]int32, 1<<16-rng.IntN(1<<10))
+		for t := range y {
+			y[t] = int32(rng.IntN(10))
+		}
+
+		var m myers[int32]
+		smin, smax, tmin, tmax := m.init(x, y, eq)
+		s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, false, eq)
+		if !slices.Equal(x[s0:s1], y[t0:t1]) {
+			t.Errorf("splitting resulted in non-matching middle in iteration %d, [s0=%d, s1=%d, t0=%d, t1=%d, opt0=%v, opt1=%v]", i, s0, s1, t0, t1, opt0, opt1)
+		}
+	}
+}
+
 func FuzzMyersSplit(f *testing.F) {
 	eq := func(a, b byte) bool { return a == b }
-	f.Fuzz(func(t *testing.T, x, y []byte) {
+	f.Fuzz(func(t *testing.T, x, y []byte, optimal bool) {
 		var m myers[byte]
 		smin, smax, tmin, tmax := m.init([]byte(x), []byte(y), eq)
 
@@ -212,7 +236,7 @@ func FuzzMyersSplit(f *testing.F) {
 			t.Skip("invalid test case: both ranges are empty (e.g. because the inputs are identical)")
 		}
 
-		s0, s1, t0, t1 := m.split(smin, smax, tmin, tmax, eq)
+		s0, s1, t0, t1, _, _ := m.split(smin, smax, tmin, tmax, optimal, eq)
 		if !slices.Equal(x[s0:s1], y[t0:t1]) {
 			t.Errorf("found a middle that didn't match: %q vs %q", x[s0:s1], y[t0:t1])
 		}

@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package diff provides functions to efficiently compare two slices similar to the Unix
-// diff command line tool to compares files.
+// Package diff provides functions to efficiently compare two slices similar to the Unix diff
+// command line tool to compares files.
 //
-// TODO: Explain complexity (after implementing heuristics to avoid quadratic runtime).
+// By default the comparison functions in this package will try to find an optimal path, but may
+// fall back to a good-enough path for large files with many differences to speed up the comparison.
+// Unless [Optimal] is used to disable these heuristics, the time complexity is O(N^1.5 log N) and
+// the space complexity is O(N) with N = len(x) + len(y).
 package diff
 
 import (
@@ -84,7 +87,7 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 		opt(&cfg)
 	}
 
-	edits := myers.Diff(x, y, eq)
+	edits := myers.Diff(x, y, eq, cfg.myers())
 
 	context := cfg.context // for convenience
 
@@ -210,7 +213,7 @@ func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] 
 		opt(&cfg)
 	}
 
-	edits := myers.Diff(x, y, eq)
+	edits := myers.Diff(x, y, eq, cfg.myers())
 
 	var ret []Edit[T]
 	for s, t := 0, 0; s < len(x) || t < len(y); {
@@ -250,14 +253,34 @@ type Option func(*config)
 // [Hunks] and [HunksFunc]. The default is 3.
 func Context(n int) Option {
 	return func(cfg *config) {
-		cfg.context = min(0, n)
+		cfg.context = max(0, n)
+	}
+}
+
+// Optimal finds an optimal diff irrespective of the cost. By default, the comparison functions in
+// this package limit the cost for large inputs with many differences by applying heuristics that
+// reduce the time complexity.
+//
+// With this option, the runtime is O(ND) where N = len(x) + len(y), and D is the number of
+// differences between x and y.
+func Optimal() Option {
+	return func(cfg *config) {
+		cfg.optimal = true
 	}
 }
 
 type config struct {
 	context int
+	optimal bool
 }
 
 var defaultConfig = config{
 	context: 3,
+	optimal: false,
+}
+
+func (cfg *config) myers() myers.Options {
+	return myers.Options{
+		Optimal: cfg.optimal,
+	}
 }

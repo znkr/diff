@@ -104,3 +104,32 @@ func ExampleEdits() {
 	// Output:
 	// Hello, -W-o-r-l-d+世+界
 }
+
+func ExampleContext() {
+	x := strings.Fields("calm seas reflect the sky")
+	y := strings.Fields("restless seas reflect the sky defiantly")
+	hunks := diff.Hunks(x, y, diff.Context(1))
+	for _, h := range hunks {
+		fmt.Printf("@@ -%d,%d +%d,%d @@\n", h.PosX+1, h.EndX-h.PosX, h.PosY+1, h.EndY-h.PosY)
+		for _, edit := range h.Edits {
+			switch edit.Op {
+			case diff.Match:
+				fmt.Printf(" %s\n", edit.X)
+			case diff.Delete:
+				fmt.Printf("-%s\n", edit.X)
+			case diff.Insert:
+				fmt.Printf("+%s\n", edit.Y)
+			default:
+				panic("never reached")
+			}
+		}
+	}
+	// Output:
+	// @@ -1,2 +1,2 @@
+	// -calm
+	// +restless
+	//  seas
+	// @@ -5,1 +5,2 @@
+	//  sky
+	// +defiantly
+}
