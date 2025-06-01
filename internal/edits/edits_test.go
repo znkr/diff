@@ -23,19 +23,21 @@ import (
 
 func TestHunks(t *testing.T) {
 	tests := []struct {
-		name    string
-		flags   []Flag
-		n, m    int
-		context int
-		want    []Hunk
+		name      string
+		flags     []Flag
+		n, m      int
+		context   int
+		wantHunks []Hunk
+		wantEdits int
 	}{
 		{
-			name:    "empty",
-			flags:   nil,
-			n:       0,
-			m:       0,
-			context: 3,
-			want:    nil,
+			name:      "empty",
+			flags:     nil,
+			n:         0,
+			m:         0,
+			context:   3,
+			wantHunks: nil,
+			wantEdits: 0,
 		},
 		{
 			name: "ABCABBA_to_CBABAC_context_3",
@@ -52,9 +54,10 @@ func TestHunks(t *testing.T) {
 			n:       7,
 			m:       6,
 			context: 3,
-			want: []Hunk{
-				{0, 7, 0, 6},
+			wantHunks: []Hunk{
+				{0, 7, 0, 6, 9},
 			},
+			wantEdits: 9,
 		},
 		{
 			name: "ABCABBA_to_CBABAC_context_1",
@@ -71,9 +74,10 @@ func TestHunks(t *testing.T) {
 			n:       7,
 			m:       6,
 			context: 1,
-			want: []Hunk{
-				{0, 7, 0, 6}, // overlapping hunks are merged
+			wantHunks: []Hunk{
+				{0, 7, 0, 6, 9}, // overlapping hunks are merged
 			},
+			wantEdits: 9,
 		},
 		{
 			name: "ABCABBA_to_CBABAC_context_0",
@@ -90,21 +94,24 @@ func TestHunks(t *testing.T) {
 			n:       7,
 			m:       6,
 			context: 0,
-			want: []Hunk{
-				{0, 1, 0, 1},
-				{2, 3, 2, 2},
-				{5, 6, 4, 4},
-				{7, 7, 5, 6},
+			wantHunks: []Hunk{
+				{0, 1, 0, 1, 2},
+				{2, 3, 2, 2, 1},
+				{5, 6, 4, 4, 1},
+				{7, 7, 5, 6, 1},
 			},
+			wantEdits: 5,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Hunks(tt.flags, tt.n, tt.m, config.Config{Context: tt.context})
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			gotHunks, gotEdits := Hunks(tt.flags, tt.n, tt.m, config.Config{Context: tt.context})
+			if diff := cmp.Diff(tt.wantHunks, gotHunks); diff != "" {
 				t.Errorf("Hunks(...) result are different [-want,+got]:\n%s", diff)
-
+			}
+			if gotEdits != tt.wantEdits {
+				t.Errorf("Hunks(...) total edits is %v, want %v", gotEdits, tt.wantEdits)
 			}
 		})
 	}

@@ -54,18 +54,18 @@ func (e Flag) String() string {
 type Hunk struct {
 	S0, S1 int // Start and end of the hunk in x.
 	T0, T1 int // Start and end of the hunk in y.
+	Edits  int // Number of edits in this hunk.
 }
 
 // Hunks finds all hunks in flags and returns them.
-func Hunks(flags []Flag, n, m int, cfg config.Config) []Hunk {
+func Hunks(flags []Flag, n, m int, cfg config.Config) (hunks []Hunk, edits int) {
 	context := cfg.Context
-
 	if n > len(flags) || m > len(flags) {
 		panic("n and m must be <= len(flags)")
 	}
 
-	var hunks []Hunk // all hunks we have found
 	s, t := 0, 0     // current index into x, y
+	hedits := 0      // number of edits in the current hunk
 	s0, t0 := -1, -1 // start of the current hunk
 	run := 0         // number of consecutive matches
 	for s < n || t < m {
@@ -78,11 +78,14 @@ func Hunks(flags []Flag, n, m int, cfg config.Config) []Hunk {
 			if s0 < 0 {
 				// start of missing matches (didn't collect matches before now)
 				s0, t0 = max(0, s-context), max(0, t-context)
+				hedits = s - s0
 
 				// Check if the context windows for this new hunk and the previous hunk overlap. If
 				// they do, continue filling that hunk.
 				if len(hunks) > 0 && hunks[len(hunks)-1].S1 >= s0 {
 					h := hunks[len(hunks)-1]
+					edits -= h.Edits
+					hedits = h.Edits + (s - h.S1)
 					s0, t0 = h.S0, h.T0
 					hunks = hunks[:len(hunks)-1]
 				}
@@ -90,24 +93,25 @@ func Hunks(flags []Flag, n, m int, cfg config.Config) []Hunk {
 
 			if del {
 				s++
+				hedits++
 			}
 			if ins {
 				t++
+				hedits++
 			}
 		} else {
-			// If we are inside an in-progress hunk and we've seen as many matches as we want
-			// in a context, finish the hunk.
-			if s0 >= 0 && run >= context {
-				hunks = append(hunks, Hunk{s0, s, t0, t})
-				s0, t0 = -1, -1
-			}
 			s++
 			t++
 			run++
+			hedits++
+		}
+		// Active in-progress hunk and we've seen as many matches as we want in a context, finish
+		// the hunk.
+		if s0 >= 0 && (run >= context || s == n && t == m) {
+			hunks = append(hunks, Hunk{s0, s, t0, t, hedits})
+			s0, t0 = -1, -1
+			edits += hedits
 		}
 	}
-	if s0 >= 0 {
-		hunks = append(hunks, Hunk{s0, s, t0, t})
-	}
-	return hunks
+	return hunks, edits
 }

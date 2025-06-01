@@ -84,8 +84,9 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 	cfg := config.FromOptions(opts, config.Context|config.Optimal)
 
 	flags := myers.Diff(x, y, eq, cfg)
-	hunks := edits.Hunks(flags, len(x), len(y), cfg)
+	hunks, nedits := edits.Hunks(flags, len(x), len(y), cfg)
 
+	editsPrealloc := make([]Edit[T], nedits)
 	out := make([]Hunk[T], 0, len(hunks))
 	for _, h := range hunks {
 		oh := Hunk[T]{
@@ -93,8 +94,9 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 			EndX:  h.S1,
 			PosY:  h.T0,
 			EndY:  h.T1,
-			Edits: nil, // TODO: preallocate
+			Edits: editsPrealloc[:h.Edits:h.Edits][:0],
 		}
+		editsPrealloc = editsPrealloc[h.Edits:]
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			switch {
 			case flags[s]&edits.Delete != 0:

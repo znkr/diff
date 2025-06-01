@@ -71,7 +71,7 @@ func UnifiedBytes(x, y []byte, opts []diff.Option) []byte {
 	}
 
 	flags := myers.Diff(xlines, ylines, bytes.Equal, cfg)
-	hunks := edits.Hunks(flags, len(xlines), len(ylines), cfg)
+	hunks, _ := edits.Hunks(flags, len(xlines), len(ylines), cfg)
 	if len(hunks) == 0 {
 		return nil
 	}
