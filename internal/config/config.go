@@ -1,0 +1,48 @@
+// Copyright 2025 Florian Zenker (flo@znkr.io)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package config provides shared configuration mechanisms for packages this module.
+//
+// This package is an implementation detail, the configuration surface for users is provided via
+// diff.Option.
+package config
+
+// Config collects all configurable parameters for comparison functions in this module.
+type Config struct {
+	// Context is the number of matches to include as a prefix and postfix for hunks returned.
+	Context int
+
+	// If set, comparison function will try to find an optimal diff irrespective of the cost. By
+	// default, the comparison functions in this package limit the cost for large inputs with many
+	// differences by applying heuristics that reduce the time complexity.
+	Optimal bool
+}
+
+// Default is the default configuration.
+var Default = Config{
+	Context: 3,
+	Optimal: false,
+}
+
+// Options is the mechanism used to expose the configuration to users.
+type Option func(*Config)
+
+// FromOptions creates a configuration from a set of options.
+func FromOptions(opts []Option) Config {
+	cfg := Default
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return cfg
+}

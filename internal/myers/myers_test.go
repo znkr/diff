@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"znkr.io/diff/internal/config"
 )
 
 func TestMyersDiff(t *testing.T) {
@@ -112,7 +113,7 @@ func TestMyersDiff(t *testing.T) {
 	eq := func(a, b string) bool { return a == b }
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Diff(tt.x, tt.y, eq, Options{})
+			got := Diff(tt.x, tt.y, eq, config.Default)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("edits differs [-want,+got]:\n%s", diff)
 			}

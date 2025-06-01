@@ -12,16 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package diff provides functions to efficiently compare two slices similar to the Unix diff
-// command line tool to compares files.
-//
-// By default the comparison functions in this package will try to find an optimal path, but may
-// fall back to a good-enough path for large files with many differences to speed up the comparison.
-// Unless [Optimal] is used to disable these heuristics, the time complexity is O(N^1.5 log N) and
-// the space complexity is O(N) with N = len(x) + len(y).
 package diff
 
 import (
+	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/myers"
 )
 
@@ -82,14 +76,11 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
-	cfg := defaultConfig
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	cfg := config.FromOptions(opts)
 
-	edits := myers.Diff(x, y, eq, cfg.myers())
+	edits := myers.Diff(x, y, eq, cfg)
 
-	context := cfg.context // for convenience
+	context := cfg.Context // for convenience
 
 	// State being used in the loop below.
 	s, t := 0, 0         // current index into x, y
@@ -208,12 +199,9 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
-	cfg := defaultConfig
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	cfg := config.FromOptions(opts)
 
-	edits := myers.Diff(x, y, eq, cfg.myers())
+	edits := myers.Diff(x, y, eq, cfg)
 
 	var ret []Edit[T]
 	for s, t := 0, 0; s < len(x) || t < len(y); {
@@ -244,43 +232,4 @@ func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] 
 	}
 
 	return ret
-}
-
-// Option configures the behavior of comparison functions.
-type Option func(*config)
-
-// Context sets the number of matches to include as a prefix and postfix for hunks returned in
-// [Hunks] and [HunksFunc]. The default is 3.
-func Context(n int) Option {
-	return func(cfg *config) {
-		cfg.context = max(0, n)
-	}
-}
-
-// Optimal finds an optimal diff irrespective of the cost. By default, the comparison functions in
-// this package limit the cost for large inputs with many differences by applying heuristics that
-// reduce the time complexity.
-//
-// With this option, the runtime is O(ND) where N = len(x) + len(y), and D is the number of
-// differences between x and y.
-func Optimal() Option {
-	return func(cfg *config) {
-		cfg.optimal = true
-	}
-}
-
-type config struct {
-	context int
-	optimal bool
-}
-
-var defaultConfig = config{
-	context: 3,
-	optimal: false,
-}
-
-func (cfg *config) myers() myers.Options {
-	return myers.Options{
-		Optimal: cfg.optimal,
-	}
 }

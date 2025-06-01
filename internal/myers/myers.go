@@ -115,6 +115,8 @@ package myers
 import (
 	"fmt"
 	"math"
+
+	"znkr.io/diff/internal/config"
 )
 
 // minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
@@ -149,17 +151,12 @@ func (e EditFlag) String() string {
 	}
 }
 
-// Options allows configuration of the diffing algorithm.
-type Options struct {
-	Optimal bool // find an optimal path irrespective of the cost
-}
-
 // Diff compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
-func Diff[T any](x, y []T, eq func(a, b T) bool, opts Options) []EditFlag {
+func Diff[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) []EditFlag {
 	var m myers[T]
 	smin, smax, tmin, tmax := m.init(x, y, eq)
-	m.compare(smin, smax, tmin, tmax, opts.Optimal, eq)
+	m.compare(smin, smax, tmin, tmax, cfg.Optimal, eq)
 	return m.edits
 }
 
