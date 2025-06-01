@@ -21,9 +21,11 @@ import (
 	"znkr.io/diff"
 )
 
-// Compare to strings line by line and output the difference as a pseudo-unified diff output
-// (i.e. it's similar to what diff -u would produce). The format is not a correct unified diff
-// though, in particular line endings (esp. at the end of the input) are handled differently.
+// Compare to strings line by line and output the difference as a pseudo-unified diff output (i.e.
+// it's similar to what diff -u would produce). The format is not a correct unified diff though, in
+// particular line endings (esp. at the end of the input) are handled differently.
+//
+// More generally, comparing text line by line is better solved with the textdiff subpackage.
 func ExampleHunks_psudoUnified() {
 	x := `this paragraph
 is not
@@ -85,7 +87,7 @@ new hunk`
 }
 
 // Compare two strings rune by rune.
-func ExampleEdits() {
+func ExampleEdits_runes() {
 	x := []rune("Hello, World")
 	y := []rune("Hello, 世界")
 	edits := diff.Edits(x, y)
@@ -103,6 +105,33 @@ func ExampleEdits() {
 	}
 	// Output:
 	// Hello, -W-o-r-l-d+世+界
+}
+
+// Compare two strings word by word.
+func ExampleEdits_words() {
+	x := strings.Fields("calm seas reflect the sky")
+	y := strings.Fields("restless seas reflect the sky defiantly")
+	edits := diff.Edits(x, y)
+	for _, edit := range edits {
+		switch edit.Op {
+		case diff.Match:
+			fmt.Printf(" %s\n", edit.X)
+		case diff.Delete:
+			fmt.Printf("-%s\n", edit.X)
+		case diff.Insert:
+			fmt.Printf("+%s\n", edit.Y)
+		default:
+			panic("never reached")
+		}
+	}
+	// Output:
+	// -calm
+	// +restless
+	//  seas
+	//  reflect
+	//  the
+	//  sky
+	// +defiantly
 }
 
 func ExampleContext() {

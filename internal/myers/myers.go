@@ -102,7 +102,7 @@
 // The algorithm was independently discoverd by Ekko Ukkonen:
 //
 // Ukkonen, E. Algorithms for approximate string matching. Information and Control, Volume 64,
-// Issues 1–3, 100-118 (1985). https://doi.org/10.1016/S0019-9958(85)80046-2
+// Issues 1-3, 100-118 (1985). https://doi.org/10.1016/S0019-9958(85)80046-2
 //
 // # Heuristics
 //
