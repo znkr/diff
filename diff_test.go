@@ -35,13 +35,13 @@ func TestHunks(t *testing.T) {
 			name: "identical",
 			x:    []string{"foo", "bar", "baz"},
 			y:    []string{"foo", "bar", "baz"},
-			want: nil,
+			want: []Hunk[string]{},
 		},
 		{
 			name: "empty",
 			x:    nil,
 			y:    nil,
-			want: nil,
+			want: []Hunk[string]{},
 		},
 		{
 			name: "x-empty",

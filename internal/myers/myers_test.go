@@ -24,88 +24,89 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/edits"
 )
 
 func TestMyersDiff(t *testing.T) {
 	tests := []struct {
 		name string
 		x, y []string
-		want []EditFlag
+		want []edits.Flag
 	}{
 		{
 			name: "identical",
 			x:    []string{"foo", "bar", "baz"},
 			y:    []string{"foo", "bar", "baz"},
-			want: []EditFlag{
-				None,
-				None,
-				None,
-				None, // border
+			want: []edits.Flag{
+				edits.None,
+				edits.None,
+				edits.None,
+				edits.None, // border
 			},
 		},
 		{
 			name: "empty",
 			x:    nil,
 			y:    nil,
-			want: []EditFlag{
-				None, // border
+			want: []edits.Flag{
+				edits.None, // border
 			},
 		},
 		{
 			name: "x-empty",
 			x:    nil,
 			y:    []string{"foo", "bar", "baz"},
-			want: []EditFlag{
-				Insert,
-				Insert,
-				Insert,
-				None, // border
+			want: []edits.Flag{
+				edits.Insert,
+				edits.Insert,
+				edits.Insert,
+				edits.None, // border
 			},
 		},
 		{
 			name: "y-empty",
 			x:    []string{"foo", "bar", "baz"},
 			y:    nil,
-			want: []EditFlag{
-				Delete,
-				Delete,
-				Delete,
-				None, // border
+			want: []edits.Flag{
+				edits.Delete,
+				edits.Delete,
+				edits.Delete,
+				edits.None, // border
 			},
 		},
 		{
 			name: "ABCABBA_to_CBABAC",
 			x:    strings.Split("ABCABBA", ""),
 			y:    strings.Split("CBABAC", ""),
-			want: []EditFlag{
-				Insert | Delete, // -A +C
-				None,            //  B  B
-				Delete,          // -C  A
-				None,            //  A  B
-				None,            //  B  A
-				Insert | Delete, // -B +C
-				None,            //  A
-				None,            // border
+			want: []edits.Flag{
+				edits.Insert | edits.Delete, // -A +C
+				edits.None,                  //  B  B
+				edits.Delete,                // -C  A
+				edits.None,                  //  A  B
+				edits.None,                  //  B  A
+				edits.Insert | edits.Delete, // -B +C
+				edits.None,                  //  A
+				edits.None,                  // border
 			},
 		},
 		{
 			name: "same-prefix",
 			x:    []string{"foo", "bar"},
 			y:    []string{"foo", "baz"},
-			want: []EditFlag{
-				None,
-				Insert | Delete,
-				None, // border
+			want: []edits.Flag{
+				edits.None,
+				edits.Insert | edits.Delete,
+				edits.None, // border
 			},
 		},
 		{
 			name: "same-suffix",
 			x:    []string{"foo", "bar"},
 			y:    []string{"loo", "bar"},
-			want: []EditFlag{
-				Insert | Delete,
-				None,
-				None, // border
+			want: []edits.Flag{
+				edits.Insert | edits.Delete,
+				edits.None,
+				edits.None, // border
 			},
 		},
 	}

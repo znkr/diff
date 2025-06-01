@@ -16,6 +16,7 @@ package diff
 
 import (
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/edits"
 	"znkr.io/diff/internal/myers"
 )
 
@@ -42,7 +43,7 @@ type Edit[T any] struct {
 	X, Y T
 }
 
-// Hunk describes a number of consecutive edits.
+// Hunk describes a sequence of consecutive edits.
 type Hunk[T any] struct {
 	PosX, EndX int       // Start and end position in x.
 	PosY, EndY int       // Start and end position in y.
@@ -78,104 +79,45 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts)
 
-	edits := myers.Diff(x, y, eq, cfg)
+	flags := myers.Diff(x, y, eq, cfg)
+	hunks := edits.Hunks(flags, len(x), len(y), cfg)
 
-	context := cfg.Context // for convenience
-
-	// State being used in the loop below.
-	s, t := 0, 0         // current index into x, y
-	s0, t0 := 0, 0       // start of the current in-progress hunk
-	var hedits []Edit[T] // edits for the current in-progress hunk
-	run := 0             // number of consecutive matches
-
-	var hunks []Hunk[T]
-	finishHunk := func() {
-		h := Hunk[T]{
-			PosX:  s0,
-			EndX:  s,
-			PosY:  t0,
-			EndY:  t,
-			Edits: hedits,
+	out := make([]Hunk[T], 0, len(hunks))
+	for _, h := range hunks {
+		oh := Hunk[T]{
+			PosX:  h.S0,
+			EndX:  h.S1,
+			PosY:  h.T0,
+			EndY:  h.T1,
+			Edits: nil, // TODO: preallocate
 		}
-		hunks = append(hunks, h)
-		hedits = nil
-	}
-
-	// The edits slice is a bit unusual, because it contains information for both x and y. When
-	// iterating over it, we need to iterate over s and t independently. That is, we can't just
-	// query edits using a single index.
-	for s < len(x) || t < len(y) {
-		del, ins := edits[s]&myers.Delete != 0, edits[t]&myers.Insert != 0
-
-		if del || ins {
-			run = 0
-
-			// If there are no previous edits, start a new hunk or, if there's an overlap due to
-			// context, continue with the previous hunk.
-			if len(hedits) == 0 {
-				s0, t0 = max(0, s-context), max(0, t-context)
-				s1, t1 := s0, t0 // start of missing matches (didn't collect matches before now)
-
-				// Check if the context windows for this new hunk and the previous hunk overlap. If
-				// they do, continue filling that hunk.
-				if len(hunks) > 0 && hunks[len(hunks)-1].EndX >= s0 {
-					prev := hunks[len(hunks)-1]
-					s1, t1 = prev.EndX, prev.EndY
-					s0, t0 = prev.PosX, prev.PosY
-					hedits = prev.Edits
-					hunks = hunks[:len(hunks)-1]
-				}
-
-				// Backfill missing matches at the beginning of a hunk.
-				for u, v := s1, t1; u < s && v < t; u, v = u+1, v+1 {
-					hedits = append(hedits, Edit[T]{
-						Op: Match,
-						X:  x[u],
-						Y:  y[v],
-					})
-				}
-			}
-		}
-
-		// Handle one of these cases per iteration. That way consecutive deletions followed by
-		// insertions are grouped by edit operations instead of being interleaved.
-		switch {
-		case del:
-			hedits = append(hedits, Edit[T]{
-				Op: Delete,
-				X:  x[s],
-			})
-			s++
-		case ins:
-			hedits = append(hedits, Edit[T]{
-				Op: Insert,
-				Y:  y[t],
-			})
-			t++
-		default:
-			// If we have a non-empty in-progress hunk and we've seen as many matches as we want
-			// in a context, finish the hunk. This also resets hedits.
-			if len(hedits) > 0 && run >= context {
-				finishHunk()
-			}
-			// If we have a non-empty in-progress hunk, record a match. If we're outside a hunk,
-			// we don't do anything.
-			if len(hedits) > 0 {
-				hedits = append(hedits, Edit[T]{
+		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
+			switch {
+			case flags[s]&edits.Delete != 0:
+				oh.Edits = append(oh.Edits, Edit[T]{
+					Op: Delete,
+					X:  x[s],
+				})
+				s++
+			case flags[t]&edits.Insert != 0:
+				oh.Edits = append(oh.Edits, Edit[T]{
+					Op: Insert,
+					Y:  y[t],
+				})
+				t++
+			default:
+				oh.Edits = append(oh.Edits, Edit[T]{
 					Op: Match,
 					X:  x[s],
 					Y:  y[t],
 				})
+				s++
+				t++
 			}
-			s++
-			t++
-			run++
 		}
+		out = append(out, oh)
 	}
-	if len(hedits) > 0 {
-		finishHunk()
-	}
-	return hunks
+	return out
 }
 
 // Edits compares the contents of x and y and returns the changes necessary to convert from one to
@@ -201,20 +143,20 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts)
 
-	edits := myers.Diff(x, y, eq, cfg)
+	flags := myers.Diff(x, y, eq, cfg)
 
 	var ret []Edit[T]
 	for s, t := 0, 0; s < len(x) || t < len(y); {
 		// Handle one of these cases per iteration. That way consecutive deletions followed by
 		// insertions are grouped by edit operations instead of being interleaved.
 		switch {
-		case edits[s]&myers.Delete != 0:
+		case flags[s]&edits.Delete != 0:
 			ret = append(ret, Edit[T]{
 				Op: Delete,
 				X:  x[s],
 			})
 			s++
-		case edits[t]&myers.Insert != 0:
+		case flags[t]&edits.Insert != 0:
 			ret = append(ret, Edit[T]{
 				Op: Insert,
 				Y:  y[t],

@@ -113,47 +113,19 @@
 package myers
 
 import (
-	"fmt"
 	"math"
 
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/edits"
 )
 
 // minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
 // applied when the cost exceeds this number (large files with a lot of differences).
 const minCostLimit = 4096
 
-// EditFlag is a flag describing the edits for elements in both inputs.
-//
-// For the input slices x and y, the edit that transforms x into y is a slice edit []EditFlag. If
-// the s-th element of x is to be deleted, edit[s]&Delete != 0 and if the t-th element of y is
-// to be inserted edit[t]&Insert != 0.
-type EditFlag uint8
-
-const (
-	None   EditFlag = 0
-	Delete EditFlag = 1 << iota
-	Insert
-)
-
-func (e EditFlag) String() string {
-	switch e {
-	case None:
-		return "none"
-	case Insert:
-		return "insert"
-	case Delete:
-		return "delete"
-	case Insert | Delete:
-		return "delete|insert"
-	default:
-		return fmt.Sprint(uint8(e))
-	}
-}
-
 // Diff compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
-func Diff[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) []EditFlag {
+func Diff[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) []edits.Flag {
 	var m myers[T]
 	smin, smax, tmin, tmax := m.init(x, y, eq)
 	m.compare(smin, smax, tmin, tmax, cfg.Optimal, eq)
@@ -176,7 +148,7 @@ type myers[T any] struct {
 	costLimit int
 
 	// Result is stored in edits. See the documentation of Diff for more details about the format.
-	edits []EditFlag
+	edits []edits.Flag
 }
 
 func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax int) {
@@ -214,7 +186,7 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 	}
 	m.costLimit = max(minCostLimit, costLimit)
 
-	m.edits = make([]EditFlag, max(len(x), len(y))+1) // The +1 for the right border (simplifies iteration)
+	m.edits = make([]edits.Flag, max(len(x), len(y))+1) // The +1 for the right border (simplifies iteration)
 	return
 }
 
@@ -225,12 +197,12 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, 
 	if smin == smax {
 		// s is empty, therefore everything in tmin to tmax is an insertion.
 		for t := tmin; t < tmax; t++ {
-			m.edits[t] |= Insert
+			m.edits[t] |= edits.Insert
 		}
 	} else if tmin == tmax {
 		// t is empty, therefore everything in smin to smax is a deletion.
 		for s := smin; s < smax; s++ {
-			m.edits[s] |= Delete
+			m.edits[s] |= edits.Delete
 		}
 	} else {
 		// Use split to divide the input into three pieces:
