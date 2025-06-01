@@ -19,11 +19,13 @@ import "znkr.io/diff/internal/config"
 // Option configures the behavior of comparison functions.
 type Option = config.Option
 
-// Context sets the number of matches to include as a prefix and postfix for hunks returned in
-// [Hunks] and [HunksFunc]. The default is 3.
+// Context sets the number of matches to include as a prefix and postfix for hunks. The default is 3.
+//
+// Only supported by functions that returns hunks.
 func Context(n int) Option {
-	return func(cfg *config.Config) {
+	return func(cfg *config.Config) config.Flag {
 		cfg.Context = max(0, n)
+		return config.Context
 	}
 }
 
@@ -34,7 +36,8 @@ func Context(n int) Option {
 // With this option, the runtime is O(ND) where N = len(x) + len(y), and D is the number of
 // differences between x and y.
 func Optimal() Option {
-	return func(cfg *config.Config) {
+	return func(cfg *config.Config) config.Flag {
 		cfg.Optimal = true
+		return config.Optimal
 	}
 }

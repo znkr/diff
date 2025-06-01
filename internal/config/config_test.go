@@ -80,7 +80,7 @@ func TestFromOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := config.FromOptions(tt.opts)
+			got := config.FromOptions(tt.opts, config.Context|config.Optimal)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("FromOptions(...) result are different [-want,+got]:\n%s", diff)
 			}

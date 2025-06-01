@@ -35,14 +35,37 @@ var Default = Config{
 	Optimal: false,
 }
 
+// Flag describes a single config entry. This is used to detect if configurations are being set
+// that are not
+type Flag int
+
+const (
+	Context Flag = 1 << iota
+	Optimal
+)
+
 // Options is the mechanism used to expose the configuration to users.
-type Option func(*Config)
+type Option func(*Config) Flag
 
 // FromOptions creates a configuration from a set of options.
-func FromOptions(opts []Option) Config {
+func FromOptions(opts []Option, allowed Flag) Config {
 	cfg := Default
 	for _, opt := range opts {
-		opt(&cfg)
+		flag := opt(&cfg)
+		if flag & ^allowed != 0 {
+			panic("Option " + printFlag(flag) + " not allowed here")
+		}
 	}
 	return cfg
+}
+
+func printFlag(flag Flag) string {
+	switch flag {
+	case Context:
+		return "diff.Context"
+	case Optimal:
+		return "diff.Optimal"
+	default:
+		panic("never reached")
+	}
 }

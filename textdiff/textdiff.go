@@ -35,6 +35,8 @@ const (
 // Unified compares the lines in x and y and returns the changes necessary to convert from one to
 // the other in unified format.
 //
+// The following options are supported: [diff.Context], [diff.Optimal]
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Unified(x, y string, opts ...diff.Option) string {
@@ -49,10 +51,12 @@ func Unified(x, y string, opts ...diff.Option) string {
 // UnifiedBytes compares the lines in x and y and returns the changes necessary to convert from one
 // to the other in unified format.
 //
+// The following options are supported: [diff.Context], [diff.Optimal]
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func UnifiedBytes(x, y []byte, opts []diff.Option) []byte {
-	cfg := config.FromOptions(opts)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal)
 
 	xlines := bytes.SplitAfter(x, []byte{'\n'})
 	ylines := bytes.SplitAfter(y, []byte{'\n'})

@@ -59,6 +59,8 @@ type Hunk[T any] struct {
 //
 // If x and y are identical, the output has length zero.
 //
+// The following options are supported: [diff.Context], [diff.Optimal]
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
@@ -74,10 +76,12 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 //
 // If x and y are identical, the output has length zero.
 //
+// The following options are supported: [diff.Context], [diff.Optimal]
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
-	cfg := config.FromOptions(opts)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal)
 
 	flags := myers.Diff(x, y, eq, cfg)
 	hunks := edits.Hunks(flags, len(x), len(y), cfg)
@@ -126,6 +130,8 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 // Edits returns edits for every element in the input. If both x and y are identical, the output
 // will consist of a match edit for every input element.
 //
+// The following option is supported: [diff.Optimal]
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
@@ -138,10 +144,12 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 // EditsFunc returns edits for every element in the input. If both x and y are identical, the output
 // will consist of a match edit for every input element.
 //
+// The following option is supported: [diff.Optimal]
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
-	cfg := config.FromOptions(opts)
+	cfg := config.FromOptions(opts, config.Optimal)
 
 	flags := myers.Diff(x, y, eq, cfg)
 
