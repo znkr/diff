@@ -1,0 +1,84 @@
+-- x --
+package array
+
+var m = []struct{
+    name  string
+    year  int
+}{
+    {
+        name: "Freak Out!",
+        year: 1966,
+    },
+    {
+        name: "We're Only in It for the Money",
+        year: 1967,
+    },
+    {
+        name: "Absolutely Free",
+        year: 1967,
+    },
+}
+-- y --
+package array
+
+var m = []struct{
+    name  string
+    year  int
+}{
+    {
+        name: "Freak Out!",
+        year: 1966,
+    },
+    {
+        name: "Absolutely Free",
+        year: 1967,
+    },
+    {
+        name: "We're Only in It for the Money",
+        year: 1967,
+    },
+}
+-- diff --
+@@ -9,11 +9,11 @@
+         year: 1966,
+     },
+     {
+-        name: "We're Only in It for the Money",
++        name: "Absolutely Free",
+         year: 1967,
+     },
+     {
+-        name: "Absolutely Free",
++        name: "We're Only in It for the Money",
+         year: 1967,
+     },
+ }
+-- diff --
+# indent-heuristic: true
+@@ -9,11 +9,11 @@
+         year: 1966,
+     },
+     {
+-        name: "We're Only in It for the Money",
++        name: "Absolutely Free",
+         year: 1967,
+     },
+     {
+-        name: "Absolutely Free",
++        name: "We're Only in It for the Money",
+         year: 1967,
+     },
+ }
+-- diff --
+# context: 1
+# indent-heuristic: true
+@@ -11,3 +11,3 @@
+     {
+-        name: "We're Only in It for the Money",
++        name: "Absolutely Free",
+         year: 1967,
+@@ -15,3 +15,3 @@
+     {
+-        name: "Absolutely Free",
++        name: "We're Only in It for the Money",
+         year: 1967,

@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/textdiff"
 )
 
 func TestFromOptions(t *testing.T) {
@@ -39,8 +40,9 @@ func TestFromOptions(t *testing.T) {
 				diff.Context(5),
 			},
 			want: config.Config{
-				Context: 5,
-				Optimal: config.Default.Optimal,
+				Context:         5,
+				Optimal:         config.Default.Optimal,
+				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
 		{
@@ -49,8 +51,9 @@ func TestFromOptions(t *testing.T) {
 				diff.Optimal(),
 			},
 			want: config.Config{
-				Context: config.Default.Context,
-				Optimal: true,
+				Context:         config.Default.Context,
+				Optimal:         true,
+				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
 		{
@@ -60,8 +63,9 @@ func TestFromOptions(t *testing.T) {
 				diff.Context(5),
 			},
 			want: config.Config{
-				Context: 5,
-				Optimal: true,
+				Context:         5,
+				Optimal:         true,
+				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
 		{
@@ -72,15 +76,29 @@ func TestFromOptions(t *testing.T) {
 				diff.Context(1),
 			},
 			want: config.Config{
-				Context: 1,
-				Optimal: true,
+				Context:         1,
+				Optimal:         true,
+				IndentHeuristic: config.Default.IndentHeuristic,
+			},
+		},
+		{
+			name: "everything",
+			opts: []config.Option{
+				diff.Context(5),
+				diff.Optimal(),
+				textdiff.IndentHeuristic(),
+			},
+			want: config.Config{
+				Context:         5,
+				Optimal:         true,
+				IndentHeuristic: true,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := config.FromOptions(tt.opts, config.Context|config.Optimal)
+			got := config.FromOptions(tt.opts, config.Context|config.Optimal|config.IndentHeuristic)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("FromOptions(...) result are different [-want,+got]:\n%s", diff)
 			}

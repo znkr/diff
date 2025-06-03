@@ -123,6 +123,17 @@ fmt.Print(textdiff.Unified(x, y))
 // -removed
 ```
 
+## Diff Readability
+
+Diffs produced by this module are intended to be readable by humans.
+
+Readable diffs have been the subject of a lot of discussions and have even resulted in some new
+diffing algorithms like the patience or heuristic algorithms in git. However, the best work about
+diff readability by far is [diff-slider-tools](https://github.com/mhagger/diff-slider-tools) by
+[Michael Haggerty](https://github.com/mhagger). He implemented a heuristic that's applied in a
+post-processing step to improve the readability. This module implements this heuristic in the
+[textdiff](https://pkg.go.dev/znkr.io/diff/textdiff) package.
+
 ## License
 
 This module is distributed under the [Apache License, Version

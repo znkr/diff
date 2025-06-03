@@ -1,0 +1,22 @@
+-- input --
+         year: 1966,
+     },
+     {
++        name: "Absolutely Free",
++        year: 1967,
++    },
++    {
+         name: "We're Only in It for the Money",
+         year: 1967,
+     },
+-- want --
+         year: 1966,
+     },
++    {
++        name: "Absolutely Free",
++        year: 1967,
++    },
+     {
+         name: "We're Only in It for the Money",
+         year: 1967,
+     },

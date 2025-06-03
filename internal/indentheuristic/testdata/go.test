@@ -1,0 +1,95 @@
+From https://go.googlesource.com/go
+commit cc119ee391575fb11bdefaeac7155bcb9c2652be
+file src/cmd/compile/internal/noder/doc.go
+
+Modified by hand to make it more ugly
+-- input --
+ ### Definition Section
+-The definition section holds definitions for objects defined by the
+-target package; it does not contain definitions for imported objects.
++The definition section holds definitions for objects defined by the target
++package; it does not contain definitions for imported objects.
+ 
+     SectionObj = { ObjectDef } .
+ 
+-Object definitions can be one of several formats. To determine the
+-correct format, the name section must be referenced for the object's
+-type.
++Object definitions can be in one of several formats. To determine the correct
++format, the name section must be referenced; it contains a code indicating
++the object's type.
+ 
+-    ObjectDef = ObjectDefConst     // TODO(markfreeman) Define.
++    ObjectDef = RefTable
+-              | ObjectDefFunc      // TODO(markfreeman) Define.
+-              | ObjectDefAlias     // TODO(markfreeman) Define.
+-              | ObjectDefNamedType // TODO(markfreeman) Define.
++                [ Sync ]
++                ObjectSpec
+-              | ObjectDefVar       // TODO(markfreeman) Define.
+                 .
++
++    ObjectSpec = ObjectSpecConst     // TODO(markfreeman) Define.
++               | ObjectSpecFunc      // TODO(markfreeman) Define.
++               | ObjectSpecAlias     // TODO(markfreeman) Define.
++               | ObjectSpecNamedType // TODO(markfreeman) Define.
++               | ObjectSpecVar       // TODO(markfreeman) Define.
++                 .
+ 
++To use an object definition elsewhere, an ObjectUse is encoded.
++
++    ObjectUse  = [ Sync ]
++                 [ Bool ]
++                 Ref[ObjectDef]
++                 Uint64              // the number of type arguments
++                 { TypeUse }         // references to the type arguments
++                 .
++
+ # References
+ A reference table precedes every element. Each entry in the table
+ contains a (section, index) pair denoting the location of the
+-- want --
+ ### Definition Section
+-The definition section holds definitions for objects defined by the
+-target package; it does not contain definitions for imported objects.
++The definition section holds definitions for objects defined by the target
++package; it does not contain definitions for imported objects.
+ 
+     SectionObj = { ObjectDef } .
+ 
+-Object definitions can be one of several formats. To determine the
+-correct format, the name section must be referenced for the object's
+-type.
++Object definitions can be in one of several formats. To determine the correct
++format, the name section must be referenced; it contains a code indicating
++the object's type.
+ 
+-    ObjectDef = ObjectDefConst     // TODO(markfreeman) Define.
+-              | ObjectDefFunc      // TODO(markfreeman) Define.
+-              | ObjectDefAlias     // TODO(markfreeman) Define.
+-              | ObjectDefNamedType // TODO(markfreeman) Define.
+-              | ObjectDefVar       // TODO(markfreeman) Define.
++    ObjectDef = RefTable
++                [ Sync ]
++                ObjectSpec
+                 .
+ 
++    ObjectSpec = ObjectSpecConst     // TODO(markfreeman) Define.
++               | ObjectSpecFunc      // TODO(markfreeman) Define.
++               | ObjectSpecAlias     // TODO(markfreeman) Define.
++               | ObjectSpecNamedType // TODO(markfreeman) Define.
++               | ObjectSpecVar       // TODO(markfreeman) Define.
++                 .
++
++To use an object definition elsewhere, an ObjectUse is encoded.
++
++    ObjectUse  = [ Sync ]
++                 [ Bool ]
++                 Ref[ObjectDef]
++                 Uint64              // the number of type arguments
++                 { TypeUse }         // references to the type arguments
++                 .
++
+ # References
+ A reference table precedes every element. Each entry in the table
+ contains a (section, index) pair denoting the location of the

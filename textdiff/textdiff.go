@@ -18,11 +18,13 @@ package textdiff
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"unsafe"
 
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/edits"
+	"znkr.io/diff/internal/indentheuristic"
 	"znkr.io/diff/internal/myers"
 )
 
@@ -37,7 +39,7 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // Unified compares the lines in x and y and returns the changes necessary to convert from one to
 // the other in unified format.
 //
-// The following options are supported: [diff.Context], [diff.Optimal]
+// The following options are supported: [diff.Context], [diff.Optimal], [textdiff.IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
@@ -46,19 +48,19 @@ func Unified(x, y string, opts ...diff.Option) string {
 	// without copying the inputs in or the outputs out. It's save because we never modify the
 	// inputs or retain the output anywhere.
 	xp, yp := unsafe.StringData(x), unsafe.StringData(y)
-	out := UnifiedBytes(unsafe.Slice(xp, len(x)), unsafe.Slice(yp, len(y)), opts)
+	out := UnifiedBytes(unsafe.Slice(xp, len(x)), unsafe.Slice(yp, len(y)), opts...)
 	return unsafe.String(unsafe.SliceData(out), len(out))
 }
 
 // UnifiedBytes compares the lines in x and y and returns the changes necessary to convert from one
 // to the other in unified format.
 //
-// The following options are supported: [diff.Context], [diff.Optimal]
+// The following options are supported: [diff.Context], [diff.Optimal], [textdiff.IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
-func UnifiedBytes(x, y []byte, opts []diff.Option) []byte {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal)
+func UnifiedBytes(x, y []byte, opts ...diff.Option) []byte {
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
 
 	xlines := bytes.SplitAfter(x, []byte{'\n'})
 	ylines := bytes.SplitAfter(y, []byte{'\n'})
@@ -69,15 +71,19 @@ func UnifiedBytes(x, y []byte, opts []diff.Option) []byte {
 	if len(xlines[len(xlines)-1]) == 0 {
 		xlines = xlines[:len(xlines)-1]
 	} else {
-		xlines[len(xlines)-1] = append(xlines[len(xlines)-1], []byte(missingNewline)...)
+		xlines[len(xlines)-1] = slices.Concat(xlines[len(xlines)-1], []byte(missingNewline))
 	}
 	if len(ylines[len(ylines)-1]) == 0 {
 		ylines = ylines[:len(ylines)-1]
 	} else {
-		ylines[len(xlines)-1] = append(ylines[len(ylines)-1], []byte(missingNewline)...)
+		ylines[len(ylines)-1] = slices.Concat(ylines[len(ylines)-1], []byte(missingNewline))
 	}
 
 	rx, ry := myers.Diff(xlines, ylines, bytes.Equal, cfg)
+
+	if cfg.IndentHeuristic {
+		indentheuristic.Apply(xlines, ylines, rx, ry)
+	}
 
 	// Format output
 	var b bytes.Buffer

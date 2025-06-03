@@ -49,3 +49,49 @@ new hunk
 	// -is going to be
 	// -removed
 }
+
+func ExampleIndentHeuristic() {
+	x := `// ...
+["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`
+
+	y := `// ...
+["foo", "bar", "baz"].map do |i|
+  i
+end
+
+["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`
+
+	fmt.Println("With textdiff.IndentHeuristic:")
+	fmt.Print(textdiff.Unified(x, y, textdiff.IndentHeuristic()))
+	fmt.Println()
+	fmt.Println("Without textdiff.IndentHeuristic:")
+	fmt.Print(textdiff.Unified(x, y))
+	// Output:
+	// With textdiff.IndentHeuristic:
+	// @@ -1,4 +1,8 @@
+	//  // ...
+	// +["foo", "bar", "baz"].map do |i|
+	// +  i
+	// +end
+	// +
+	//  ["foo", "bar", "baz"].map do |i|
+	//    i.upcase
+	//  end
+	//
+	// Without textdiff.IndentHeuristic:
+	// @@ -1,4 +1,8 @@
+	//  // ...
+	//  ["foo", "bar", "baz"].map do |i|
+	// +  i
+	// +end
+	// +
+	// +["foo", "bar", "baz"].map do |i|
+	//    i.upcase
+	//  end
+}

@@ -27,12 +27,16 @@ type Config struct {
 	// default, the comparison functions in this package limit the cost for large inputs with many
 	// differences by applying heuristics that reduce the time complexity.
 	Optimal bool
+
+	// If set, textdiff will apply ident heuristics.
+	IndentHeuristic bool
 }
 
 // Default is the default configuration.
 var Default = Config{
-	Context: 3,
-	Optimal: false,
+	Context:         3,
+	Optimal:         false,
+	IndentHeuristic: false,
 }
 
 // Flag describes a single config entry. This is used to detect if configurations are being set
@@ -42,6 +46,7 @@ type Flag int
 const (
 	Context Flag = 1 << iota
 	Optimal
+	IndentHeuristic
 )
 
 // Options is the mechanism used to expose the configuration to users.
@@ -65,6 +70,8 @@ func printFlag(flag Flag) string {
 		return "diff.Context"
 	case Optimal:
 		return "diff.Optimal"
+	case IndentHeuristic:
+		return "textdiff.IndentHeuristic"
 	default:
 		panic("never reached")
 	}

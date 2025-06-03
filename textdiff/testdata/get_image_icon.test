@@ -1,0 +1,105 @@
+From: Nugroho, Y.S., Hata, H. & Matsumoto, K. How different are different diff algorithms in Git?.
+Empir Software Eng 25, 790-823 (2020). https://doi.org/10.1007/s10664-019-09772-z
+-- x --
+ ... other code here ...
+ */
+public static ImageIcon getImageIcon(String path)
+{
+    java.net.URL imgURL = GuiImporter.class.getResource(path);
+
+    if (imgURL != null)
+    {
+        return new ImageIcon(imgURL);
+    }
+    else
+    {
+        log.error("Couldn't find icon: " + imgURL)
+    }
+        return null;
+}
+
+ /**
+ ... other code here ...
+-- y --
+ ... other code here ...
+ */
+public static ImageIcon getImageIcon(String path)
+{
+    if (path == null)
+    {
+        log.error("Icon path is null");
+        return null;
+    }
+
+    java.net.URL imgURL = GuiImporter.class.getResource(path);
+
+    if (imgURL == null)
+    {
+        log.error("Couldn't find icon: " + imgURL)
+        return null;
+    }
+    else
+        return new ImageIcon(imgURL);
+}
+
+ /**
+ ... other code here ...
+-- diff --
+@@ -2,17 +2,21 @@
+  */
+ public static ImageIcon getImageIcon(String path)
+ {
++    if (path == null)
++    {
++        log.error("Icon path is null");
++        return null;
++    }
++
+     java.net.URL imgURL = GuiImporter.class.getResource(path);
+ 
+-    if (imgURL != null)
+-    {
+-        return new ImageIcon(imgURL);
+-    }
+-    else
++    if (imgURL == null)
+     {
+         log.error("Couldn't find icon: " + imgURL)
++        return null;
+     }
+-        return null;
++    else
++        return new ImageIcon(imgURL);
+ }
+ 
+  /**
+-- diff --
+# indent-heuristic: true
+@@ -2,17 +2,21 @@
+  */
+ public static ImageIcon getImageIcon(String path)
+ {
++    if (path == null)
++    {
++        log.error("Icon path is null");
++        return null;
++    }
++
+     java.net.URL imgURL = GuiImporter.class.getResource(path);
+ 
+-    if (imgURL != null)
+-    {
+-        return new ImageIcon(imgURL);
+-    }
+-    else
++    if (imgURL == null)
+     {
+         log.error("Couldn't find icon: " + imgURL)
++        return null;
+     }
+-        return null;
++    else
++        return new ImageIcon(imgURL);
+ }
+ 
+  /**

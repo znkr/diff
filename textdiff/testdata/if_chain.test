@@ -1,0 +1,57 @@
+-- x --
+package main
+
+import "os"
+
+func main() {
+    if os.Args[1] == "fizz" {
+        fizz()
+    }
+
+    if os.Args[1] == "help" {
+        help()
+    }
+}
+-- y --
+package main
+
+import "os"
+
+func main() {
+    if os.Args[1] == "fizz" {
+        fizz()
+    }
+
+    if os.Args[1] == "buzz" {
+        buzz()
+    }
+
+    if os.Args[1] == "help" {
+        help()
+    }
+}
+-- diff --
+@@ -7,6 +7,10 @@
+         fizz()
+     }
+ 
++    if os.Args[1] == "buzz" {
++        buzz()
++    }
++
+     if os.Args[1] == "help" {
+         help()
+     }
+-- diff --
+# indent-heuristic: true
+@@ -7,6 +7,10 @@
+         fizz()
+     }
+ 
++    if os.Args[1] == "buzz" {
++        buzz()
++    }
++
+     if os.Args[1] == "help" {
+         help()
+     }
