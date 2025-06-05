@@ -116,7 +116,6 @@ import (
 	"math"
 
 	"znkr.io/diff/internal/config"
-	"znkr.io/diff/internal/edits"
 )
 
 // minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
@@ -125,11 +124,11 @@ const minCostLimit = 4096
 
 // Diff compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
-func Diff[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) []edits.Flag {
+func Diff[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry []bool) {
 	var m myers[T]
 	smin, smax, tmin, tmax := m.init(x, y, eq)
 	m.compare(smin, smax, tmin, tmax, cfg.Optimal, eq)
-	return m.edits
+	return m.rx, m.ry
 }
 
 type myers[T any] struct {
@@ -148,7 +147,7 @@ type myers[T any] struct {
 	costLimit int
 
 	// Result is stored in edits. See the documentation of Diff for more details about the format.
-	edits []edits.Flag
+	rx, ry []bool
 }
 
 func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax int) {
@@ -186,7 +185,11 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 	}
 	m.costLimit = max(minCostLimit, costLimit)
 
-	m.edits = make([]edits.Flag, max(len(x), len(y))+1) // The +1 for the right border (simplifies iteration)
+	// For the result we add a simple border of one element that makes it easier to iterate over
+	// the results.
+	r := make([]bool, (len(x) + len(y) + 2))
+	m.rx = r[: len(x)+1 : len(x)+1]
+	m.ry = r[len(x)+1:]
 	return
 }
 
@@ -197,12 +200,12 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, 
 	if smin == smax {
 		// s is empty, therefore everything in tmin to tmax is an insertion.
 		for t := tmin; t < tmax; t++ {
-			m.edits[t] |= edits.Insert
+			m.ry[t] = true
 		}
 	} else if tmin == tmax {
 		// t is empty, therefore everything in smin to smax is a deletion.
 		for s := smin; s < smax; s++ {
-			m.edits[s] |= edits.Delete
+			m.rx[s] = true
 		}
 	} else {
 		// Use split to divide the input into three pieces:

@@ -32,6 +32,8 @@ const (
 	prefixInsert = "+"
 )
 
+const missingNewline = "\n\\ No newline at end of file\n"
+
 // Unified compares the lines in x and y and returns the changes necessary to convert from one to
 // the other in unified format.
 //
@@ -62,46 +64,41 @@ func UnifiedBytes(x, y []byte, opts []diff.Option) []byte {
 	ylines := bytes.SplitAfter(y, []byte{'\n'})
 
 	// SplitAfter adds an empty element after the last '\n', we need to remove it because it doesn't
-	// count as a line for diffs.
+	// count as a line for diffs. OTOH, if that line is missing, we know that the file is missing
+	// a newline at the end. We fix that by appending a missing ending marker to the last element.
 	if len(xlines[len(xlines)-1]) == 0 {
 		xlines = xlines[:len(xlines)-1]
+	} else {
+		xlines[len(xlines)-1] = append(xlines[len(xlines)-1], []byte(missingNewline)...)
 	}
 	if len(ylines[len(ylines)-1]) == 0 {
 		ylines = ylines[:len(ylines)-1]
+	} else {
+		ylines[len(xlines)-1] = append(ylines[len(ylines)-1], []byte(missingNewline)...)
 	}
 
-	flags := myers.Diff(xlines, ylines, bytes.Equal, cfg)
-	hunks, _ := edits.Hunks(flags, len(xlines), len(ylines), cfg)
-	if len(hunks) == 0 {
-		return nil
-	}
+	rx, ry := myers.Diff(xlines, ylines, bytes.Equal, cfg)
 
 	// Format output
 	var b bytes.Buffer
-	for i, h := range hunks {
+	for h := range edits.Hunks(rx, ry, cfg) {
 		fmt.Fprintf(&b, "@@ -%d,%d +%d,%d @@\n", h.S0+1, h.S1-h.S0, h.T0+1, h.T1-h.T0)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
-			var prefix string
-			var line []byte
-			switch {
-			case flags[s]&edits.Delete != 0:
-				prefix = prefixDelete
-				line = xlines[s]
+			for s < h.S1 && rx[s] {
+				b.WriteString(prefixDelete)
+				b.Write(xlines[s])
 				s++
-			case flags[t]&edits.Insert != 0:
-				prefix = prefixInsert
-				line = ylines[t]
-				t++
-			default:
-				prefix = prefixMatch
-				line = xlines[s]
-				s++
+			}
+			for t < h.T1 && ry[t] {
+				b.WriteString(prefixInsert)
+				b.Write(ylines[t])
 				t++
 			}
-			b.WriteString(prefix)
-			b.Write(line)
-			if i == len(hunks)-1 && (s == h.S1 || t == h.T1) && line[len(line)-1] != '\n' {
-				b.WriteString("\n\\ No newline at end of file\n")
+			for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+				b.WriteString(prefixMatch)
+				b.Write(xlines[s])
+				s++
+				t++
 			}
 		}
 	}

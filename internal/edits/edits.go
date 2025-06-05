@@ -12,43 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package edits contains the internal edits representation that's used by the myers algorithm
-// and is then translated to a user facing API.
+// Package edits contains functions to work with the internal edits representation that's used by
+// the myers algorithm and is then translated to a user facing API. The internal representation
+// is separate from the exported representation because it needs to solve a number of different
+// problems.
 package edits
 
 import (
-	"fmt"
+	"iter"
 
 	"znkr.io/diff/internal/config"
 )
-
-// Flag is a flag describing the edits for elements in both inputs.
-//
-// For the input slices x and y, the edit that transforms x into y is a slice edit []Flag. If
-// the s-th element of x is to be deleted, edit[s]&Delete != 0 and if the t-th element of y is
-// to be inserted edit[t]&Insert != 0.
-type Flag uint8
-
-const (
-	None   Flag = 0
-	Delete Flag = 1 << iota
-	Insert
-)
-
-func (e Flag) String() string {
-	switch e {
-	case None:
-		return "none"
-	case Insert:
-		return "insert"
-	case Delete:
-		return "delete"
-	case Insert | Delete:
-		return "delete|insert"
-	default:
-		return fmt.Sprint(uint8(e))
-	}
-}
 
 // Hunk describes a sequence of consecutive edits.
 type Hunk struct {
@@ -57,61 +31,51 @@ type Hunk struct {
 	Edits  int // Number of edits in this hunk.
 }
 
-// Hunks finds all hunks in flags and returns them.
-func Hunks(flags []Flag, n, m int, cfg config.Config) (hunks []Hunk, edits int) {
-	context := cfg.Context
-	if n > len(flags) || m > len(flags) {
-		panic("n and m must be <= len(flags)")
-	}
+func Hunks(rx, ry []bool, cfg config.Config) iter.Seq[Hunk] {
+	return func(yield func(Hunk) bool) {
+		context := cfg.Context
+		s, t := 0, 0     // current index into x, y
+		s0, t0 := -1, -1 // start of the current hunk
+		d := 0           // number of edits in the current hunk
+		run := 0         // number of consecutive matches
+		n, m := len(rx)-1, len(ry)-1
+		for s < n || t < m {
+			if rx[s] || ry[t] {
+				run = 0 // not a match, reset run counter.
 
-	s, t := 0, 0     // current index into x, y
-	hedits := 0      // number of edits in the current hunk
-	s0, t0 := -1, -1 // start of the current hunk
-	run := 0         // number of consecutive matches
-	for s < n || t < m {
-		del, ins := flags[s]&Delete != 0, flags[t]&Insert != 0
-		if del || ins {
-			run = 0 // not a match, reset run counter.
+				// If we're not inside a hunk, start a new hunk or, if there's an overlap due to
+				// context, continue with the previous hunk.
+				if s0 < 0 {
+					// start of missing matches (didn't collect matches before now)
+					s0, t0 = max(0, s-context), max(0, t-context)
+					d = s - s0
+				}
 
-			// If we're not inside a hunk, start a new hunk or, if there's an overlap due to
-			// context, continue with the previous hunk.
-			if s0 < 0 {
-				// start of missing matches (didn't collect matches before now)
-				s0, t0 = max(0, s-context), max(0, t-context)
-				hedits = s - s0
-
-				// Check if the context windows for this new hunk and the previous hunk overlap. If
-				// they do, continue filling that hunk.
-				if len(hunks) > 0 && hunks[len(hunks)-1].S1 >= s0 {
-					h := hunks[len(hunks)-1]
-					edits -= h.Edits
-					hedits = h.Edits + (s - h.S1)
-					s0, t0 = h.S0, h.T0
-					hunks = hunks[:len(hunks)-1]
+				for s < n && rx[s] {
+					s++
+					d++
+				}
+				for t < m && ry[t] {
+					t++
+					d++
+				}
+			} else {
+				for s < n && t < m && !rx[s] && !ry[t] {
+					s++
+					t++
+					run++
+					d++
 				}
 			}
-
-			if del {
-				s++
-				hedits++
+			// Active in-progress hunk and we've seen as many matches as we want in a context, finish
+			// the hunk.
+			if s0 >= 0 && (run > 2*context || s == n && t == m) {
+				Δ := min(0, -run+context)
+				if !yield(Hunk{s0, s + Δ, t0, t + Δ, d + Δ}) {
+					break
+				}
+				s0, t0 = -1, -1
 			}
-			if ins {
-				t++
-				hedits++
-			}
-		} else {
-			s++
-			t++
-			run++
-			hedits++
-		}
-		// Active in-progress hunk and we've seen as many matches as we want in a context, finish
-		// the hunk.
-		if s0 >= 0 && (run >= context || s == n && t == m) {
-			hunks = append(hunks, Hunk{s0, s, t0, t, hedits})
-			s0, t0 = -1, -1
-			edits += hedits
 		}
 	}
-	return hunks, edits
 }

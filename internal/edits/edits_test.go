@@ -15,6 +15,7 @@
 package edits
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -24,35 +25,23 @@ import (
 func TestHunks(t *testing.T) {
 	tests := []struct {
 		name      string
-		flags     []Flag
-		n, m      int
+		rx, ry    []bool
 		context   int
 		wantHunks []Hunk
 		wantEdits int
 	}{
 		{
 			name:      "empty",
-			flags:     nil,
-			n:         0,
-			m:         0,
+			rx:        nil,
+			ry:        nil,
 			context:   3,
 			wantHunks: nil,
 			wantEdits: 0,
 		},
 		{
-			name: "ABCABBA_to_CBABAC_context_3",
-			flags: []Flag{
-				Insert | Delete, // -A +C
-				None,            //  B  B
-				Delete,          // -C  A
-				None,            //  A  B
-				None,            //  B  A
-				Insert | Delete, // -B +C
-				None,            //  A
-				None,            // border
-			},
-			n:       7,
-			m:       6,
+			name:    "ABCABBA_to_CBABAC_context_3",
+			rx:      []bool{true, false, true, false, false, true, false, false},
+			ry:      []bool{true, false, false, false, false, true, false},
 			context: 3,
 			wantHunks: []Hunk{
 				{0, 7, 0, 6, 9},
@@ -60,19 +49,9 @@ func TestHunks(t *testing.T) {
 			wantEdits: 9,
 		},
 		{
-			name: "ABCABBA_to_CBABAC_context_1",
-			flags: []Flag{
-				Insert | Delete, // -A +C
-				None,            //  B  B
-				Delete,          // -C  A
-				None,            //  A  B
-				None,            //  B  A
-				Insert | Delete, // -B +C
-				None,            //  A
-				None,            // border
-			},
-			n:       7,
-			m:       6,
+			name:    "ABCABBA_to_CBABAC_context_1",
+			rx:      []bool{true, false, true, false, false, true, false, false},
+			ry:      []bool{true, false, false, false, false, true, false},
 			context: 1,
 			wantHunks: []Hunk{
 				{0, 7, 0, 6, 9}, // overlapping hunks are merged
@@ -80,19 +59,9 @@ func TestHunks(t *testing.T) {
 			wantEdits: 9,
 		},
 		{
-			name: "ABCABBA_to_CBABAC_context_0",
-			flags: []Flag{
-				Insert | Delete, // -A +C
-				None,            //  B  B
-				Delete,          // -C  A
-				None,            //  A  B
-				None,            //  B  A
-				Insert | Delete, // -B +C
-				None,            //  A
-				None,            // border
-			},
-			n:       7,
-			m:       6,
+			name:    "ABCABBA_to_CBABAC_context_0",
+			rx:      []bool{true, false, true, false, false, true, false, false},
+			ry:      []bool{true, false, false, false, false, true, false},
 			context: 0,
 			wantHunks: []Hunk{
 				{0, 1, 0, 1, 2},
@@ -106,12 +75,9 @@ func TestHunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotHunks, gotEdits := Hunks(tt.flags, tt.n, tt.m, config.Config{Context: tt.context})
-			if diff := cmp.Diff(tt.wantHunks, gotHunks); diff != "" {
+			got := slices.Collect(Hunks(tt.rx, tt.ry, config.Config{Context: tt.context}))
+			if diff := cmp.Diff(tt.wantHunks, got); diff != "" {
 				t.Errorf("Hunks(...) result are different [-want,+got]:\n%s", diff)
-			}
-			if gotEdits != tt.wantEdits {
-				t.Errorf("Hunks(...) total edits is %v, want %v", gotEdits, tt.wantEdits)
 			}
 		})
 	}

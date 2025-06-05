@@ -83,35 +83,43 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Optimal)
 
-	flags := myers.Diff(x, y, eq, cfg)
-	hunks, nedits := edits.Hunks(flags, len(x), len(y), cfg)
+	rx, ry := myers.Diff(x, y, eq, cfg)
+
+	// Compute the number of hunks and edits, this is relatively cheap and allows us to preallocate
+	// the return values.
+	var nhunks, nedits int
+	for hunk := range edits.Hunks(rx, ry, cfg) {
+		nhunks++
+		nedits += hunk.Edits
+	}
 
 	editsPrealloc := make([]Edit[T], nedits)
-	out := make([]Hunk[T], 0, len(hunks))
-	for _, h := range hunks {
+	out := make([]Hunk[T], 0, nhunks)
+	for hunk := range edits.Hunks(rx, ry, cfg) {
 		oh := Hunk[T]{
-			PosX:  h.S0,
-			EndX:  h.S1,
-			PosY:  h.T0,
-			EndY:  h.T1,
-			Edits: editsPrealloc[:h.Edits:h.Edits][:0],
+			PosX:  hunk.S0,
+			EndX:  hunk.S1,
+			PosY:  hunk.T0,
+			EndY:  hunk.T1,
+			Edits: editsPrealloc[:hunk.Edits:hunk.Edits][:0],
 		}
-		editsPrealloc = editsPrealloc[h.Edits:]
-		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
-			switch {
-			case flags[s]&edits.Delete != 0:
+		editsPrealloc = editsPrealloc[hunk.Edits:]
+		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
+			for s < hunk.S1 && rx[s] {
 				oh.Edits = append(oh.Edits, Edit[T]{
 					Op: Delete,
 					X:  x[s],
 				})
 				s++
-			case flags[t]&edits.Insert != 0:
+			}
+			for t < hunk.T1 && ry[t] {
 				oh.Edits = append(oh.Edits, Edit[T]{
 					Op: Insert,
 					Y:  y[t],
 				})
 				t++
-			default:
+			}
+			for s < hunk.S1 && t < hunk.T1 && !rx[s] && !ry[t] {
 				oh.Edits = append(oh.Edits, Edit[T]{
 					Op: Match,
 					X:  x[s],
@@ -153,26 +161,26 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Optimal)
 
-	flags := myers.Diff(x, y, eq, cfg)
+	rx, ry := myers.Diff(x, y, eq, cfg)
 
 	var ret []Edit[T]
-	for s, t := 0, 0; s < len(x) || t < len(y); {
-		// Handle one of these cases per iteration. That way consecutive deletions followed by
-		// insertions are grouped by edit operations instead of being interleaved.
-		switch {
-		case flags[s]&edits.Delete != 0:
+	n, m := len(rx)-1, len(ry)-1
+	for s, t := 0, 0; s < n || t < m; {
+		for s < n && rx[s] {
 			ret = append(ret, Edit[T]{
 				Op: Delete,
 				X:  x[s],
 			})
 			s++
-		case flags[t]&edits.Insert != 0:
+		}
+		for t < m && ry[t] {
 			ret = append(ret, Edit[T]{
 				Op: Insert,
 				Y:  y[t],
 			})
 			t++
-		default:
+		}
+		for s < n && t < m && !rx[s] && !ry[t] {
 			ret = append(ret, Edit[T]{
 				Op: Match,
 				X:  x[s],

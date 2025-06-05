@@ -16,6 +16,7 @@ package myers
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"slices"
@@ -24,103 +25,92 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff/internal/config"
-	"znkr.io/diff/internal/edits"
 )
 
 func TestMyersDiff(t *testing.T) {
 	tests := []struct {
 		name string
 		x, y []string
-		want []edits.Flag
+		want string
 	}{
 		{
 			name: "identical",
 			x:    []string{"foo", "bar", "baz"},
 			y:    []string{"foo", "bar", "baz"},
-			want: []edits.Flag{
-				edits.None,
-				edits.None,
-				edits.None,
-				edits.None, // border
-			},
+			want: "MMM",
 		},
 		{
 			name: "empty",
 			x:    nil,
 			y:    nil,
-			want: []edits.Flag{
-				edits.None, // border
-			},
+			want: "",
 		},
 		{
 			name: "x-empty",
 			x:    nil,
 			y:    []string{"foo", "bar", "baz"},
-			want: []edits.Flag{
-				edits.Insert,
-				edits.Insert,
-				edits.Insert,
-				edits.None, // border
-			},
+			want: "III",
 		},
 		{
 			name: "y-empty",
 			x:    []string{"foo", "bar", "baz"},
 			y:    nil,
-			want: []edits.Flag{
-				edits.Delete,
-				edits.Delete,
-				edits.Delete,
-				edits.None, // border
-			},
+			want: "DDD",
 		},
 		{
 			name: "ABCABBA_to_CBABAC",
 			x:    strings.Split("ABCABBA", ""),
 			y:    strings.Split("CBABAC", ""),
-			want: []edits.Flag{
-				edits.Insert | edits.Delete, // -A +C
-				edits.None,                  //  B  B
-				edits.Delete,                // -C  A
-				edits.None,                  //  A  B
-				edits.None,                  //  B  A
-				edits.Insert | edits.Delete, // -B +C
-				edits.None,                  //  A
-				edits.None,                  // border
-			},
+			want: "DIMDMMDMI",
 		},
 		{
 			name: "same-prefix",
 			x:    []string{"foo", "bar"},
 			y:    []string{"foo", "baz"},
-			want: []edits.Flag{
-				edits.None,
-				edits.Insert | edits.Delete,
-				edits.None, // border
-			},
+			want: "MDI",
 		},
 		{
 			name: "same-suffix",
 			x:    []string{"foo", "bar"},
 			y:    []string{"loo", "bar"},
-			want: []edits.Flag{
-				edits.Insert | edits.Delete,
-				edits.None,
-				edits.None, // border
-			},
+			want: "DIM",
+		},
+		{
+			name: "largish",
+			x:    strings.Split("xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay", ""),
+			y:    strings.Split("waaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaait", ""),
+			want: "DIMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMDII",
 		},
 	}
 
 	eq := func(a, b string) bool { return a == b }
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Diff(tt.x, tt.y, eq, config.Default)
+			rx, ry := Diff(tt.x, tt.y, eq, config.Default)
+			got := render(rx, ry, len(tt.x), len(tt.y))
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("edits differs [-want,+got]:\n%s", diff)
 			}
 		})
-
 	}
+}
+
+func render(rx, ry []bool, n, m int) string {
+	var sb strings.Builder
+	for s, t := 0, 0; s < n || t < m; {
+		if rx[s] {
+			sb.WriteRune('D')
+			s++
+		} else if ry[t] {
+			sb.WriteRune('I')
+			t++
+		} else {
+			sb.WriteRune('M')
+			s++
+			t++
+		}
+	}
+	return sb.String()
 }
 
 func TestMyersSplit(t *testing.T) {
@@ -207,24 +197,28 @@ func TestMyersSplit(t *testing.T) {
 }
 
 func TestMyersSplit_largeInputs(t *testing.T) {
-	rng := rand.New(rand.NewChaCha8(sha256.Sum256([]byte(""))))
 	eq := func(x, y int32) bool { return x == y }
 	for i := range 20 {
-		x := make([]int32, 1<<16-rng.IntN(1<<10))
-		for s := range x {
-			x[s] = int32(rng.IntN(10))
-		}
-		y := make([]int32, 1<<16-rng.IntN(1<<10))
-		for t := range y {
-			y[t] = int32(rng.IntN(10))
-		}
+		seed := sha256.Sum256(fmt.Append(nil, i))
+		t.Run(fmt.Sprintf("seed=%x", seed), func(t *testing.T) {
+			t.Parallel()
+			rng := rand.New(rand.NewChaCha8(seed))
+			x := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			for s := range x {
+				x[s] = int32(rng.IntN(10))
+			}
+			y := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			for t := range y {
+				y[t] = int32(rng.IntN(10))
+			}
 
-		var m myers[int32]
-		smin, smax, tmin, tmax := m.init(x, y, eq)
-		s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, false, eq)
-		if !slices.Equal(x[s0:s1], y[t0:t1]) {
-			t.Errorf("splitting resulted in non-matching middle in iteration %d, [s0=%d, s1=%d, t0=%d, t1=%d, opt0=%v, opt1=%v]", i, s0, s1, t0, t1, opt0, opt1)
-		}
+			var m myers[int32]
+			smin, smax, tmin, tmax := m.init(x, y, eq)
+			s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, false, eq)
+			if !slices.Equal(x[s0:s1], y[t0:t1]) {
+				t.Errorf("splitting resulted in non-matching middle in iteration %d, [s0=%d, s1=%d, t0=%d, t1=%d, opt0=%v, opt1=%v]", i, s0, s1, t0, t1, opt0, opt1)
+			}
+		})
 	}
 }
 
