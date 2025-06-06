@@ -37,12 +37,10 @@ for _, edit := range edits {
 // Output:
 // -calm
 // +restless
-//
-//	seas
-//	reflect
-//	the
-//	sky
-//
+//  seas
+//  reflect
+//  the
+//  sky
 // +defiantly
 ```
 
