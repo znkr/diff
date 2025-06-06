@@ -96,15 +96,15 @@ func ExampleEdits_runes() {
 		case diff.Match:
 			fmt.Printf("%s", string(edit.X))
 		case diff.Delete:
-			fmt.Printf("-%s", string(edit.X))
+			fmt.Printf("[-%s-]", string(edit.X))
 		case diff.Insert:
-			fmt.Printf("+%s", string(edit.Y))
+			fmt.Printf("{+%s+}", string(edit.Y))
 		default:
 			panic("never reached")
 		}
 	}
 	// Output:
-	// Hello, -W-o-r-l-d+世+界
+	// Hello, [-W-][-o-][-r-][-l-][-d-]{+世+}{+界+}
 }
 
 // Compare two strings word by word.
@@ -112,53 +112,49 @@ func ExampleEdits_words() {
 	x := strings.Fields("calm seas reflect the sky")
 	y := strings.Fields("restless seas reflect the sky defiantly")
 	edits := diff.Edits(x, y)
-	for _, edit := range edits {
+	for i, edit := range edits {
+		if i > 0 {
+			fmt.Print(" ")
+		}
 		switch edit.Op {
 		case diff.Match:
-			fmt.Printf(" %s\n", edit.X)
+			fmt.Printf("%s", edit.X)
 		case diff.Delete:
-			fmt.Printf("-%s\n", edit.X)
+			fmt.Printf("[-%s-]", edit.X)
 		case diff.Insert:
-			fmt.Printf("+%s\n", edit.Y)
+			fmt.Printf("{+%s+}", edit.Y)
 		default:
 			panic("never reached")
 		}
 	}
 	// Output:
-	// -calm
-	// +restless
-	//  seas
-	//  reflect
-	//  the
-	//  sky
-	// +defiantly
+	// [-calm-] {+restless+} seas reflect the sky {+defiantly+}
 }
 
 func ExampleContext() {
 	x := strings.Fields("calm seas reflect the sky")
 	y := strings.Fields("restless seas reflect the sky defiantly")
 	hunks := diff.Hunks(x, y, diff.Context(1))
-	for _, h := range hunks {
-		fmt.Printf("@@ -%d,%d +%d,%d @@\n", h.PosX+1, h.EndX-h.PosX, h.PosY+1, h.EndY-h.PosY)
-		for _, edit := range h.Edits {
+	for i, h := range hunks {
+		if i > 0 {
+			fmt.Print(" … ")
+		}
+		for i, edit := range h.Edits {
+			if i > 0 {
+				fmt.Print(" ")
+			}
 			switch edit.Op {
 			case diff.Match:
-				fmt.Printf(" %s\n", edit.X)
+				fmt.Printf("%s", edit.X)
 			case diff.Delete:
-				fmt.Printf("-%s\n", edit.X)
+				fmt.Printf("[-%s-]", edit.X)
 			case diff.Insert:
-				fmt.Printf("+%s\n", edit.Y)
+				fmt.Printf("{+%s+}", edit.Y)
 			default:
 				panic("never reached")
 			}
 		}
 	}
 	// Output:
-	// @@ -1,2 +1,2 @@
-	// -calm
-	// +restless
-	//  seas
-	// @@ -5,1 +5,2 @@
-	//  sky
-	// +defiantly
+	// [-calm-] {+restless+} seas … sky {+defiantly+}
 }

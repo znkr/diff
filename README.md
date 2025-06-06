@@ -22,26 +22,23 @@ Diffing two slices produces either the full list of edits
 x := strings.Fields("calm seas reflect the sky")
 y := strings.Fields("restless seas reflect the sky defiantly")
 edits := diff.Edits(x, y)
-for _, edit := range edits {
+for i, edit := range edits {
+    if i > 0 {
+        fmt.Print(" ")
+    }
     switch edit.Op {
     case diff.Match:
-        fmt.Printf(" %s\n", edit.X)
+        fmt.Printf("%s", edit.X)
     case diff.Delete:
-        fmt.Printf("-%s\n", edit.X)
+        fmt.Printf("[-%s-]", edit.X)
     case diff.Insert:
-        fmt.Printf("+%s\n", edit.Y)
+        fmt.Printf("{+%s+}", edit.Y)
     default:
         panic("never reached")
     }
 }
 // Output:
-// -calm
-// +restless
-//  seas
-//  reflect
-//  the
-//  sky
-// +defiantly
+// [-calm-] {+restless+} seas reflect the sky {+defiantly+}
 ```
 
 or a list of hunks representing consecutive edits
@@ -50,29 +47,28 @@ or a list of hunks representing consecutive edits
 x := strings.Fields("calm seas reflect the sky")
 y := strings.Fields("restless seas reflect the sky defiantly")
 hunks := diff.Hunks(x, y, diff.Context(1))
-for _, h := range hunks {
-    fmt.Printf("@@ -%d,%d +%d,%d @@\n", h.PosX+1, h.EndX-h.PosX, h.PosY+1, h.EndY-h.PosY)
-    for _, edit := range h.Edits {
+for i, h := range hunks {
+    if i > 0 {
+        fmt.Print(" … ")
+    }
+    for i, edit := range h.Edits {
+        if i > 0 {
+            fmt.Print(" ")
+        }
         switch edit.Op {
         case diff.Match:
-            fmt.Printf(" %s\n", edit.X)
+            fmt.Printf("%s", edit.X)
         case diff.Delete:
-            fmt.Printf("-%s\n", edit.X)
+            fmt.Printf("[-%s-]", edit.X)
         case diff.Insert:
-            fmt.Printf("+%s\n", edit.Y)
+            fmt.Printf("{+%s+}", edit.Y)
         default:
             panic("never reached")
         }
     }
 }
 // Output:
-// @@ -1,2 +1,2 @@
-// -calm
-// +restless
-//  seas
-// @@ -5,1 +5,2 @@
-//  sky
-// +defiantly
+// [-calm-] {+restless+} seas … sky {+defiantly+}
 ```
 
 For both functions, a `...Func` variant exists that works with arbitrary slices by taking an
