@@ -15,6 +15,8 @@
 package diff
 
 import (
+	"slices"
+
 	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/edits"
 	"znkr.io/diff/internal/myers"
@@ -92,35 +94,30 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 		nhunks++
 		nedits += hunk.Edits
 	}
+	if nhunks == 0 {
+		return nil
+	}
 
-	editsPrealloc := make([]Edit[T], nedits)
-	out := make([]Hunk[T], 0, nhunks)
+	eout := make([]Edit[T], 0, nedits)
+	hout := make([]Hunk[T], 0, nhunks)
 	for hunk := range edits.Hunks(rx, ry, cfg) {
-		oh := Hunk[T]{
-			PosX:  hunk.S0,
-			EndX:  hunk.S1,
-			PosY:  hunk.T0,
-			EndY:  hunk.T1,
-			Edits: editsPrealloc[:hunk.Edits:hunk.Edits][:0],
-		}
-		editsPrealloc = editsPrealloc[hunk.Edits:]
 		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
 			for s < hunk.S1 && rx[s] {
-				oh.Edits = append(oh.Edits, Edit[T]{
+				eout = append(eout, Edit[T]{
 					Op: Delete,
 					X:  x[s],
 				})
 				s++
 			}
 			for t < hunk.T1 && ry[t] {
-				oh.Edits = append(oh.Edits, Edit[T]{
+				eout = append(eout, Edit[T]{
 					Op: Insert,
 					Y:  y[t],
 				})
 				t++
 			}
 			for s < hunk.S1 && t < hunk.T1 && !rx[s] && !ry[t] {
-				oh.Edits = append(oh.Edits, Edit[T]{
+				eout = append(eout, Edit[T]{
 					Op: Match,
 					X:  x[s],
 					Y:  y[t],
@@ -129,9 +126,16 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 				t++
 			}
 		}
-		out = append(out, oh)
+		hout = append(hout, Hunk[T]{
+			PosX:  hunk.S0,
+			EndX:  hunk.S1,
+			PosY:  hunk.T0,
+			EndY:  hunk.T1,
+			Edits: slices.Clip(eout),
+		})
+		eout = eout[len(eout):]
 	}
-	return out
+	return hout
 }
 
 // Edits compares the contents of x and y and returns the changes necessary to convert from one to
@@ -163,25 +167,47 @@ func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] 
 
 	rx, ry := myers.Diff(x, y, eq, cfg)
 
-	var ret []Edit[T]
+	// Compute the number of edits, this is relatively cheap and allows us to preallocate the return
+	// value.
 	n, m := len(rx)-1, len(ry)-1
+	var nedits int
 	for s, t := 0, 0; s < n || t < m; {
 		for s < n && rx[s] {
-			ret = append(ret, Edit[T]{
+			nedits++
+			s++
+		}
+		for t < m && ry[t] {
+			nedits++
+			t++
+		}
+		for s < n && t < m && !rx[s] && !ry[t] {
+			nedits++
+			s++
+			t++
+		}
+	}
+	if nedits == 0 {
+		return nil
+	}
+
+	eout := make([]Edit[T], 0, nedits)
+	for s, t := 0, 0; s < n || t < m; {
+		for s < n && rx[s] {
+			eout = append(eout, Edit[T]{
 				Op: Delete,
 				X:  x[s],
 			})
 			s++
 		}
 		for t < m && ry[t] {
-			ret = append(ret, Edit[T]{
+			eout = append(eout, Edit[T]{
 				Op: Insert,
 				Y:  y[t],
 			})
 			t++
 		}
 		for s < n && t < m && !rx[s] && !ry[t] {
-			ret = append(ret, Edit[T]{
+			eout = append(eout, Edit[T]{
 				Op: Match,
 				X:  x[s],
 				Y:  y[t],
@@ -190,6 +216,5 @@ func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] 
 			t++
 		}
 	}
-
-	return ret
+	return eout
 }

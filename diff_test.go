@@ -35,13 +35,13 @@ func TestHunks(t *testing.T) {
 			name: "identical",
 			x:    []string{"foo", "bar", "baz"},
 			y:    []string{"foo", "bar", "baz"},
-			want: []Hunk[string]{},
+			want: nil,
 		},
 		{
 			name: "empty",
 			x:    nil,
 			y:    nil,
-			want: []Hunk[string]{},
+			want: nil,
 		},
 		{
 			name: "x-empty",
@@ -387,64 +387,84 @@ func TestEdits(t *testing.T) {
 }
 
 func BenchmarkHunks(b *testing.B) {
-	params := []struct {
-		N, M int // Length of x and y respectively
-		D    int // Number of edits (besides edits due to size differences)
-	}{
-		{50, 50, 10},
-		{500, 50, 10},
-		{50, 500, 10},
-		{500, 500, 10},
-		{500, 500, 100},
-		{5000, 5500, 100},
-	}
-
-	for _, p := range params {
-		name := fmt.Sprintf("N=%d_M=%d_D=%d", p.N, p.M, p.D)
-		b.Run(name, func(b *testing.B) {
+	for _, s := range benchmarkSpecs {
+		b.Run(s.name(), func(b *testing.B) {
 			b.ReportAllocs()
-
-			rng := rand.New(rand.NewChaCha8(sha256.Sum256([]byte(name))))
-
-			// Construct inputs based on the N, M, D specification.
-			flipped := false
-			n, m := p.N, p.M
-			if n < m {
-				n, m = m, n
-				flipped = true
-			}
-
-			x := make([]int, n)
-			for i := range x {
-				x[i] = rng.IntN(100)
-			}
-
-			y := make([]int, m)
-			delta := 0
-			if n != m {
-				delta = rng.IntN((n - m) / 2)
-			}
-			for i := range y {
-				y[i] = x[i+delta]
-			}
-
-			// We might already have some changes due to the different sizes for N and M, add D
-			// additional changes.
-			for d := p.D; d > 0; {
-				i := rng.IntN(len(y))
-				if y[i] >= 0 {
-					y[i] = -y[i]
-					d--
-				}
-			}
-
-			if flipped {
-				x, y = y, x
-			}
-
+			x, y := s.generate([]byte{})
 			for b.Loop() {
 				_ = Hunks(x, y)
 			}
 		})
 	}
+}
+
+func BenchmarkEdits(b *testing.B) {
+	for _, s := range benchmarkSpecs {
+		b.Run(s.name(), func(b *testing.B) {
+			b.ReportAllocs()
+			x, y := s.generate([]byte{})
+			for b.Loop() {
+				_ = Edits(x, y)
+			}
+		})
+	}
+}
+
+type spec struct {
+	N, M int // Length of x and y respectively
+	D    int // Number of edits (besides edits due to size differences)
+}
+
+var benchmarkSpecs = []spec{
+	{50, 50, 10},
+	{500, 50, 10},
+	{50, 500, 10},
+	{500, 500, 10},
+	{500, 500, 100},
+	{5000, 5500, 100},
+}
+
+func (s spec) name() string {
+	return fmt.Sprintf("N=%d_M=%d_D=%d", s.N, s.M, s.D)
+}
+
+func (s spec) generate(seed []byte) (x, y []int) {
+	rng := rand.New(rand.NewChaCha8(sha256.Sum256(seed)))
+
+	// Construct inputs based on the N, M, D specification.
+	flipped := false
+	n, m := s.N, s.M
+	if n < m {
+		n, m = m, n
+		flipped = true
+	}
+
+	x = make([]int, n)
+	for i := range x {
+		x[i] = rng.IntN(100)
+	}
+
+	y = make([]int, m)
+	delta := 0
+	if n != m {
+		delta = rng.IntN((n - m) / 2)
+	}
+	for i := range y {
+		y[i] = x[i+delta]
+	}
+
+	// We might already have some changes due to the different sizes for N and M, add D
+	// additional changes.
+	for d := s.D; d > 0; {
+		i := rng.IntN(len(y))
+		if y[i] >= 0 {
+			y[i] = -y[i]
+			d--
+		}
+	}
+
+	if flipped {
+		x, y = y, x
+	}
+	return
 }
