@@ -386,6 +386,32 @@ func TestEdits(t *testing.T) {
 	}
 }
 
+func TestHunksAllocations(t *testing.T) {
+	for _, s := range benchmarkSpecs {
+		t.Run(s.name(), func(t *testing.T) {
+			x, y := s.generate([]byte{})
+			allocs := testing.AllocsPerRun(3, func() { Hunks(x, y) })
+			const want = 5
+			if allocs > want {
+				t.Errorf("Number of allocations in Edits was %v, want <= %v", allocs, want)
+			}
+		})
+	}
+}
+
+func TestEditsAllocations(t *testing.T) {
+	for _, s := range benchmarkSpecs {
+		t.Run(s.name(), func(t *testing.T) {
+			x, y := s.generate([]byte{})
+			allocs := testing.AllocsPerRun(3, func() { Edits(x, y) })
+			const want = 4
+			if allocs > want {
+				t.Errorf("Number of allocations in Edits was %v, want <= %v", allocs, want)
+			}
+		})
+	}
+}
+
 func BenchmarkHunks(b *testing.B) {
 	for _, s := range benchmarkSpecs {
 		b.Run(s.name(), func(b *testing.B) {
