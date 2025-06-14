@@ -85,6 +85,23 @@ func TestUnified(t *testing.T) {
 	}
 }
 
+func TestUnifiedAllocs(t *testing.T) {
+	for _, tt := range parseTests(t) {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, st := range tt.subtests {
+				t.Run(st.name, func(t *testing.T) {
+					allocs := testing.AllocsPerRun(10, func() {
+						_ = Unified(tt.x, tt.y, st.opts...)
+					})
+					if allocs > 7 {
+						t.Errorf("Number of allocations in Edits was %v, want <= %v", allocs, 7)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestUnifiedEdgeCases(t *testing.T) {
 	tests := []struct {
 		name string

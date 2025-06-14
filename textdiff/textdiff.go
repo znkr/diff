@@ -53,8 +53,37 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
 	}
 
+	// Precompute output buffer size.
+	n := 0
+	for h := range edits.Hunks(rx, ry, cfg) {
+		n += len("@@ -, +, @@\n")
+		n += numDigits(h.S0+1) + numDigits(h.S1-h.S0) + numDigits(h.T0+1) + numDigits(h.T1-h.T0)
+		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
+			for s < h.S1 && rx[s] {
+				n += 1 + xlines[s].Len()
+				s++
+			}
+			for t < h.T1 && ry[t] {
+				n += 1 + ylines[t].Len()
+				t++
+			}
+			for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+				n += 1 + xlines[s].Len()
+				s++
+				t++
+			}
+		}
+	}
+	if xMissingNewline >= 0 {
+		n += len(missingNewline)
+	}
+	if yMissingNewline >= 0 {
+		n += len(missingNewline)
+	}
+
 	// Format output
 	var b byteview.Builder[T]
+	b.Grow(n)
 	for h := range edits.Hunks(rx, ry, cfg) {
 		fmt.Fprintf(&b, "@@ -%d,%d +%d,%d @@\n", h.S0+1, h.S1-h.S0, h.T0+1, h.T1-h.T0)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
@@ -86,4 +115,24 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 		}
 	}
 	return b.Build()
+}
+
+func numDigits(v int) (n int) {
+	switch {
+	case v < 10:
+		return 1
+	case v < 100:
+		return 2
+	case v < 1000:
+		return 3
+	case v < 10_000:
+		return 4
+	case v < 100_000:
+		return 5
+	default:
+		for ; v > 0; v /= 10 {
+			n++
+		}
+		return n
+	}
 }
