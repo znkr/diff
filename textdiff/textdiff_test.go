@@ -18,120 +18,32 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
 	"golang.org/x/tools/txtar"
 	"znkr.io/diff"
+	"znkr.io/diff/internal/config"
 )
 
 var update = flag.Bool("update", false, "update golden files")
 var exhaustive = flag.Bool("exhaustive", false, "perform the exhaustive test")
 
 func TestUnified(t *testing.T) {
-	type subtest struct {
-		opts map[string]string
-		want []byte
-	}
-
-	tests, err := filepath.Glob("testdata/*.test")
-	if err != nil {
-		t.Fatalf("Failed to read testdata: %v", err)
-	}
-	for _, test := range tests {
-		name := strings.TrimPrefix(test, "testdata/")
-		t.Run(name, func(t *testing.T) {
-			ar, err := txtar.ParseFile(test)
-			if err != nil {
-				t.Fatalf("failed to parse test case: %v", err)
-			}
-
-			var x, y []byte
-			var subtests []subtest
-			for _, f := range ar.Files {
-				switch f.Name {
-				case "x":
-					x = f.Data
-				case "y":
-					y = f.Data
-				case "diff":
-					data := f.Data
-					var st subtest
-					for i := 0; i < len(data); i++ {
-						if data[i] != '#' {
-							st.want = data[i:]
-							break
-						}
-						i++
-						eol := i + bytes.IndexByte(data[i:], '\n')
-						if eol < i {
-							panic("missing newline after option line")
-						}
-						k, v, found := bytes.Cut(data[i:eol], []byte{':'})
-						if !found {
-							panic("missing : in option line")
-						}
-						if st.opts == nil {
-							st.opts = make(map[string]string)
-						}
-						st.opts[string(bytes.TrimSpace(k))] = string(bytes.TrimSpace(v))
-						i = eol
-					}
-					subtests = append(subtests, st)
-				default:
-					t.Fatalf("unknown file in archive: %v", f)
-				}
-			}
-
-			for i, st := range subtests {
-				var name strings.Builder
-				for i, k := range slices.Sorted(maps.Keys(st.opts)) {
-					if i > 0 {
-						name.WriteString(":")
-					}
-					name.WriteString(k)
-					name.WriteString("=")
-					name.WriteString(st.opts[k])
-				}
-				if len(st.opts) == 0 {
-					name.WriteString("default")
-				}
-				t.Run(name.String(), func(t *testing.T) {
-					var opts []diff.Option
-					for k, v := range st.opts {
-						switch k {
-						case "indent-heuristic":
-							switch v {
-							case "true":
-								opts = append(opts, IndentHeuristic())
-							case "false":
-								// do nothing
-							default:
-								panic("invalid value for indent_heuristic: " + v)
-							}
-						case "context":
-							n, err := strconv.ParseInt(v, 10, 64)
-							if err != nil {
-								panic("invalid value for context: " + err.Error())
-							}
-							opts = append(opts, diff.Context(int(n)))
-						default:
-							panic("unknown option: " + k)
-						}
-					}
-
-					got := Unified(x, y, opts...)
+	for _, tt := range parseTests(t) {
+		t.Run(tt.name, func(t *testing.T) {
+			for sti, st := range tt.subtests {
+				t.Run(st.name, func(t *testing.T) {
+					got := Unified(tt.x, tt.y, st.opts...)
 					if !bytes.Equal(got, st.want) {
 						t.Errorf("UnifiedBytes(...) result are different:\ngot:\n%s\nwant:\n%s", got, st.want)
 					}
 					if *update {
-						subtests[i].want = got
+						tt.subtests[sti].want = got
 					}
 				})
 			}
@@ -151,23 +63,21 @@ func TestUnified(t *testing.T) {
 					}
 				}
 
-				write(ar.Comment)
+				write(tt.comment)
 				write([]byte("-- x --\n"))
-				write(x)
+				write(tt.x)
 				write([]byte("-- y --\n"))
-				write(y)
-				for _, st := range subtests {
+				write(tt.y)
+				for _, st := range tt.subtests {
 					write([]byte("-- diff --\n"))
-					for _, k := range slices.Sorted(maps.Keys(st.opts)) {
-						write([]byte("# " + k + ": " + st.opts[k] + "\n"))
-					}
+					write(st.pragmas)
 					write(st.want)
 				}
 
 				if err := f.Close(); err != nil {
 					t.Fatalf("error closing golden file: %v", err)
 				}
-				if err := os.Rename(f.Name(), test); err != nil {
+				if err := os.Rename(f.Name(), tt.filename); err != nil {
 					t.Fatalf("error renaming golden file: %v", err)
 				}
 			}
@@ -250,6 +160,116 @@ func TestUnifiedEdgeCases(t *testing.T) {
 			}
 		})
 	}
+}
+
+func BenchmarkUnified(b *testing.B) {
+	for _, tt := range parseTests(b) {
+		b.Run(tt.name, func(b *testing.B) {
+			for _, st := range tt.subtests {
+				b.Run(st.name, func(b *testing.B) {
+					b.ReportAllocs()
+					for b.Loop() {
+						_ = Unified(tt.x, tt.y, st.opts...)
+					}
+				})
+			}
+		})
+	}
+}
+
+type test struct {
+	name     string
+	filename string
+	comment  []byte
+	x, y     []byte
+	subtests []subtest
+}
+
+type subtest struct {
+	name    string
+	opts    []config.Option
+	pragmas []byte
+	want    []byte
+}
+
+func parseTests(t testing.TB) []test {
+	t.Helper()
+	testFiles, err := filepath.Glob("testdata/*.test")
+	if err != nil {
+		t.Fatalf("Failed to read testdata: %v", err)
+	}
+	var tests []test
+	for _, filename := range testFiles {
+		ar, err := txtar.ParseFile(filename)
+		if err != nil {
+			t.Fatalf("failed to parse test case: %v", err)
+		}
+		test := test{
+			name:     strings.TrimPrefix(filename, "testdata/"),
+			filename: filename,
+			comment:  ar.Comment,
+		}
+
+		for _, f := range ar.Files {
+			switch f.Name {
+			case "x":
+				test.x = f.Data
+			case "y":
+				test.y = f.Data
+			case "diff":
+				data := f.Data
+				var st subtest
+				var name []string
+				for i := 0; i < len(data); i++ {
+					if data[i] != '#' {
+						st.pragmas = data[:i]
+						st.want = data[i:]
+						break
+					}
+					i++
+					eol := i + bytes.IndexByte(data[i:], '\n')
+					if eol < i {
+						t.Fatal("failed to parse test case: missing newline after pragma line")
+					}
+					k, v, found := bytes.Cut(data[i:eol], []byte{':'})
+					if !found {
+						t.Fatal("failed to parse test case: missing ':' in pragma line")
+					}
+					switch k, v := strings.TrimSpace(string(k)), strings.TrimSpace(string(v)); k {
+					case "indent-heuristic":
+						switch v {
+						case "true":
+							st.opts = append(st.opts, IndentHeuristic())
+						case "false":
+							// do nothing
+						default:
+							t.Fatalf("invalid value for indent_heuristic: %q", v)
+						}
+						name = append(name, k)
+					case "context":
+						n, err := strconv.ParseInt(v, 10, 64)
+						if err != nil {
+							t.Fatalf("invalid value for context: %v", err.Error())
+						}
+						st.opts = append(st.opts, diff.Context(int(n)))
+						name = append(name, k+"="+v)
+					default:
+						t.Fatalf("unknown option: %q", k)
+					}
+					i = eol
+				}
+				if len(name) == 0 {
+					name = append(name, "default")
+				}
+				st.name = strings.Join(name, ":")
+				test.subtests = append(test.subtests, st)
+			default:
+				t.Fatalf("unknown file in archive: %v", f)
+			}
+		}
+		tests = append(tests, test)
+	}
+	return tests
 }
 
 func TestUnifiedExhaustive(t *testing.T) {
