@@ -42,8 +42,9 @@
 package indentheuristic
 
 import (
-	"bytes"
 	"cmp"
+
+	"znkr.io/diff/internal/byteview"
 )
 
 // Never move a group more than this many lines.
@@ -74,13 +75,13 @@ const relativeDentWithBlankPenalty = 17    // Indented less than predecessor but
 const indentWeight = 60
 
 // Apply applies the indent heuristics to rx and ry.
-func Apply(x, y [][]byte, rx, ry []bool) {
+func Apply(x, y []byteview.ByteView, rx, ry []bool) {
 	apply0(x, y, rx, ry) // for deletions
 	apply0(y, x, ry, rx) // for insertions
 }
 
 // apply0 applies the indentation heuristics to r.
-func apply0(lines, lineso [][]byte, r, ro []bool) {
+func apply0(lines, lineso []byteview.ByteView, r, ro []bool) {
 	s, so := newScanner(lines, r), newScanner(lineso, ro)
 	for s.nextGroup() {
 		if !so.nextGroup() {
@@ -170,11 +171,11 @@ func apply0(lines, lineso [][]byte, r, ro []bool) {
 type scanner struct {
 	start int // First changed line of the current group if non-empty, or unchanged line if empty.
 	end   int // First unchanged line after the group. For an empty group, start == end.
-	lines [][]byte
+	lines []byteview.ByteView
 	r     []bool
 }
 
-func newScanner(lines [][]byte, r []bool) *scanner {
+func newScanner(lines []byteview.ByteView, r []bool) *scanner {
 	return &scanner{
 		start: -1,
 		end:   -1,
@@ -216,7 +217,7 @@ func (s *scanner) prevGroup() bool {
 // it, it merges the two groups. Returns true if sliding up was possible and false if the group
 // could not be slid up.
 func (s *scanner) slideGroupDown() bool {
-	if s.end < len(s.r)-1 && bytes.Equal(s.lines[s.start], s.lines[s.end]) {
+	if s.end < len(s.r)-1 && byteview.Equal(s.lines[s.start], s.lines[s.end]) {
 		s.r[s.start], s.r[s.end] = false, true
 		s.start++
 		s.end++
@@ -233,7 +234,7 @@ func (s *scanner) slideGroupDown() bool {
 // merges the two groups. Returns true if sliding up was possible and false if the group could not
 // be slid up.
 func (s *scanner) slideGroupUp() bool {
-	if s.start > 0 && bytes.Equal(s.lines[s.start-1], s.lines[s.end-1]) {
+	if s.start > 0 && byteview.Equal(s.lines[s.start-1], s.lines[s.end-1]) {
 		s.r[s.start-1], s.r[s.end-1] = true, false
 		s.start--
 		s.end--
@@ -255,7 +256,7 @@ type measure struct {
 	postIndent int
 }
 
-func measureShift(lines [][]byte, shift int) measure {
+func measureShift(lines []byteview.ByteView, shift int) measure {
 	m := measure{}
 	if shift >= len(lines) {
 		m.endOfFile = true
@@ -292,9 +293,9 @@ func measureShift(lines [][]byte, shift int) measure {
 	return m
 }
 
-func getIndent(line []byte) int {
+func getIndent(line byteview.ByteView) int {
 	indent := 0
-	for _, c := range line {
+	for c := range line.Bytes() {
 		switch c {
 		case ' ':
 			indent++

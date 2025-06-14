@@ -126,7 +126,7 @@ func TestUnified(t *testing.T) {
 						}
 					}
 
-					got := UnifiedBytes(x, y, opts...)
+					got := Unified(x, y, opts...)
 					if !bytes.Equal(got, st.want) {
 						t.Errorf("UnifiedBytes(...) result are different:\ngot:\n%s\nwant:\n%s", got, st.want)
 					}
@@ -322,7 +322,7 @@ func TestUnifiedExhaustive(t *testing.T) {
 									panic(p)
 								}
 							}()
-							UnifiedBytes(old, new, IndentHeuristic())
+							Unified(old, new, IndentHeuristic())
 						})
 					}
 				})
