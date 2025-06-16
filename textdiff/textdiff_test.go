@@ -640,10 +640,9 @@ func parseTests(t testing.TB) []test {
 				data := f.Data
 				var st subtest
 				var name []string
-				for i := 0; i < len(data); i++ {
+				i := 0
+				for ; i < len(data); i++ {
 					if data[i] != '#' {
-						st.pragmas = data[:i]
-						st.want = data[i:]
 						break
 					}
 					i++
@@ -682,6 +681,8 @@ func parseTests(t testing.TB) []test {
 					name = append(name, "default")
 				}
 				st.name = strings.Join(name, ":")
+				st.pragmas = data[:i]
+				st.want = data[i:]
 				test.subtests = append(test.subtests, st)
 			default:
 				t.Fatalf("unknown file in archive: %v", f)
