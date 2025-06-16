@@ -183,6 +183,419 @@ func BenchmarkUnified(b *testing.B) {
 	}
 }
 
+func TestHunks(t *testing.T) {
+	tests := []struct {
+		name string
+		x, y string
+		opts []diff.Option
+		want []Hunk[string]
+	}{
+		{
+			name: "identical",
+			x:    "foo\nbar\nbaz\n",
+			y:    "foo\nbar\nbaz\n",
+			want: nil,
+		},
+		{
+			name: "empty",
+			want: nil,
+		},
+		{
+			name: "x-empty",
+			y:    "foo\nbar\nbaz\n",
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					PosY: 0,
+					EndX: 0,
+					EndY: 3,
+					Edits: []Edit[string]{
+						{diff.Insert, "foo\n"},
+						{diff.Insert, "bar\n"},
+						{diff.Insert, "baz\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "y-empty",
+			x:    "foo\nbar\nbaz\n",
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					PosY: 0,
+					EndX: 3,
+					EndY: 0,
+					Edits: []Edit[string]{
+						{diff.Delete, "foo\n"},
+						{diff.Delete, "bar\n"},
+						{diff.Delete, "baz\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "same-prefix",
+			x:    "foo\nbar\n",
+			y:    "foo\nbaz\n",
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					EndX: 2,
+					PosY: 0,
+					EndY: 2,
+					Edits: []Edit[string]{
+						{diff.Match, "foo\n"},
+						{diff.Delete, "bar\n"},
+						{diff.Insert, "baz\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "same-suffix",
+			x:    "foo\nbar\n",
+			y:    "loo\nbar\n",
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					EndX: 2,
+					PosY: 0,
+					EndY: 2,
+					Edits: []Edit[string]{
+						{diff.Delete, "foo\n"},
+						{diff.Insert, "loo\n"},
+						{diff.Match, "bar\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "ABCABBA_to_CBABAC",
+			x:    "A\nB\nC\nA\nB\nB\nA\n",
+			y:    "C\nB\nA\nB\nA\nC\n",
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					PosY: 0,
+					EndX: 7,
+					EndY: 6,
+					Edits: []Edit[string]{
+						{diff.Delete, "A\n"},
+						{diff.Insert, "C\n"},
+						{diff.Match, "B\n"},
+						{diff.Delete, "C\n"},
+						{diff.Match, "A\n"},
+						{diff.Match, "B\n"},
+						{diff.Delete, "B\n"},
+						{diff.Match, "A\n"},
+						{diff.Insert, "C\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "ABCABBA_to_CBABAC_no_context",
+			x:    "A\nB\nC\nA\nB\nB\nA\n",
+			y:    "C\nB\nA\nB\nA\nC\n",
+			opts: []diff.Option{diff.Context(0)},
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					PosY: 0,
+					EndX: 1,
+					EndY: 1,
+					Edits: []Edit[string]{
+						{diff.Delete, "A\n"},
+						{diff.Insert, "C\n"},
+					},
+				},
+				{
+					PosX: 2,
+					PosY: 2,
+					EndX: 3,
+					EndY: 2,
+					Edits: []Edit[string]{
+						{diff.Delete, "C\n"},
+					},
+				},
+				{
+					PosX: 5,
+					PosY: 4,
+					EndX: 6,
+					EndY: 4,
+					Edits: []Edit[string]{
+						{diff.Delete, "B\n"},
+					},
+				},
+				{
+					PosX: 7,
+					PosY: 5,
+					EndX: 7,
+					EndY: 6,
+					Edits: []Edit[string]{
+						{diff.Insert, "C\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "two-hunks",
+			x: `this paragraph
+is not
+changed and
+barely long
+enough to
+create a
+new hunk
+
+this paragraph
+is going to be
+removed
+`,
+			y: `this is a new paragraph
+that is inserted at the top
+
+this paragraph
+is not
+changed and
+barely long
+enough to
+create a
+new hunk
+`,
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					EndX: 3,
+					PosY: 0,
+					EndY: 6,
+					Edits: []Edit[string]{
+						{diff.Insert, "this is a new paragraph\n"},
+						{diff.Insert, "that is inserted at the top\n"},
+						{diff.Insert, "\n"},
+						{diff.Match, "this paragraph\n"},
+						{diff.Match, "is not\n"},
+						{diff.Match, "changed and\n"},
+					},
+				},
+				{
+					PosX: 4,
+					EndX: 11,
+					PosY: 7,
+					EndY: 10,
+					Edits: []Edit[string]{
+						{diff.Match, "enough to\n"},
+						{diff.Match, "create a\n"},
+						{diff.Match, "new hunk\n"},
+						{diff.Delete, "\n"},
+						{diff.Delete, "this paragraph\n"},
+						{diff.Delete, "is going to be\n"},
+						{diff.Delete, "removed\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "overlapping-consecutive-hunks-are-merged",
+			x: `this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+
+this paragraph
+is going to be
+removed
+`,
+			y: `this is a new paragraph
+that is inserted at the top
+
+this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+`,
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					EndX: 9,
+					PosY: 0,
+					EndY: 8,
+					Edits: []Edit[string]{
+						{diff.Insert, "this is a new paragraph\n"},
+						{diff.Insert, "that is inserted at the top\n"},
+						{diff.Insert, "\n"},
+						{diff.Match, "this paragraph\n"},
+						{diff.Match, "stays but is\n"},
+						{diff.Match, "not long enough\n"},
+						{diff.Match, "to create a\n"},
+						{diff.Match, "new hunk\n"},
+						{diff.Delete, "\n"},
+						{diff.Delete, "this paragraph\n"},
+						{diff.Delete, "is going to be\n"},
+						{diff.Delete, "removed\n"},
+					},
+				},
+			},
+		},
+		{
+			name: "indent-heuristic",
+			x: `["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`,
+			y: `["foo", "bar", "baz"].map do |i|
+  i
+end
+
+["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`,
+			opts: []diff.Option{IndentHeuristic()},
+			want: []Hunk[string]{
+				{
+					PosX: 0,
+					EndX: 3,
+					PosY: 0,
+					EndY: 7,
+					Edits: []Edit[string]{
+						{diff.Insert, `["foo", "bar", "baz"].map do |i|` + "\n"},
+						{diff.Insert, `  i` + "\n"},
+						{diff.Insert, `end` + "\n"},
+						{diff.Insert, "\n"},
+						{diff.Match, `["foo", "bar", "baz"].map do |i|` + "\n"},
+						{diff.Match, `  i.upcase` + "\n"},
+						{diff.Match, `end` + "\n"},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Hunks(tt.x, tt.y, tt.opts...)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("HunksFunc(...) result is different [-want, +got]:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestEdits(t *testing.T) {
+	tests := []struct {
+		name string
+		x, y string
+		opts []diff.Option
+		want []Edit[string]
+	}{
+		{
+			name: "identical",
+			x:    "foo\nbar\nbaz\n",
+			y:    "foo\nbar\nbaz\n",
+			want: []Edit[string]{
+				{diff.Match, "foo\n"},
+				{diff.Match, "bar\n"},
+				{diff.Match, "baz\n"},
+			},
+		},
+		{
+			name: "empty",
+		},
+		{
+			name: "x-empty",
+			y:    "foo\nbar\nbaz\n",
+			want: []Edit[string]{
+				{diff.Insert, "foo\n"},
+				{diff.Insert, "bar\n"},
+				{diff.Insert, "baz\n"},
+			},
+		},
+		{
+			name: "y-empty",
+			x:    "foo\nbar\nbaz\n",
+			want: []Edit[string]{
+				{diff.Delete, "foo\n"},
+				{diff.Delete, "bar\n"},
+				{diff.Delete, "baz\n"},
+			},
+		},
+		{
+			name: "ABCABBA_to_CBABAC",
+			x:    "A\nB\nC\nA\nB\nB\nA\n",
+			y:    "C\nB\nA\nB\nA\nC\n",
+			want: []Edit[string]{
+				{diff.Delete, "A\n"},
+				{diff.Insert, "C\n"},
+				{diff.Match, "B\n"},
+				{diff.Delete, "C\n"},
+				{diff.Match, "A\n"},
+				{diff.Match, "B\n"},
+				{diff.Delete, "B\n"},
+				{diff.Match, "A\n"},
+				{diff.Insert, "C\n"},
+			},
+		},
+		{
+			name: "same-prefix",
+			x:    "foo\nbar\n",
+			y:    "foo\nbaz\n",
+			want: []Edit[string]{
+				{diff.Match, "foo\n"},
+				{diff.Delete, "bar\n"},
+				{diff.Insert, "baz\n"},
+			},
+		},
+		{
+			name: "same-suffix",
+			x:    "foo\nbar\n",
+			y:    "loo\nbar\n",
+			want: []Edit[string]{
+				{diff.Delete, "foo\n"},
+				{diff.Insert, "loo\n"},
+				{diff.Match, "bar\n"},
+			},
+		},
+		{
+			name: "indent-heuristic",
+			x: `["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`,
+			y: `["foo", "bar", "baz"].map do |i|
+  i
+end
+
+["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`,
+			opts: []diff.Option{IndentHeuristic()},
+			want: []Edit[string]{
+				{diff.Insert, `["foo", "bar", "baz"].map do |i|` + "\n"},
+				{diff.Insert, `  i` + "\n"},
+				{diff.Insert, `end` + "\n"},
+				{diff.Insert, "\n"},
+				{diff.Match, `["foo", "bar", "baz"].map do |i|` + "\n"},
+				{diff.Match, `  i.upcase` + "\n"},
+				{diff.Match, `end` + "\n"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Edits(tt.x, tt.y, tt.opts...)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Edits(...) result is different (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 type test struct {
 	name     string
 	filename string

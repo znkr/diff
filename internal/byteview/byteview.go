@@ -49,6 +49,19 @@ func (v ByteView) Bytes() iter.Seq[byte] {
 	}
 }
 
+// UnsafeAs converts a ByteView to type T independently of what it was originally. This is
+// only safe if the type is the same one used for From and either the result is not modified
+// or the ByteView is no longer used.
+func UnsafeAs[T string | []byte](v ByteView) T {
+	switch any((*T)(nil)).(type) {
+	case *string:
+		return T(v.data)
+	case *[]byte:
+		return T(unsafe.Slice(unsafe.StringData(v.data), len(v.data)))
+	}
+	panic("never reached")
+}
+
 // SplitLines splits the input on '\n' and returns the lines including the newline character and
 // and either -1 if the last line ends in a newline character or len([]ByteView) if it's missing
 // a newline character.
