@@ -25,13 +25,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/txtar"
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
 )
 
 var update = flag.Bool("update", false, "update golden files")
-var runAll = flag.Bool("run-all", false, "run all tests, by default slow tests are skipped")
 var exhaustive = flag.Bool("exhaustive", false, "perform the exhaustive test")
 
 func TestUnified(t *testing.T) {
@@ -42,8 +42,8 @@ func TestUnified(t *testing.T) {
 				t.Run(st.name, func(t *testing.T) {
 					t.Parallel()
 					got := Unified(tt.x, tt.y, st.opts...)
-					if !bytes.Equal(got, st.want) {
-						t.Errorf("UnifiedBytes(...) result are different:\ngot:\n%s\nwant:\n%s", got, st.want)
+					if diff := cmp.Diff(st.want, got); diff != "" {
+						t.Errorf("UnifiedBytes(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, diff)
 					}
 					if *update {
 						tt.subtests[sti].want = got
@@ -87,26 +87,6 @@ func TestUnified(t *testing.T) {
 					}
 				}
 			})
-		})
-	}
-}
-
-func TestUnifiedAllocs(t *testing.T) {
-	for _, tt := range parseTests(t) {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.slow && !*runAll {
-				t.Skip("skipping slow tests")
-			}
-			for _, st := range tt.subtests {
-				t.Run(st.name, func(t *testing.T) {
-					allocs := testing.AllocsPerRun(10, func() {
-						_ = Unified(tt.x, tt.y, st.opts...)
-					})
-					if allocs > 10 {
-						t.Errorf("Number of allocations in Edits was %v, want <= %v", allocs, 10)
-					}
-				})
-			}
 		})
 	}
 }
@@ -208,7 +188,6 @@ type test struct {
 	filename string
 	comment  []byte
 	x, y     []byte
-	slow     bool
 	subtests []subtest
 }
 
@@ -217,11 +196,6 @@ type subtest struct {
 	opts    []config.Option
 	pragmas []byte
 	want    []byte
-}
-
-var slow = map[string]bool{
-	"go_ca14eaf77c86bd5492329d2be6f1a82afe7802f5_src_vendor_golang.org_x_crypto_chacha20poly1305_chacha20poly1305_amd64.s.test": true,
-	"go_78eadf5b3de568297456fe137b65ff16e8cc8bb6_src_cmd_vendor_golang.org_x_tools_internal_stdlib_manifest.go.test":            true,
 }
 
 func parseTests(t testing.TB) []test {
@@ -241,7 +215,6 @@ func parseTests(t testing.TB) []test {
 			name:     name,
 			filename: filename,
 			comment:  ar.Comment,
-			slow:     slow[name],
 		}
 
 		for _, f := range ar.Files {

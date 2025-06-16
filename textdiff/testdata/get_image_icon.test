@@ -58,17 +58,17 @@ public static ImageIcon getImageIcon(String path)
      java.net.URL imgURL = GuiImporter.class.getResource(path);
  
 -    if (imgURL != null)
--    {
--        return new ImageIcon(imgURL);
--    }
--    else
 +    if (imgURL == null)
      {
-         log.error("Couldn't find icon: " + imgURL)
+-        return new ImageIcon(imgURL);
++        log.error("Couldn't find icon: " + imgURL)
 +        return null;
      }
+     else
+-    {
+-        log.error("Couldn't find icon: " + imgURL)
+-    }
 -        return null;
-+    else
 +        return new ImageIcon(imgURL);
  }
  
@@ -88,17 +88,17 @@ public static ImageIcon getImageIcon(String path)
      java.net.URL imgURL = GuiImporter.class.getResource(path);
  
 -    if (imgURL != null)
--    {
--        return new ImageIcon(imgURL);
--    }
--    else
 +    if (imgURL == null)
      {
-         log.error("Couldn't find icon: " + imgURL)
+-        return new ImageIcon(imgURL);
++        log.error("Couldn't find icon: " + imgURL)
 +        return null;
      }
+     else
+-    {
+-        log.error("Couldn't find icon: " + imgURL)
+-    }
 -        return null;
-+    else
 +        return new ImageIcon(imgURL);
  }
  

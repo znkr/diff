@@ -408,10 +408,10 @@ func (p PanicValue) String() string {
  	if g.sem != nil {
  		g.sem <- token{}
  	}
-+
+ 
 +	g.add(f)
 +}
- 
++
 +func (g *Group) add(f func() error) {
  	g.wg.Add(1)
  	go func() {
@@ -453,14 +453,15 @@ func (p PanicValue) String() string {
  			g.errOnce.Do(func() {
  				g.err = err
  				if g.cancel != nil {
-@@ -101,19 +152,7 @@
+@@ -100,20 +151,8 @@
+ 			return false
  		}
  	}
- 
+-
 -	g.wg.Add(1)
 -	go func() {
 -		defer g.done()
--
+ 
 -		if err := f(); err != nil {
 -			g.errOnce.Do(func() {
 -				g.err = err

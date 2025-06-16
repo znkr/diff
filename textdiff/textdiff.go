@@ -21,9 +21,9 @@ import (
 	"znkr.io/diff"
 	"znkr.io/diff/internal/byteview"
 	"znkr.io/diff/internal/config"
-	"znkr.io/diff/internal/edits"
 	"znkr.io/diff/internal/indentheuristic"
 	"znkr.io/diff/internal/myers"
+	"znkr.io/diff/internal/rvecs"
 )
 
 const (
@@ -47,7 +47,7 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))
 
-	rx, ry := myers.Diff(xlines, ylines, func(a, b byteview.ByteView) bool { return a == b }, cfg)
+	rx, ry := myers.Diff(xlines, ylines, cfg)
 
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
@@ -55,7 +55,7 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 
 	// Precompute output buffer size.
 	n := 0
-	for h := range edits.Hunks(rx, ry, cfg) {
+	for h := range rvecs.Hunks(rx, ry, cfg) {
 		n += len("@@ -, +, @@\n")
 		n += numDigits(h.S0+1) + numDigits(h.S1-h.S0) + numDigits(h.T0+1) + numDigits(h.T1-h.T0)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
@@ -84,7 +84,7 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 	// Format output
 	var b byteview.Builder[T]
 	b.Grow(n)
-	for h := range edits.Hunks(rx, ry, cfg) {
+	for h := range rvecs.Hunks(rx, ry, cfg) {
 		fmt.Fprintf(&b, "@@ -%d,%d +%d,%d @@\n", h.S0+1, h.S1-h.S0, h.T0+1, h.T1-h.T0)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			for s < h.S1 && rx[s] {

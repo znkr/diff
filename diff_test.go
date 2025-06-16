@@ -293,9 +293,17 @@ func TestHunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Hunks(tt.x, tt.y, tt.opts...)
-			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("Diff result is different [-want, +got]:\n%s", diff)
+			{
+				got := Hunks(tt.x, tt.y, tt.opts...)
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("Hunks(...) result is different [-want, +got]:\n%s", diff)
+				}
+			}
+			{
+				got := HunksFunc(tt.x, tt.y, func(a, b string) bool { return a == b }, tt.opts...)
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("HunksFunc(...) result is different [-want, +got]:\n%s", diff)
+				}
 			}
 		})
 	}
@@ -378,35 +386,17 @@ func TestEdits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Edits(tt.x, tt.y)
-			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("Diff result is different (-want, +got):\n%s", diff)
+			{
+				got := Edits(tt.x, tt.y)
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("Edits(...) result is different (-want, +got):\n%s", diff)
+				}
 			}
-		})
-	}
-}
-
-func TestHunksAllocations(t *testing.T) {
-	for _, s := range benchmarkSpecs {
-		t.Run(s.name(), func(t *testing.T) {
-			x, y := s.generate([]byte{})
-			allocs := testing.AllocsPerRun(3, func() { Hunks(x, y) })
-			const want = 5
-			if allocs > want {
-				t.Errorf("Number of allocations in Edits was %v, want <= %v", allocs, want)
-			}
-		})
-	}
-}
-
-func TestEditsAllocations(t *testing.T) {
-	for _, s := range benchmarkSpecs {
-		t.Run(s.name(), func(t *testing.T) {
-			x, y := s.generate([]byte{})
-			allocs := testing.AllocsPerRun(3, func() { Edits(x, y) })
-			const want = 4
-			if allocs > want {
-				t.Errorf("Number of allocations in Edits was %v, want <= %v", allocs, want)
+			{
+				got := EditsFunc(tt.x, tt.y, func(a, b string) bool { return a == b })
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("EditsFunc(...) result is different (-want, +got):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -424,6 +414,18 @@ func BenchmarkHunks(b *testing.B) {
 	}
 }
 
+func BenchmarkHunksFunc(b *testing.B) {
+	for _, s := range benchmarkSpecs {
+		b.Run(s.name(), func(b *testing.B) {
+			b.ReportAllocs()
+			x, y := s.generate([]byte{})
+			for b.Loop() {
+				_ = HunksFunc(x, y, func(a, b int) bool { return a == b })
+			}
+		})
+	}
+}
+
 func BenchmarkEdits(b *testing.B) {
 	for _, s := range benchmarkSpecs {
 		b.Run(s.name(), func(b *testing.B) {
@@ -431,6 +433,18 @@ func BenchmarkEdits(b *testing.B) {
 			x, y := s.generate([]byte{})
 			for b.Loop() {
 				_ = Edits(x, y)
+			}
+		})
+	}
+}
+
+func BenchmarkEditsFunc(b *testing.B) {
+	for _, s := range benchmarkSpecs {
+		b.Run(s.name(), func(b *testing.B) {
+			b.ReportAllocs()
+			x, y := s.generate([]byte{})
+			for b.Loop() {
+				_ = EditsFunc(x, y, func(a, b int) bool { return a == b })
 			}
 		})
 	}

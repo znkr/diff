@@ -496,11 +496,10 @@ package noder
                    SectionObj
                    SectionObjExt  // TODO(markfreeman) Define.
                    SectionObjDict // TODO(markfreeman) Define.
-@@ -136,7 +136,45 @@
-     PkgRef     = [ Sync ]
+@@ -137,6 +137,44 @@
                   Ref[Pkg]
                   .
-+
+ 
 +## Type Section
 +The type section is a series of type definition elements.
 +
@@ -532,7 +531,7 @@ package noder
 +
 +// TODO(markfreeman): Document the reader dictionary once we understand it more.
 +To use a type elsewhere, a TypeUse is encoded.
- 
++
 +    TypeUse     = [ Sync ]
 +                  Bool              // whether it is a derived type
 +                  [ Uint64 ]        // if derived, an index into the reader dictionary
@@ -542,7 +541,7 @@ package noder
  ## Object Sections
  Information about an object (e.g. variable, function, type name, etc.)
  is split into multiple elements in different sections. Those elements
-@@ -160,22 +198,36 @@
+@@ -160,21 +198,35 @@
                    .
  
  ### Definition Section
@@ -569,7 +568,7 @@ package noder
 +                [ Sync ]
 +                ObjectSpec
                  .
- 
++
 +    ObjectSpec = ObjectSpecConst     // TODO(markfreeman) Define.
 +               | ObjectSpecFunc      // TODO(markfreeman) Define.
 +               | ObjectSpecAlias     // TODO(markfreeman) Define.
@@ -585,10 +584,9 @@ package noder
 +                 Uint64              // the number of type arguments
 +                 { TypeUse }         // references to the type arguments
 +                 .
-+
+ 
  # References
  A reference table precedes every element. Each entry in the table
- contains a (section, index) pair denoting the location of the
 @@ -193,10 +245,15 @@
  Elements encode references to other elements as an index in the
  reference table — not the location of the referenced element directly.

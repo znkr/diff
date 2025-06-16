@@ -18,8 +18,8 @@ import (
 	"slices"
 
 	"znkr.io/diff/internal/config"
-	"znkr.io/diff/internal/edits"
 	"znkr.io/diff/internal/myers"
+	"znkr.io/diff/internal/rvecs"
 )
 
 // Op describes an edit operation.
@@ -66,7 +66,9 @@ type Hunk[T any] struct {
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
-	return HunksFunc(x, y, func(a, b T) bool { return a == b }, opts...)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal)
+	rx, ry := myers.Diff(x, y, cfg)
+	return hunks(x, y, rx, ry, cfg)
 }
 
 // HunksFunc compares the contents of x and y using the provided equality comparison and returns the
@@ -80,17 +82,21 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 //
 // The following options are supported: [diff.Context], [diff.Optimal]
 //
+// Mote that this function has generally worse performance than [Hunks] for diffs with many changes.
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Optimal)
+	rx, ry := myers.DiffFunc(x, y, eq, cfg)
+	return hunks(x, y, rx, ry, cfg)
+}
 
-	rx, ry := myers.Diff(x, y, eq, cfg)
-
+func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 	// Compute the number of hunks and edits, this is relatively cheap and allows us to preallocate
 	// the return values.
 	var nhunks, nedits int
-	for hunk := range edits.Hunks(rx, ry, cfg) {
+	for hunk := range rvecs.Hunks(rx, ry, cfg) {
 		nhunks++
 		nedits += hunk.Edits
 	}
@@ -100,7 +106,7 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 
 	eout := make([]Edit[T], 0, nedits)
 	hout := make([]Hunk[T], 0, nhunks)
-	for hunk := range edits.Hunks(rx, ry, cfg) {
+	for hunk := range rvecs.Hunks(rx, ry, cfg) {
 		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
 			for s < hunk.S1 && rx[s] {
 				eout = append(eout, Edit[T]{
@@ -149,7 +155,9 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
-	return EditsFunc(x, y, func(a, b T) bool { return a == b }, opts...)
+	cfg := config.FromOptions(opts, config.Optimal)
+	rx, ry := myers.Diff(x, y, cfg)
+	return edits(x, y, rx, ry)
 }
 
 // EditsFunc compares the contents of x and y using the provided equality comparison and returns the
@@ -160,13 +168,17 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 //
 // The following option is supported: [diff.Optimal]
 //
+// Mote that this function has generally worse performance than [Edits] for diffs with many changes.
+//
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Optimal)
+	rx, ry := myers.DiffFunc(x, y, eq, cfg)
+	return edits(x, y, rx, ry)
+}
 
-	rx, ry := myers.Diff(x, y, eq, cfg)
-
+func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
 	// Compute the number of edits, this is relatively cheap and allows us to preallocate the return
 	// value.
 	n, m := len(rx)-1, len(ry)-1

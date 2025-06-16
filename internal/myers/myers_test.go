@@ -83,13 +83,21 @@ func TestMyersDiff(t *testing.T) {
 		},
 	}
 
-	eq := func(a, b string) bool { return a == b }
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rx, ry := Diff(tt.x, tt.y, eq, config.Default)
-			got := render(rx, ry, len(tt.x), len(tt.y))
-			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("edits differs [-want,+got]:\n%s", diff)
+			{
+				rx, ry := Diff(tt.x, tt.y, config.Default)
+				got := render(rx, ry, len(tt.x), len(tt.y))
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("Diff(...) differs [-want,+got]:\n%s", diff)
+				}
+			}
+			{
+				rx, ry := DiffFunc(tt.x, tt.y, func(a, b string) bool { return a == b }, config.Default)
+				got := render(rx, ry, len(tt.x), len(tt.y))
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("DiffFunc(...) differs [-want,+got]:\n%s", diff)
+				}
 			}
 		})
 	}
