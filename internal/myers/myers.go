@@ -145,6 +145,22 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 	rx = r[: len(x)+1 : len(x)+1]
 	ry = r[len(x)+1:]
 
+	// Handle trivial cases without doing anything extra.
+	switch {
+	case smin != smax && tmin == tmax:
+		for s := smin; s < smax; s++ {
+			rx[s] = true
+		}
+		return rx, ry
+	case smin == smax && tmin != tmax:
+		for t := tmin; t < tmax; t++ {
+			ry[t] = true
+		}
+		return rx, ry
+	case smin == smax && tmin == tmax:
+		return rx, ry
+	}
+
 	// First reduce the problem size by skipping all lines that are unique to x or y. Those are
 	// always deletions or insertions respectively. This optimization dramatically reduces the
 	// time it takes to compute very large diffs, because in practice those diffs will have many
@@ -226,8 +242,45 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 //
 // Note that this function has generally worse performance than [Diff] for diffs with many changes.
 func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry []bool) {
+	smin, tmin := 0, 0
+	smax, tmax := len(x), len(y)
+
+	// Strip common prefix.
+	for smin < smax && tmin < tmax && eq(x[smin], y[tmin]) {
+		smin++
+		tmin++
+	}
+
+	// Strip common suffix.
+	for smax > smin && tmax > tmin && eq(x[smax-1], y[tmax-1]) {
+		smax--
+		tmax--
+	}
+
+	// Allocate result vectors.
+	r := make([]bool, (len(x) + len(y) + 2))
+	rx = r[: len(x)+1 : len(x)+1]
+	ry = r[len(x)+1:]
+
+	// Handle trivial cases without doing anything extra.
+	switch {
+	case smin != smax && tmin == tmax:
+		for s := smin; s < smax; s++ {
+			rx[s] = true
+		}
+		return rx, ry
+	case smin == smax && tmin != tmax:
+		for t := tmin; t < tmax; t++ {
+			ry[t] = true
+		}
+		return rx, ry
+	case smin == smax && tmin == tmax:
+		return rx, ry
+	}
+
 	var m myers[T]
-	smin, smax, tmin, tmax := m.init(x, y, eq)
+	m.rx, m.ry = rx, ry
+	smin, smax, tmin, tmax = m.init(x, y, eq)
 	m.compare(smin, smax, tmin, tmax, cfg.Optimal, eq)
 	return m.rx, m.ry
 }
