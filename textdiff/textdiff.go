@@ -13,6 +13,12 @@
 // limitations under the License.
 
 // Package textdiff provides functions to efficiently compare text line-by-line.
+//
+// By default the comparison functions in this package will try to find an optimal path, but may
+// fall back to a good-enough path for large files with many differences to speed up the comparison.
+// Unless [diff.Optimal] is used to disable these heuristics, the time complexity is O(N^1.5 log N)
+// and the space complexity is O(N) with N = len(x) + len(y). With [diff.Optimal] the complexity
+// becomes O(ND) where D is the number of edits.
 package textdiff
 
 import (
