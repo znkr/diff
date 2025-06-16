@@ -47,7 +47,7 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))
 
-	rx, ry := myers.Diff(xlines, ylines, byteview.Equal, cfg)
+	rx, ry := myers.Diff(xlines, ylines, func(a, b byteview.ByteView) bool { return a == b }, cfg)
 
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)

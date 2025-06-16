@@ -217,7 +217,7 @@ func (s *scanner) prevGroup() bool {
 // it, it merges the two groups. Returns true if sliding up was possible and false if the group
 // could not be slid up.
 func (s *scanner) slideGroupDown() bool {
-	if s.end < len(s.r)-1 && byteview.Equal(s.lines[s.start], s.lines[s.end]) {
+	if s.end < len(s.r)-1 && s.lines[s.start] == s.lines[s.end] {
 		s.r[s.start], s.r[s.end] = false, true
 		s.start++
 		s.end++
@@ -234,7 +234,7 @@ func (s *scanner) slideGroupDown() bool {
 // merges the two groups. Returns true if sliding up was possible and false if the group could not
 // be slid up.
 func (s *scanner) slideGroupUp() bool {
-	if s.start > 0 && byteview.Equal(s.lines[s.start-1], s.lines[s.end-1]) {
+	if s.start > 0 && s.lines[s.start-1] == s.lines[s.end-1] {
 		s.r[s.start-1], s.r[s.end-1] = true, false
 		s.start--
 		s.end--

@@ -75,8 +75,6 @@ func SplitLines(v ByteView) (lines []ByteView, missingNewline int) {
 	return a, missingNewline
 }
 
-func Equal(a, b ByteView) bool { return a.data == b.data }
-
 type Builder[T string | []byte] struct {
 	_   [0]sync.Mutex // don't copy
 	buf []byte

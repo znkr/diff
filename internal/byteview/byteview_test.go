@@ -126,19 +126,6 @@ func TestSplitLines(t *testing.T) {
 	}
 }
 
-func TestEqual(t *testing.T) {
-	t.Run("equal", func(t *testing.T) {
-		if !Equal(From("foo"), From("foo")) {
-			t.Errorf("expected equals, got not-equals")
-		}
-	})
-	t.Run("not-equal", func(t *testing.T) {
-		if Equal(From("foo"), From("bar")) {
-			t.Errorf("expected not-equals, got equals")
-		}
-	})
-}
-
 func TestBuilder(t *testing.T) {
 	var b Builder[[]byte]
 	b.WriteString("a")
