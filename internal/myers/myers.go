@@ -433,6 +433,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				s = vf[k0-1] + 1
 			}
 			t := s - k
+
 			// Then follow the diagonals as long as possible.
 			s0, t0 := s, t
 			for s < smax && t < tmax && eq(x[s], y[t]) {
@@ -481,7 +482,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				t--
 			}
 
-			vb[v0+k] = max(smin, s)
+			vb[v0+k] = s
 
 			if !odd && fmin <= k && k <= fmax && s <= vf[v0+k] {
 				return s, s0, t, t0, true, true
@@ -501,7 +502,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				k0 := k + v0
 				s := vf[k0]
 				t := s - k
-				if fbest < s+t {
+				if smin <= s && s < smax && tmin <= t && t < tmax && fbest < s+t {
 					fbest = s + t
 					fbestk = k
 				}
@@ -513,7 +514,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				k0 := k + v0
 				s := vb[k0]
 				t := s - k
-				if s+t < bbest {
+				if smin <= s && s < smax && tmin <= t && t < tmax && s+t < bbest {
 					bbest = s + t
 					bbestk = k
 				}
