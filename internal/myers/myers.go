@@ -495,7 +495,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 			}
 
 			// Then store the endpoint of the furthest reaching d-path.
-			vf[v0+k] = s
+			vf[k0] = s
 
 			// Potentially, check for an overlap with a backwards d-path. We're done when we found
 			// it.
@@ -535,7 +535,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				t--
 			}
 
-			vb[v0+k] = s
+			vb[k0] = s
 
 			if !odd && fmin <= k && k <= fmax && s <= vf[v0+k] {
 				return s, s0, t, t0, true, true
