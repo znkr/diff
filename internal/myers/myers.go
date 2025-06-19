@@ -574,7 +574,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 			}
 
 			// Use better of the two d-paths.
-			if (smax+tmax)-bbest < fbest-(smin+tmin) {
+			if fbest != math.MinInt && (smax+tmax)-bbest < fbest-(smin+tmin) {
 				k := fbestk
 				k0 := k + v0
 				s := vf[k0]
@@ -595,7 +595,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				diag := min(s-ps, t-pt)  // number of diagonal steps
 				s0, t0 := s-diag, t-diag // start of diagonal
 				return s0, s, t0, t, true, false
-			} else {
+			} else if bbest != math.MaxInt {
 				k := bbestk
 				k0 := k + v0
 				s := vb[k0]
@@ -613,6 +613,8 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				diag := min(ps-s, pt-t)  // number of diagonal steps
 				s0, t0 := s+diag, t+diag // start of diagonal
 				return s, s0, t, t0, false, true
+			} else {
+				panic("no best path found")
 			}
 		}
 	}
