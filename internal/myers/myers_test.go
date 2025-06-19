@@ -204,7 +204,7 @@ func TestMyersSplit(t *testing.T) {
 	}
 }
 
-func TestMyersSplit_largeInputs(t *testing.T) {
+func TestMyersSplit_largeRandomInputs(t *testing.T) {
 	eq := func(x, y int32) bool { return x == y }
 	for i := range 20 {
 		seed := sha256.Sum256(fmt.Append(nil, i))
@@ -218,6 +218,38 @@ func TestMyersSplit_largeInputs(t *testing.T) {
 			y := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
 			for t := range y {
 				y[t] = int32(rng.IntN(10))
+			}
+
+			var m myers[int32]
+			smin, smax, tmin, tmax := m.init(x, y, eq)
+			s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, false, eq)
+			if !slices.Equal(x[s0:s1], y[t0:t1]) {
+				t.Errorf("splitting resulted in non-matching middle in iteration %d, [s0=%d, s1=%d, t0=%d, t1=%d, opt0=%v, opt1=%v]", i, s0, s1, t0, t1, opt0, opt1)
+			}
+		})
+	}
+}
+
+func TestMyersSplit_largeSimilarInputs(t *testing.T) {
+	eq := func(x, y int32) bool { return x == y }
+	for i := range 20 {
+		seed := sha256.Sum256(fmt.Append(nil, i))
+		t.Run(fmt.Sprintf("seed=%x", seed), func(t *testing.T) {
+			t.Parallel()
+			rng := rand.New(rand.NewChaCha8(seed))
+			x := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			for s := range x {
+				x[s] = int32(rng.IntN(10))
+			}
+			y := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			for t := range y {
+				if t%30 < 5 || t+3 >= len(x) {
+					// Five lines of noise
+					y[t] = int32(rng.IntN(10))
+				} else {
+					// 25 lines of equality
+					y[t] = x[t+3]
+				}
 			}
 
 			var m myers[int32]

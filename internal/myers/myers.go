@@ -106,6 +106,9 @@
 //
 // # Heuristics
 //
+// GOOD_DIAGONAL: A heuristic used by many diff implementations to eagerly use a good diagonal as
+// a split point instead of trying to find an optimal one.
+//
 // TOO_EXPENSIVE: A heuristic by Paul Eggert that reduces the time complexity significantly for
 // large files with many differences at the cost of suboptimal diffs. If the search for an optimal
 // d-path exceeds a cost limit (in terms of d), the search is aborted and the furthest reaching
@@ -121,6 +124,11 @@ import (
 // minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
 // applied when the cost exceeds this number (large files with a lot of differences).
 const minCostLimit = 4096
+
+// Constants for GOOD_DIAGONAL heuristic.
+const goodDiagMinLen = 20     // Minimal length of a diagonal for it to be considered.
+const goodDiagCostLimit = 256 // The Heuristic is only applied if the cost exceeds this number.
+const goodDiagMagic = 4       // Magic number for diagonal selection.
 
 // Diff compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
@@ -432,6 +440,8 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 		// searching backwards for a d-path. If two paths overlap, we have found a d-path, if not
 		// we're going to continue searching.
 
+		longestDiag := 0 // Longest diagonal we found
+
 		// Forwards iteration.
 		//
 		// First determine which diagonals k to search. Originally, we would search k = [fmid-d,
@@ -494,6 +504,10 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				t++
 			}
 
+			// If we have found a long diagonal, we may be able to apply the GOOD_DIAGONAL
+			// heuristic (see below).
+			longestDiag = max(longestDiag, s-s0)
+
 			// Then store the endpoint of the furthest reaching d-path.
 			vf[k0] = s
 
@@ -535,6 +549,8 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				t--
 			}
 
+			longestDiag = max(longestDiag, s0-s)
+
 			vb[k0] = s
 
 			if !odd && fmin <= k && k <= fmax && s <= vf[v0+k] {
@@ -544,6 +560,84 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 
 		if optimal {
 			continue
+		}
+
+		// Heuristic (GOOD_DIAGONAL): If we're over the cost limit for this heuristic, we  accept a
+		// good diagonal to split the search space instead of searching for the optimal split point.
+		//
+		// A good diagonal is one that's longer than goodDiagMinLen, not too far from a corner and
+		// not too far from the middle diagonal.
+		if longestDiag >= goodDiagMinLen && d >= goodDiagCostLimit {
+			best := struct {
+				v              int
+				s0, s1, t0, t1 int
+				opt0, opt1     bool
+			}{}
+			// Check forward paths.
+			for k := fmin; k <= fmax; k += 2 {
+				k0 := k + v0
+				s := vf[k0]
+				t := s - k
+				v := (s - smin) + (t - tmin) - max(fmid-d, d-fmid)
+				if v <= goodDiagMagic*d || v < best.v {
+					continue // not good enough, check next diagonal
+				}
+
+				// Find find the previous k, by doing the decision as in the forward iteration. And
+				// use it to reconstruct the middle diagonal: By construction, the path from (s,t)
+				// to (ps, pt) consists of horizontal or vertical step plus a possibly empty
+				// sequence of diagonals.
+				var pk int
+				if vf[k0-1] < vf[k0+1] {
+					pk = k + 1
+				} else {
+					pk = k - 1
+				}
+				ps := vf[pk+v0]
+				pt := ps - pk
+				diag := min(s-ps, t-pt) // number of diagonal steps
+				if diag < goodDiagMinLen {
+					best.v = v
+					best.s0 = s - diag
+					best.s1 = s
+					best.t0 = t - diag
+					best.t1 = t
+					best.opt0 = true
+					best.opt1 = false
+				}
+			}
+			// Check backward paths.
+			for k := bmin; k <= bmax; k += 2 {
+				k0 := k + v0
+				s := vb[k0]
+				t := s - k
+				v := (smax - s) + (tmax - t) - max(bmid-d, d-bmid)
+				if v <= goodDiagMagic*d || v < best.v {
+					continue
+				}
+
+				var pk int
+				if vb[k0-1] < vb[k0+1] {
+					pk = k - 1
+				} else {
+					pk = k + 1
+				}
+				ps := vb[pk+v0]
+				pt := ps - pk
+				diag := min(ps-s, pt-t) // number of diagonal steps
+				if diag >= goodDiagMinLen {
+					best.v = v
+					best.s0 = s
+					best.s1 = s + diag
+					best.t0 = t
+					best.t1 = t + diag
+					best.opt0 = false
+					best.opt1 = true
+				}
+			}
+			if best.v > 0 {
+				return best.s0, best.s1, best.t0, best.t1, best.opt0, best.opt1
+			}
 		}
 
 		// Heuristic (TOO_EXPENSIVE): Limit the amount of work to find an optimal path by picking
@@ -580,10 +674,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				s := vf[k0]
 				t := s - k
 
-				// Find find the previous k, by doing the decision as in the forward iteration. And
-				// use it to reconstruct the middle diagonal: By construction, the path from (s,t)
-				// to (ps, pt) consists of horizontal or vertical step plus a possibly empty
-				// sequence of diagonals.
+				// Same as in GOOD_DIAGONAL heuristic.
 				var pk int
 				if vf[k0-1] < vf[k0+1] {
 					pk = k + 1

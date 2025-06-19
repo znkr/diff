@@ -74172,15 +74172,10 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (ANDL (MOVLconst [c]) x)
  	// cond: isUint32PowerOfTwo(int64(^c)) && uint64(^c) >= 128
  	// result: (BTRLconst [int8(log32(^c))] x)
-@@ -3121,6 +3152,22 @@
- 		v.AddArg2(x, y)
- 		return true
- 	}
-+	// match: (ANDNL x (SHLXL (MOVLconst [1]) y))
-+	// result: (BTRL x y)
-+	for {
-+		x := v_0
-+		if v_1.Op != OpAMD64SHLXL {
+@@ -3110,6 +3141,22 @@
+ 	for {
+ 		x := v_0
+ 		if v_1.Op != OpAMD64SHLL {
 +			break
 +		}
 +		y := v_1.Args[1]
@@ -74192,18 +74187,18 @@ func rewriteBlockAMD64(b *Block) bool {
 +		v.AddArg2(x, y)
 +		return true
 +	}
- 	return false
- }
- func rewriteValueAMD64_OpAMD64ANDNQ(v *Value) bool {
-@@ -3142,6 +3189,22 @@
- 		v.AddArg2(x, y)
- 		return true
- 	}
-+	// match: (ANDNQ x (SHLXQ (MOVQconst [1]) y))
-+	// result: (BTRQ x y)
++	// match: (ANDNL x (SHLXL (MOVLconst [1]) y))
++	// result: (BTRL x y)
 +	for {
 +		x := v_0
-+		if v_1.Op != OpAMD64SHLXQ {
++		if v_1.Op != OpAMD64SHLXL {
+ 			break
+ 		}
+ 		y := v_1.Args[1]
+@@ -3131,6 +3178,22 @@
+ 	for {
+ 		x := v_0
+ 		if v_1.Op != OpAMD64SHLQ {
 +			break
 +		}
 +		y := v_1.Args[1]
@@ -74215,22 +74210,18 @@ func rewriteBlockAMD64(b *Block) bool {
 +		v.AddArg2(x, y)
 +		return true
 +	}
- 	return false
- }
- func rewriteValueAMD64_OpAMD64ANDQ(v *Value) bool {
-@@ -3170,6 +3233,29 @@
- 		}
- 		break
- 	}
-+	// match: (ANDQ (NOTQ (SHLXQ (MOVQconst [1]) y)) x)
++	// match: (ANDNQ x (SHLXQ (MOVQconst [1]) y))
 +	// result: (BTRQ x y)
 +	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64NOTQ {
-+				continue
-+			}
-+			v_0_0 := v_0.Args[0]
-+			if v_0_0.Op != OpAMD64SHLXQ {
++		x := v_0
++		if v_1.Op != OpAMD64SHLXQ {
+ 			break
+ 		}
+ 		y := v_1.Args[1]
+@@ -3156,6 +3219,29 @@
+ 			}
+ 			v_0_0 := v_0.Args[0]
+ 			if v_0_0.Op != OpAMD64SHLQ {
 +				continue
 +			}
 +			y := v_0_0.Args[1]
@@ -74245,9 +74236,18 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		break
 +	}
- 	// match: (ANDQ (MOVQconst [c]) x)
- 	// cond: isUint64PowerOfTwo(^c) && uint64(^c) >= 128
- 	// result: (BTRQconst [int8(log64(^c))] x)
++	// match: (ANDQ (NOTQ (SHLXQ (MOVQconst [1]) y)) x)
++	// result: (BTRQ x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64NOTQ {
++				continue
++			}
++			v_0_0 := v_0.Args[0]
++			if v_0_0.Op != OpAMD64SHLXQ {
+ 				continue
+ 			}
+ 			y := v_0_0.Args[1]
 @@ -3873,6 +3959,22 @@
  		v.AddArg2(y, x)
  		return true
@@ -74271,7 +74271,7 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (BTLconst [c] (SHRLconst [d] x))
  	// cond: (c+d)<32
  	// result: (BTLconst [c+d] x)
-@@ -3917,8 +4019,24 @@
+@@ -3917,6 +4019,22 @@
  		}
  		s := v_0
  		if s.Op != OpAMD64SHRL {
@@ -74287,16 +74287,14 @@ func rewriteBlockAMD64(b *Block) bool {
 +	// result: (BTL y x)
 +	for {
 +		if auxIntToInt8(v.AuxInt) != 0 {
- 			break
- 		}
-+		s := v_0
-+		if s.Op != OpAMD64SHRXL {
 +			break
 +		}
++		s := v_0
++		if s.Op != OpAMD64SHRXL {
+ 			break
+ 		}
  		y := s.Args[1]
- 		x := s.Args[0]
- 		v.reset(OpAMD64BTL)
-@@ -3973,8 +4091,24 @@
+@@ -3973,6 +4091,22 @@
  		}
  		s := v_0
  		if s.Op != OpAMD64SHRQ {
@@ -74312,19 +74310,22 @@ func rewriteBlockAMD64(b *Block) bool {
 +	// result: (BTQ y x)
 +	for {
 +		if auxIntToInt8(v.AuxInt) != 0 {
- 			break
- 		}
-+		s := v_0
-+		if s.Op != OpAMD64SHRXQ {
 +			break
 +		}
++		s := v_0
++		if s.Op != OpAMD64SHRXQ {
+ 			break
+ 		}
  		y := s.Args[1]
- 		x := s.Args[0]
- 		v.reset(OpAMD64BTQ)
-@@ -15876,6 +16010,25 @@
- 	for {
- 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
- 			if v_0.Op != OpAMD64SHLL {
+@@ -15890,6 +16024,25 @@
+ 		}
+ 		break
+ 	}
++	// match: (ORL (SHLXL (MOVLconst [1]) y) x)
++	// result: (BTSL x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLXL {
 +				continue
 +			}
 +			y := v_0.Args[1]
@@ -74339,218 +74340,354 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		break
 +	}
-+	// match: (ORL (SHLXL (MOVLconst [1]) y) x)
-+	// result: (BTSL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+ 	// match: (ORL (MOVLconst [c]) x)
+ 	// cond: isUint32PowerOfTwo(int64(c)) && uint64(c) >= 128
+ 	// result: (BTSLconst [int8(log32(c))] x)
+@@ -16200,21 +16353,15 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHLL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (ROLW x y)
++	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
++	// result: (ROLL x y)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
 +			if v_0.Op != OpAMD64SHLXL {
  				continue
  			}
- 			y := v_0.Args[1]
-@@ -16167,13 +16320,113 @@
+-			_ = v_0.Args[1]
++			y := v_0.Args[1]
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16222,7 +16369,7 @@
+ 			v_1_0 := v_1.Args[0]
  			v_1_1 := v_1.Args[1]
  			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
- 				if v_1_0.Op != OpAMD64SHLL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
-+				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
+-				if v_1_0.Op != OpAMD64SHRW {
++				if v_1_0.Op != OpAMD64SHRXL {
  					continue
  				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
-+				v.reset(OpAMD64RORL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
-+	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
-+	// result: (ROLL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
-+				if v_1_0.Op != OpAMD64SHRXL {
-+					continue
-+				}
  				_ = v_1_0.Args[1]
- 				if x != v_1_0.Args[0] {
+@@ -16230,19 +16377,11 @@
  					continue
  				}
  				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGQ {
+-					continue
+-				}
+-				v_1_0_1_0 := v_1_0_1.Args[0]
+-				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
 +				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGQ {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
-+				v.reset(OpAMD64ROLL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
-+	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
-+	// result: (ROLL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
-+				if v_1_0.Op != OpAMD64SHRXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
- 				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
  					continue
  				}
-@@ -16191,8 +16444,58 @@
+-				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
+-				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
+-					continue
+-				}
+ 				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0 := v_1_1_0.Args[0]
+@@ -16250,35 +16389,29 @@
+ 					continue
+ 				}
+ 				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
+ 					continue
  				}
  				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
- 				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
-+				v.reset(OpAMD64ROLL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
-+	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
-+	// result: (RORL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRXL {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
-+				if v_1_0.Op != OpAMD64SHLXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
-+				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
  					continue
  				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGQ {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
- 				v.reset(OpAMD64RORL)
+-				v.reset(OpAMD64ROLW)
++				v.reset(OpAMD64ROLL)
  				v.AddArg2(x, y)
  				return true
-@@ -16200,6 +16503,56 @@
+ 			}
  		}
  		break
  	}
+-	// match: (ORL (SHLL x (ANDLconst y [15])) (ANDL (SHRW x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [15]) [-16])) [16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (ROLW x y)
++	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
++	// result: (ROLL x y)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
++			if v_0.Op != OpAMD64SHLXL {
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
++			y := v_0.Args[1]
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16286,7 +16419,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRW {
++				if v_1_0.Op != OpAMD64SHRXL {
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16294,19 +16427,11 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGL {
+-					continue
+-				}
+-				v_1_0_1_0 := v_1_0_1.Args[0]
+-				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
+-					continue
+-				}
+-				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
+-				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
+ 					continue
+ 				}
+ 				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0 := v_1_1_0.Args[0]
+@@ -16314,115 +16439,29 @@
+ 					continue
+ 				}
+ 				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLW)
++				v.reset(OpAMD64ROLL)
+ 				v.AddArg2(x, y)
+ 				return true
+ 			}
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHRW x (ANDQconst y [15])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (RORW x y)
++	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
++	// result: (RORL x y)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRW {
++			if v_0.Op != OpAMD64SHRXL {
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
+-			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
+-				continue
+-			}
+-			_ = v_1.Args[1]
+-			if x != v_1.Args[0] {
+-				continue
+-			}
+-			v_1_1 := v_1.Args[1]
+-			if v_1_1.Op != OpAMD64NEGQ {
+-				continue
+-			}
+-			v_1_1_0 := v_1_1.Args[0]
+-			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
+-				continue
+-			}
+-			v_1_1_0_0 := v_1_1_0.Args[0]
+-			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
+-				continue
+-			}
+-			v.reset(OpAMD64RORW)
+-			v.AddArg2(x, y)
+-			return true
+-		}
+-		break
+-	}
+-	// match: (ORL (SHRW x (ANDLconst y [15])) (SHLL x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (RORW x y)
+-	for {
+-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRW {
+-				continue
+-			}
+-			_ = v_0.Args[1]
+-			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
+-				continue
+-			}
+-			_ = v_1.Args[1]
+-			if x != v_1.Args[0] {
+-				continue
+-			}
+-			v_1_1 := v_1.Args[1]
+-			if v_1_1.Op != OpAMD64NEGL {
+-				continue
+-			}
+-			v_1_1_0 := v_1_1.Args[0]
+-			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
+-				continue
+-			}
+-			v_1_1_0_0 := v_1_1_0.Args[0]
+-			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
+-				continue
+-			}
+-			v.reset(OpAMD64RORW)
+-			v.AddArg2(x, y)
+-			return true
+-		}
+-		break
+-	}
+-	// match: (ORL (SHLL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
+-	// cond: v.Type.Size() == 1
+-	// result: (ROLB x y)
+-	for {
+-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
+-				continue
+-			}
+-			_ = v_0.Args[1]
++			y := v_0.Args[1]
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16430,7 +16469,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRB {
++				if v_1_0.Op != OpAMD64SHLXL {
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16438,19 +16477,11 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGQ {
+-					continue
+-				}
+-				v_1_0_1_0 := v_1_0_1.Args[0]
+-				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
+-					continue
+-				}
+-				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
+-				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
+ 					continue
+ 				}
+ 				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0 := v_1_1_0.Args[0]
+@@ -16458,35 +16489,29 @@
+ 					continue
+ 				}
+ 				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLB)
++				v.reset(OpAMD64RORL)
+ 				v.AddArg2(x, y)
+ 				return true
+ 			}
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHLL x (ANDLconst y [ 7])) (ANDL (SHRB x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8])) [ 8]))))
+-	// cond: v.Type.Size() == 1
+-	// result: (ROLB x y)
 +	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
 +	// result: (RORL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
 +			if v_0.Op != OpAMD64SHRXL {
-+				continue
-+			}
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
 +			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16494,7 +16519,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRB {
 +				if v_1_0.Op != OpAMD64SHLXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16502,9 +16527,753 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGL {
 +				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
+ 					continue
+ 				}
 +				v_1_1_0 := v_1_1.Args[0]
 +				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
 +					continue
@@ -74574,13 +74711,214 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		break
 +	}
- 	// match: (ORL (SHLL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
- 	// cond: v.Type.Size() == 2
- 	// result: (ROLW x y)
-@@ -16408,6 +16761,214 @@
- 		}
- 		break
- 	}
++	// match: (ORL (SHLL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
++	// cond: v.Type.Size() == 2
++	// result: (ROLW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRW {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++					continue
++				}
++				v.reset(OpAMD64ROLW)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHLL x (ANDLconst y [15])) (ANDL (SHRW x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [15]) [-16])) [16]))))
++	// cond: v.Type.Size() == 2
++	// result: (ROLW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRW {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++					continue
++				}
++				v.reset(OpAMD64ROLW)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHRW x (ANDQconst y [15])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))))
++	// cond: v.Type.Size() == 2
++	// result: (RORW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRW {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGQ {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
++				continue
++			}
++			v.reset(OpAMD64RORW)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
++	// match: (ORL (SHRW x (ANDLconst y [15])) (SHLL x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))))
++	// cond: v.Type.Size() == 2
++	// result: (RORW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRW {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGL {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
++				continue
++			}
++			v.reset(OpAMD64RORW)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
 +	// match: (ORL (SHLXL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
 +	// cond: v.Type.Size() == 2
 +	// result: (ROLW x y)
@@ -74789,13 +75127,214 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		break
 +	}
- 	// match: (ORL (SHLL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
- 	// cond: v.Type.Size() == 1
- 	// result: (ROLB x y)
-@@ -16616,6 +17177,214 @@
- 		}
- 		break
- 	}
++	// match: (ORL (SHLL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
++	// cond: v.Type.Size() == 1
++	// result: (ROLB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRB {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
++					continue
++				}
++				v.reset(OpAMD64ROLB)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHLL x (ANDLconst y [ 7])) (ANDL (SHRB x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8])) [ 8]))))
++	// cond: v.Type.Size() == 1
++	// result: (ROLB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRB {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
++					continue
++				}
++				v.reset(OpAMD64ROLB)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHRB x (ANDQconst y [ 7])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))))
++	// cond: v.Type.Size() == 1
++	// result: (RORB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRB {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGQ {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
++				continue
++			}
++			v.reset(OpAMD64RORB)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
++	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
++	// cond: v.Type.Size() == 1
++	// result: (RORB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRB {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGL {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
++				continue
++			}
++			v.reset(OpAMD64RORB)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
 +	// match: (ORL (SHLXL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
 +	// cond: v.Type.Size() == 1
 +	// result: (ROLB x y)
@@ -74893,138 +75432,49 @@ func rewriteBlockAMD64(b *Block) bool {
 +				if v_1_0_1.Op != OpAMD64NEGL {
 +					continue
 +				}
-+				v_1_0_1_0 := v_1_0_1.Args[0]
-+				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
-+					continue
-+				}
-+				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
-+				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
-+					continue
-+				}
-+				v.reset(OpAMD64ROLB)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
+ 				v_1_0_1_0 := v_1_0_1.Args[0]
+ 				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
+ 					continue
+@@ -16536,7 +17305,7 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHRB x (ANDQconst y [ 7])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))))
 +	// match: (ORL (SHRB x (ANDQconst y [ 7])) (SHLXL x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))))
-+	// cond: v.Type.Size() == 1
-+	// result: (RORB x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRB {
-+				continue
-+			}
-+			_ = v_0.Args[1]
-+			x := v_0.Args[0]
-+			v_0_1 := v_0.Args[1]
-+			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
-+				continue
-+			}
-+			y := v_0_1.Args[0]
-+			if v_1.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			if x != v_1.Args[0] {
-+				continue
-+			}
-+			v_1_1 := v_1.Args[1]
-+			if v_1_1.Op != OpAMD64NEGQ {
-+				continue
-+			}
-+			v_1_1_0 := v_1_1.Args[0]
-+			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
-+				continue
-+			}
-+			v_1_1_0_0 := v_1_1_0.Args[0]
-+			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
-+				continue
-+			}
-+			v.reset(OpAMD64RORB)
-+			v.AddArg2(x, y)
-+			return true
-+		}
-+		break
-+	}
-+	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLXL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
-+	// cond: v.Type.Size() == 1
-+	// result: (RORB x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRB {
-+				continue
-+			}
-+			_ = v_0.Args[1]
-+			x := v_0.Args[0]
-+			v_0_1 := v_0.Args[1]
-+			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
-+				continue
-+			}
-+			y := v_0_1.Args[0]
-+			if v_1.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			if x != v_1.Args[0] {
-+				continue
-+			}
-+			v_1_1 := v_1.Args[1]
-+			if v_1_1.Op != OpAMD64NEGL {
-+				continue
-+			}
-+			v_1_1_0 := v_1_1.Args[0]
-+			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
-+				continue
-+			}
-+			v_1_1_0_0 := v_1_1_0.Args[0]
-+			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
-+				continue
-+			}
-+			v.reset(OpAMD64RORB)
-+			v.AddArg2(x, y)
-+			return true
-+		}
-+		break
-+	}
- 	// match: (ORL x x)
- 	// result: x
+ 	// cond: v.Type.Size() == 1
+ 	// result: (RORB x y)
  	for {
-@@ -17495,8 +18264,27 @@
- 	for {
- 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
- 			if v_0.Op != OpAMD64SHLQ {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			v_0_0 := v_0.Args[0]
-+			if v_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0.AuxInt) != 1 {
+@@ -16551,7 +17320,7 @@
  				continue
  			}
-+			x := v_1
-+			v.reset(OpAMD64BTSQ)
-+			v.AddArg2(x, y)
-+			return true
-+		}
-+		break
-+	}
+ 			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
++			if v_1.Op != OpAMD64SHLXL {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+@@ -16576,7 +17345,7 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
++	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLXL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
+ 	// cond: v.Type.Size() == 1
+ 	// result: (RORB x y)
+ 	for {
+@@ -16591,7 +17360,7 @@
+ 				continue
+ 			}
+ 			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
++			if v_1.Op != OpAMD64SHLXL {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+@@ -17509,6 +18278,25 @@
+ 		}
+ 		break
+ 	}
 +	// match: (ORQ (SHLXQ (MOVQconst [1]) y) x)
 +	// result: (BTSQ x y)
 +	for {
@@ -75032,13 +75482,125 @@ func rewriteBlockAMD64(b *Block) bool {
 +			if v_0.Op != OpAMD64SHLXQ {
 +				continue
 +			}
- 			y := v_0.Args[1]
- 			v_0_0 := v_0.Args[0]
- 			if v_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0.AuxInt) != 1 {
-@@ -17756,6 +18544,106 @@
++			y := v_0.Args[1]
++			v_0_0 := v_0.Args[0]
++			if v_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0.AuxInt) != 1 {
++				continue
++			}
++			x := v_1
++			v.reset(OpAMD64BTSQ)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
+ 	// match: (ORQ (MOVQconst [c]) x)
+ 	// cond: isUint64PowerOfTwo(c) && uint64(c) >= 128
+ 	// result: (BTSQconst [int8(log64(c))] x)
+@@ -17656,6 +18444,306 @@
  			v_1_1 := v_1.Args[1]
  			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
- 				if v_1_0.Op != OpAMD64SHLQ {
+ 				if v_1_0.Op != OpAMD64SHRQ {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
++					continue
++				}
++				v.reset(OpAMD64ROLQ)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGQ y)) (SBBQcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [63]) [-64])) [64]))))
++	// result: (RORQ x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRQ {
++				continue
++			}
++			y := v_0.Args[1]
++			x := v_0.Args[0]
++			if v_1.Op != OpAMD64ANDQ {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHLQ {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
++					continue
++				}
++				v.reset(OpAMD64RORQ)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGL y)) (SBBQcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [63]) [-64])) [64]))))
++	// result: (RORQ x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRQ {
++				continue
++			}
++			y := v_0.Args[1]
++			x := v_0.Args[0]
++			if v_1.Op != OpAMD64ANDQ {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHLQ {
 +					continue
 +				}
 +				_ = v_1_0.Args[1]
@@ -75139,13 +75701,32 @@ func rewriteBlockAMD64(b *Block) bool {
 +			v_1_1 := v_1.Args[1]
 +			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
 +				if v_1_0.Op != OpAMD64SHRXQ {
- 					continue
- 				}
- 				_ = v_1_0.Args[1]
-@@ -17782,6 +18670,56 @@
- 				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
- 					continue
- 				}
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
++					continue
++				}
 +				v.reset(OpAMD64ROLQ)
 +				v.AddArg2(x, y)
 +				return true
@@ -75196,13 +75777,13 @@ func rewriteBlockAMD64(b *Block) bool {
 +				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
 +					continue
 +				}
- 				v.reset(OpAMD64RORQ)
- 				v.AddArg2(x, y)
- 				return true
-@@ -17789,6 +18727,56 @@
- 		}
- 		break
- 	}
++				v.reset(OpAMD64RORQ)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
 +	// match: (ORQ (SHRXQ x y) (ANDQ (SHLXQ x (NEGL y)) (SBBQcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [63]) [-64])) [64]))))
 +	// result: (RORQ x y)
 +	for {
@@ -75220,102 +75801,180 @@ func rewriteBlockAMD64(b *Block) bool {
 +			v_1_1 := v_1.Args[1]
 +			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
 +				if v_1_0.Op != OpAMD64SHLXQ {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
-+				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -17682,123 +18770,71 @@
+ 				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLQ)
 +				v.reset(OpAMD64RORQ)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
- 	// match: (ORQ (SHRQ lo bits) (SHLQ hi (NEGQ bits)))
- 	// result: (SHRDQ lo hi bits)
- 	for {
-@@ -17832,11 +18820,59 @@
- 				continue
+ 				v.AddArg2(x, y)
+ 				return true
  			}
- 			v.reset(OpAMD64SHLDQ)
-+			v.AddArg3(lo, hi, bits)
-+			return true
-+		}
-+		break
-+	}
-+	// match: (ORQ (SHRXQ lo bits) (SHLXQ hi (NEGQ bits)))
-+	// result: (SHRDQ lo hi bits)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRXQ {
-+				continue
-+			}
-+			bits := v_0.Args[1]
-+			lo := v_0.Args[0]
-+			if v_1.Op != OpAMD64SHLXQ {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			hi := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			if v_1_1.Op != OpAMD64NEGQ || bits != v_1_1.Args[0] {
-+				continue
-+			}
-+			v.reset(OpAMD64SHRDQ)
- 			v.AddArg3(lo, hi, bits)
- 			return true
  		}
  		break
  	}
-+	// match: (ORQ (SHLXQ lo bits) (SHRXQ hi (NEGQ bits)))
-+	// result: (SHLDQ lo hi bits)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHLXQ {
-+				continue
-+			}
+-	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGQ y)) (SBBQcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [63]) [-64])) [64]))))
+-	// result: (RORQ x y)
++	// match: (ORQ (SHRQ lo bits) (SHLQ hi (NEGQ bits)))
++	// result: (SHRDQ lo hi bits)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+ 			if v_0.Op != OpAMD64SHRQ {
+ 				continue
+ 			}
+-			y := v_0.Args[1]
+-			x := v_0.Args[0]
+-			if v_1.Op != OpAMD64ANDQ {
 +			bits := v_0.Args[1]
 +			lo := v_0.Args[0]
-+			if v_1.Op != OpAMD64SHRXQ {
-+				continue
-+			}
-+			_ = v_1.Args[1]
++			if v_1.Op != OpAMD64SHLQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+-			v_1_0 := v_1.Args[0]
 +			hi := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
+ 			v_1_1 := v_1.Args[1]
+-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHLQ {
+-					continue
+-				}
+-				_ = v_1_0.Args[1]
+-				if x != v_1_0.Args[0] {
+-					continue
+-				}
+-				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
+-					continue
+-				}
+-				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
+-					continue
+-				}
+-				v_1_1_0_0 := v_1_1_0.Args[0]
+-				if v_1_1_0_0.Op != OpAMD64NEGQ {
+-					continue
+-				}
+-				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
+-					continue
+-				}
+-				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
+-					continue
+-				}
+-				v.reset(OpAMD64RORQ)
+-				v.AddArg2(x, y)
+-				return true
 +			if v_1_1.Op != OpAMD64NEGQ || bits != v_1_1.Args[0] {
 +				continue
-+			}
+ 			}
++			v.reset(OpAMD64SHRDQ)
++			v.AddArg3(lo, hi, bits)
++			return true
+ 		}
+ 		break
+ 	}
+-	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGL y)) (SBBQcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [63]) [-64])) [64]))))
+-	// result: (RORQ x y)
++	// match: (ORQ (SHLQ lo bits) (SHRQ hi (NEGQ bits)))
++	// result: (SHLDQ lo hi bits)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRQ {
++			if v_0.Op != OpAMD64SHLQ {
+ 				continue
+ 			}
+-			y := v_0.Args[1]
+-			x := v_0.Args[0]
+-			if v_1.Op != OpAMD64ANDQ {
++			bits := v_0.Args[1]
++			lo := v_0.Args[0]
++			if v_1.Op != OpAMD64SHRQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+-			v_1_0 := v_1.Args[0]
++			hi := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHLQ {
+-					continue
+-				}
+-				_ = v_1_0.Args[1]
+-				if x != v_1_0.Args[0] {
+-					continue
+-				}
+-				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
+-					continue
+-				}
+-				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
+-					continue
+-				}
+-				v_1_1_0_0 := v_1_1_0.Args[0]
+-				if v_1_1_0_0.Op != OpAMD64NEGL {
+-					continue
+-				}
+-				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
+-					continue
+-				}
+-				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
+-					continue
+-				}
+-				v.reset(OpAMD64RORQ)
+-				v.AddArg2(x, y)
+-				return true
++			if v_1_1.Op != OpAMD64NEGQ || bits != v_1_1.Args[0] {
++				continue
+ 			}
 +			v.reset(OpAMD64SHLDQ)
 +			v.AddArg3(lo, hi, bits)
 +			return true
-+		}
-+		break
-+	}
- 	// match: (ORQ (MOVQconst [c]) (MOVQconst [d]))
- 	// result: (MOVQconst [c|d])
+ 		}
+ 		break
+ 	}
+-	// match: (ORQ (SHRQ lo bits) (SHLQ hi (NEGQ bits)))
++	// match: (ORQ (SHRXQ lo bits) (SHLXQ hi (NEGQ bits)))
+ 	// result: (SHRDQ lo hi bits)
  	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRQ {
++			if v_0.Op != OpAMD64SHRXQ {
+ 				continue
+ 			}
+ 			bits := v_0.Args[1]
+ 			lo := v_0.Args[0]
+-			if v_1.Op != OpAMD64SHLQ {
++			if v_1.Op != OpAMD64SHLXQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+@@ -17813,16 +18849,16 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORQ (SHLQ lo bits) (SHRQ hi (NEGQ bits)))
++	// match: (ORQ (SHLXQ lo bits) (SHRXQ hi (NEGQ bits)))
+ 	// result: (SHLDQ lo hi bits)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLQ {
++			if v_0.Op != OpAMD64SHLXQ {
+ 				continue
+ 			}
+ 			bits := v_0.Args[1]
+ 			lo := v_0.Args[0]
+-			if v_1.Op != OpAMD64SHRQ {
++			if v_1.Op != OpAMD64SHRXQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
 @@ -22046,6 +23082,60 @@
  		v_0_1 := v_0.Args[1]
  		for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
@@ -75450,7 +76109,7 @@ func rewriteBlockAMD64(b *Block) bool {
  				continue
  			}
  			x := v_1_0.Args[1]
-@@ -23962,10 +25118,64 @@
+@@ -23962,6 +25118,60 @@
  		v_0_1 := v_0.Args[1]
  		for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
  			if v_0_0.Op != OpAMD64SHLQ {
@@ -75481,10 +76140,10 @@ func rewriteBlockAMD64(b *Block) bool {
 +		v_0_1 := v_0.Args[1]
 +		for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
 +			if v_0_0.Op != OpAMD64SHLXL {
- 				continue
- 			}
- 			x := v_0_0.Args[1]
- 			v_0_0_0 := v_0_0.Args[0]
++				continue
++			}
++			x := v_0_0.Args[1]
++			v_0_0_0 := v_0_0.Args[0]
 +			if v_0_0_0.Op != OpAMD64MOVLconst || auxIntToInt32(v_0_0_0.AuxInt) != 1 {
 +				continue
 +			}
@@ -75508,17 +76167,32 @@ func rewriteBlockAMD64(b *Block) bool {
 +		v_0_1 := v_0.Args[1]
 +		for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
 +			if v_0_0.Op != OpAMD64SHLXQ {
-+				continue
-+			}
-+			x := v_0_0.Args[1]
-+			v_0_0_0 := v_0_0.Args[0]
- 			if v_0_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0_0.AuxInt) != 1 {
  				continue
  			}
-@@ -24403,6 +25613,72 @@
- 		}
- 		break
- 	}
+ 			x := v_0_0.Args[1]
+@@ -24384,8 +25594,74 @@
+ 		v_1_1 := v_1.Args[1]
+ 		for _i0 := 0; _i0 <= 1; _i0, v_1_0, v_1_1 = _i0+1, v_1_1, v_1_0 {
+ 			if v_1_0.Op != OpAMD64SHLQ {
++				continue
++			}
++			x := v_1_0.Args[1]
++			v_1_0_0 := v_1_0.Args[0]
++			if v_1_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_1_0_0.AuxInt) != 1 {
++				continue
++			}
++			y := v_1_1
++			mem := v_2
++			v.reset(OpAMD64SETBstore)
++			v.AuxInt = int32ToAuxInt(off)
++			v.Aux = symToAux(sym)
++			v0 := b.NewValue0(v.Pos, OpAMD64BTQ, types.TypeFlags)
++			v0.AddArg2(x, y)
++			v.AddArg3(ptr, v0, mem)
++			return true
++		}
++		break
++	}
 +	// match: (SETNEstore [off] {sym} ptr (TESTL (SHLXL (MOVLconst [1]) x) y) mem)
 +	// result: (SETBstore [off] {sym} ptr (BTL x y) mem)
 +	for {
@@ -75538,8 +76212,8 @@ func rewriteBlockAMD64(b *Block) bool {
 +			x := v_1_0.Args[1]
 +			v_1_0_0 := v_1_0.Args[0]
 +			if v_1_0_0.Op != OpAMD64MOVLconst || auxIntToInt32(v_1_0_0.AuxInt) != 1 {
-+				continue
-+			}
+ 				continue
+ 			}
 +			y := v_1_1
 +			mem := v_2
 +			v.reset(OpAMD64SETBstore)
@@ -75568,26 +76242,9 @@ func rewriteBlockAMD64(b *Block) bool {
 +			if v_1_0.Op != OpAMD64SHLXQ {
 +				continue
 +			}
-+			x := v_1_0.Args[1]
-+			v_1_0_0 := v_1_0.Args[0]
-+			if v_1_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_1_0_0.AuxInt) != 1 {
-+				continue
-+			}
-+			y := v_1_1
-+			mem := v_2
-+			v.reset(OpAMD64SETBstore)
-+			v.AuxInt = int32ToAuxInt(off)
-+			v.Aux = symToAux(sym)
-+			v0 := b.NewValue0(v.Pos, OpAMD64BTQ, types.TypeFlags)
-+			v0.AddArg2(x, y)
-+			v.AddArg3(ptr, v0, mem)
-+			return true
-+		}
-+		break
-+	}
- 	// match: (SETNEstore [off] {sym} ptr (TESTLconst [c] x) mem)
- 	// cond: isUint32PowerOfTwo(int64(c))
- 	// result: (SETBstore [off] {sym} ptr (BTLconst [int8(log32(c))] x) mem)
+ 			x := v_1_0.Args[1]
+ 			v_1_0_0 := v_1_0.Args[0]
+ 			if v_1_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_1_0_0.AuxInt) != 1 {
 @@ -24917,6 +26193,19 @@
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
@@ -75608,12 +76265,10 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (SHLL x (MOVQconst [c]))
  	// result: (SHLLconst [int8(c&31)] x)
  	for {
-@@ -25105,28 +26394,6 @@
- 		v0 := b.NewValue0(v.Pos, OpAMD64NEGL, t)
- 		v0.AddArg(y)
+@@ -25107,28 +26396,6 @@
  		v.AddArg2(x, v0)
--		return true
--	}
+ 		return true
+ 	}
 -	// match: (SHLL l:(MOVLload [off] {sym} ptr mem) x)
 -	// cond: buildcfg.GOAMD64 >= 3 && canMergeLoad(v, l) && clobber(l)
 -	// result: (SHLXLload [off] {sym} ptr x mem)
@@ -75634,9 +76289,11 @@ func rewriteBlockAMD64(b *Block) bool {
 -		v.AuxInt = int32ToAuxInt(off)
 -		v.Aux = symToAux(sym)
 -		v.AddArg3(ptr, x, mem)
- 		return true
- 	}
+-		return true
+-	}
  	return false
+ }
+ func rewriteValueAMD64_OpAMD64SHLLconst(v *Value) bool {
 @@ -25173,6 +26440,19 @@
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
@@ -75686,10 +76343,14 @@ func rewriteBlockAMD64(b *Block) bool {
  		return true
  	}
  	return false
-@@ -25437,6 +26695,442 @@
- 	}
- 	return false
- }
+@@ -25433,10 +26691,446 @@
+ 		c := auxIntToInt32(v_0.AuxInt)
+ 		v.reset(OpAMD64MOVQconst)
+ 		v.AuxInt = int64ToAuxInt(int64(c) << uint64(d))
++		return true
++	}
++	return false
++}
 +func rewriteValueAMD64_OpAMD64SHLXL(v *Value) bool {
 +	v_1 := v.Args[1]
 +	v_0 := v.Args[0]
@@ -75882,8 +76543,8 @@ func rewriteBlockAMD64(b *Block) bool {
 +		v0 := b.NewValue0(v.Pos, OpAMD64NEGL, t)
 +		v0.AddArg(y)
 +		v.AddArg2(x, v0)
-+		return true
-+	}
+ 		return true
+ 	}
 +	// match: (SHLXL l:(MOVLload [off] {sym} ptr mem) x)
 +	// cond: canMergeLoad(v, l) && clobber(l)
 +	// result: (SHLXLload [off] {sym} ptr x mem)
@@ -75906,8 +76567,8 @@ func rewriteBlockAMD64(b *Block) bool {
 +		v.AddArg3(ptr, x, mem)
 +		return true
 +	}
-+	return false
-+}
+ 	return false
+ }
 +func rewriteValueAMD64_OpAMD64SHLXQ(v *Value) bool {
 +	v_1 := v.Args[1]
 +	v_0 := v.Args[0]
@@ -76198,10 +76859,12 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (SHRQ x (MOVQconst [c]))
  	// result: (SHRQconst [int8(c&63)] x)
  	for {
-@@ -25958,28 +27656,6 @@
+@@ -25956,28 +27654,6 @@
+ 		v0 := b.NewValue0(v.Pos, OpAMD64NEGL, t)
+ 		v0.AddArg(y)
  		v.AddArg2(x, v0)
- 		return true
- 	}
+-		return true
+-	}
 -	// match: (SHRQ l:(MOVQload [off] {sym} ptr mem) x)
 -	// cond: buildcfg.GOAMD64 >= 3 && canMergeLoad(v, l) && clobber(l)
 -	// result: (SHRXQload [off] {sym} ptr x mem)
@@ -76222,11 +76885,9 @@ func rewriteBlockAMD64(b *Block) bool {
 -		v.AuxInt = int32ToAuxInt(off)
 -		v.Aux = symToAux(sym)
 -		v.AddArg3(ptr, x, mem)
--		return true
--	}
+ 		return true
+ 	}
  	return false
- }
- func rewriteValueAMD64_OpAMD64SHRQconst(v *Value) bool {
 @@ -26087,8 +27763,444 @@
  		}
  		x := v_0
@@ -76498,8 +77159,8 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		v.reset(OpAMD64SHRXQ)
 +		v.AddArg2(x, y)
- 		return true
- 	}
++		return true
++	}
 +	// match: (SHRXQ x (NEGQ <t> (ADDQconst [c] y)))
 +	// cond: c & 63 == 0
 +	// result: (SHRXQ x (NEGQ <t> y))
@@ -76621,8 +77282,8 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		v.reset(OpAMD64SHRXQ)
 +		v.AddArg2(x, y)
-+		return true
-+	}
+ 		return true
+ 	}
 +	// match: (SHRXQ x (NEGL <t> (ANDLconst [c] y)))
 +	// cond: c & 63 == 63
 +	// result: (SHRXQ x (NEGL <t> y))
@@ -76672,7 +77333,7 @@ func rewriteBlockAMD64(b *Block) bool {
  	return false
  }
  func rewriteValueAMD64_OpAMD64SUBL(v *Value) bool {
-@@ -27360,8 +29472,27 @@
+@@ -27360,6 +29472,25 @@
  	for {
  		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
  			if v_0.Op != OpAMD64SHLL {
@@ -76681,8 +77342,8 @@ func rewriteBlockAMD64(b *Block) bool {
 +			y := v_0.Args[1]
 +			v_0_0 := v_0.Args[0]
 +			if v_0_0.Op != OpAMD64MOVLconst || auxIntToInt32(v_0_0.AuxInt) != 1 {
- 				continue
- 			}
++				continue
++			}
 +			x := v_1
 +			v.reset(OpAMD64BTCL)
 +			v.AddArg2(x, y)
@@ -76695,29 +77356,13 @@ func rewriteBlockAMD64(b *Block) bool {
 +	for {
 +		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
 +			if v_0.Op != OpAMD64SHLXL {
-+				continue
-+			}
- 			y := v_0.Args[1]
- 			v_0_0 := v_0.Args[0]
- 			if v_0_0.Op != OpAMD64MOVLconst || auxIntToInt32(v_0_0.AuxInt) != 1 {
-@@ -27897,8 +30028,27 @@
- 	for {
- 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
- 			if v_0.Op != OpAMD64SHLQ {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			v_0_0 := v_0.Args[0]
-+			if v_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0.AuxInt) != 1 {
  				continue
  			}
-+			x := v_1
-+			v.reset(OpAMD64BTCQ)
-+			v.AddArg2(x, y)
-+			return true
-+		}
-+		break
-+	}
+ 			y := v_0.Args[1]
+@@ -27911,6 +30042,25 @@
+ 		}
+ 		break
+ 	}
 +	// match: (XORQ (SHLXQ (MOVQconst [1]) y) x)
 +	// result: (BTCQ x y)
 +	for {
@@ -76725,28 +77370,25 @@ func rewriteBlockAMD64(b *Block) bool {
 +			if v_0.Op != OpAMD64SHLXQ {
 +				continue
 +			}
- 			y := v_0.Args[1]
- 			v_0_0 := v_0.Args[0]
- 			if v_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0.AuxInt) != 1 {
-@@ -34518,6 +36668,54 @@
- 			v_0_1 := v_0.Args[1]
- 			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
- 				if v_0_0.Op != OpAMD64SHLQ {
-+					continue
-+				}
-+				x := v_0_0.Args[1]
-+				v_0_0_0 := v_0_0.Args[0]
-+				if v_0_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0_0.AuxInt) != 1 {
-+					continue
-+				}
-+				y := v_0_1
-+				v0 := b.NewValue0(v_0.Pos, OpAMD64BTQ, types.TypeFlags)
-+				v0.AddArg2(x, y)
-+				b.resetWithControl(BlockAMD64UGE, v0)
-+				return true
++			y := v_0.Args[1]
++			v_0_0 := v_0.Args[0]
++			if v_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0.AuxInt) != 1 {
++				continue
 +			}
-+			break
++			x := v_1
++			v.reset(OpAMD64BTCQ)
++			v.AddArg2(x, y)
++			return true
 +		}
++		break
++	}
+ 	// match: (XORQ (MOVQconst [c]) x)
+ 	// cond: isUint64PowerOfTwo(c) && uint64(c) >= 128
+ 	// result: (BTCQconst [int8(log64(c))] x)
+@@ -34533,6 +36683,54 @@
+ 			}
+ 			break
+ 		}
 +		// match: (EQ (TESTL (SHLXL (MOVLconst [1]) x) y))
 +		// result: (UGE (BTL x y))
 +		for b.Controls[0].Op == OpAMD64TESTL {
@@ -76780,9 +77422,24 @@ func rewriteBlockAMD64(b *Block) bool {
 +			v_0_1 := v_0.Args[1]
 +			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
 +				if v_0_0.Op != OpAMD64SHLXQ {
- 					continue
- 				}
- 				x := v_0_0.Args[1]
++					continue
++				}
++				x := v_0_0.Args[1]
++				v_0_0_0 := v_0_0.Args[0]
++				if v_0_0_0.Op != OpAMD64MOVQconst || auxIntToInt64(v_0_0_0.AuxInt) != 1 {
++					continue
++				}
++				y := v_0_1
++				v0 := b.NewValue0(v_0.Pos, OpAMD64BTQ, types.TypeFlags)
++				v0.AddArg2(x, y)
++				b.resetWithControl(BlockAMD64UGE, v0)
++				return true
++			}
++			break
++		}
+ 		// match: (EQ (TESTLconst [c] x))
+ 		// cond: isUint32PowerOfTwo(int64(c))
+ 		// result: (UGE (BTLconst [int8(log32(c))] x))
 @@ -35321,6 +37519,54 @@
  			v_0_1 := v_0.Args[1]
  			for _i0 := 0; _i0 <= 1; _i0, v_0_0, v_0_1 = _i0+1, v_0_1, v_0_0 {
@@ -77063,217 +77720,582 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (ORL (MOVLconst [c]) x)
  	// cond: isUint32PowerOfTwo(int64(c)) && uint64(c) >= 128
  	// result: (BTSLconst [int8(log32(c))] x)
-@@ -16200,6 +16353,206 @@
+@@ -16200,21 +16353,15 @@
  		}
  		break
  	}
+-	// match: (ORL (SHLL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (ROLW x y)
 +	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
 +	// result: (ROLL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
 +			if v_0.Op != OpAMD64SHLXL {
-+				continue
-+			}
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
 +			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16222,7 +16369,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRW {
 +				if v_1_0.Op != OpAMD64SHRXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16230,19 +16377,11 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGQ {
+-					continue
+-				}
+-				v_1_0_1_0 := v_1_0_1.Args[0]
+-				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
+-					continue
+-				}
+-				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
+-				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
 +				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
+ 					continue
+ 				}
+ 				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
 +				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGQ {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+ 					continue
+ 				}
+ 				v_1_1_0_0 := v_1_1_0.Args[0]
+@@ -16250,35 +16389,29 @@
+ 					continue
+ 				}
+ 				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
 +				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+ 					continue
+ 				}
+ 				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
 +				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLW)
 +				v.reset(OpAMD64ROLL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
-+	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
-+	// result: (ROLL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
-+				if v_1_0.Op != OpAMD64SHRXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
-+				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
-+				v.reset(OpAMD64ROLL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
-+	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
-+	// result: (RORL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRXL {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
-+				if v_1_0.Op != OpAMD64SHLXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
-+				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGQ {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
-+				v.reset(OpAMD64RORL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
-+	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
-+	// result: (RORL x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRXL {
-+				continue
-+			}
-+			y := v_0.Args[1]
-+			x := v_0.Args[0]
-+			if v_1.Op != OpAMD64ANDL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			v_1_0 := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
-+			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
-+				if v_1_0.Op != OpAMD64SHLXL {
-+					continue
-+				}
-+				_ = v_1_0.Args[1]
-+				if x != v_1_0.Args[0] {
-+					continue
-+				}
-+				v_1_0_1 := v_1_0.Args[1]
-+				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
-+					continue
-+				}
-+				v.reset(OpAMD64RORL)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
- 	// match: (ORL (SHLL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
- 	// cond: v.Type.Size() == 2
- 	// result: (ROLW x y)
-@@ -16408,6 +16761,214 @@
+ 				v.AddArg2(x, y)
+ 				return true
+ 			}
  		}
  		break
  	}
+-	// match: (ORL (SHLL x (ANDLconst y [15])) (ANDL (SHRW x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [15]) [-16])) [16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (ROLW x y)
++	// match: (ORL (SHLXL x y) (ANDL (SHRXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
++	// result: (ROLL x y)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
++			if v_0.Op != OpAMD64SHLXL {
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
++			y := v_0.Args[1]
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16286,7 +16419,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRW {
++				if v_1_0.Op != OpAMD64SHRXL {
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16294,19 +16427,11 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGL {
+-					continue
+-				}
+-				v_1_0_1_0 := v_1_0_1.Args[0]
+-				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
+-					continue
+-				}
+-				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
+-				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
+ 					continue
+ 				}
+ 				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0 := v_1_1_0.Args[0]
+@@ -16314,115 +16439,29 @@
+ 					continue
+ 				}
+ 				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLW)
++				v.reset(OpAMD64ROLL)
+ 				v.AddArg2(x, y)
+ 				return true
+ 			}
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHRW x (ANDQconst y [15])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (RORW x y)
++	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGQ y)) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [31]) [-32])) [32]))))
++	// result: (RORL x y)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRW {
++			if v_0.Op != OpAMD64SHRXL {
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
+-			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
+-				continue
+-			}
+-			_ = v_1.Args[1]
+-			if x != v_1.Args[0] {
+-				continue
+-			}
+-			v_1_1 := v_1.Args[1]
+-			if v_1_1.Op != OpAMD64NEGQ {
+-				continue
+-			}
+-			v_1_1_0 := v_1_1.Args[0]
+-			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
+-				continue
+-			}
+-			v_1_1_0_0 := v_1_1_0.Args[0]
+-			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
+-				continue
+-			}
+-			v.reset(OpAMD64RORW)
+-			v.AddArg2(x, y)
+-			return true
+-		}
+-		break
+-	}
+-	// match: (ORL (SHRW x (ANDLconst y [15])) (SHLL x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))))
+-	// cond: v.Type.Size() == 2
+-	// result: (RORW x y)
+-	for {
+-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRW {
+-				continue
+-			}
+-			_ = v_0.Args[1]
+-			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
+-				continue
+-			}
+-			_ = v_1.Args[1]
+-			if x != v_1.Args[0] {
+-				continue
+-			}
+-			v_1_1 := v_1.Args[1]
+-			if v_1_1.Op != OpAMD64NEGL {
+-				continue
+-			}
+-			v_1_1_0 := v_1_1.Args[0]
+-			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
+-				continue
+-			}
+-			v_1_1_0_0 := v_1_1_0.Args[0]
+-			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
+-				continue
+-			}
+-			v.reset(OpAMD64RORW)
+-			v.AddArg2(x, y)
+-			return true
+-		}
+-		break
+-	}
+-	// match: (ORL (SHLL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
+-	// cond: v.Type.Size() == 1
+-	// result: (ROLB x y)
+-	for {
+-		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
+-				continue
+-			}
+-			_ = v_0.Args[1]
++			y := v_0.Args[1]
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16430,7 +16469,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRB {
++				if v_1_0.Op != OpAMD64SHLXL {
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16438,19 +16477,11 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGQ {
+-					continue
+-				}
+-				v_1_0_1_0 := v_1_0_1.Args[0]
+-				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
+-					continue
+-				}
+-				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
+-				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
+ 					continue
+ 				}
+ 				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0 := v_1_1_0.Args[0]
+@@ -16458,35 +16489,29 @@
+ 					continue
+ 				}
+ 				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
+ 					continue
+ 				}
+ 				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLB)
++				v.reset(OpAMD64RORL)
+ 				v.AddArg2(x, y)
+ 				return true
+ 			}
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHLL x (ANDLconst y [ 7])) (ANDL (SHRB x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8])) [ 8]))))
+-	// cond: v.Type.Size() == 1
+-	// result: (ROLB x y)
++	// match: (ORL (SHRXL x y) (ANDL (SHLXL x (NEGL y)) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [31]) [-32])) [32]))))
++	// result: (RORL x y)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLL {
++			if v_0.Op != OpAMD64SHRXL {
+ 				continue
+ 			}
+-			_ = v_0.Args[1]
++			y := v_0.Args[1]
+ 			x := v_0.Args[0]
+-			v_0_1 := v_0.Args[1]
+-			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
+-				continue
+-			}
+-			y := v_0_1.Args[0]
+ 			if v_1.Op != OpAMD64ANDL {
+ 				continue
+ 			}
+@@ -16494,7 +16519,7 @@
+ 			v_1_0 := v_1.Args[0]
+ 			v_1_1 := v_1.Args[1]
+ 			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHRB {
++				if v_1_0.Op != OpAMD64SHLXL {
+ 					continue
+ 				}
+ 				_ = v_1_0.Args[1]
+@@ -16502,7 +16527,751 @@
+ 					continue
+ 				}
+ 				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGL {
++				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 32 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -32 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 31 || y != v_1_1_0_0_0_0.Args[0] {
++					continue
++				}
++				v.reset(OpAMD64RORL)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHLL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
++	// cond: v.Type.Size() == 2
++	// result: (ROLW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRW {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++					continue
++				}
++				v.reset(OpAMD64ROLW)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHLL x (ANDLconst y [15])) (ANDL (SHRW x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [15]) [-16])) [16]))))
++	// cond: v.Type.Size() == 2
++	// result: (ROLW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRW {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 15 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 16 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -16 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 15 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 2) {
++					continue
++				}
++				v.reset(OpAMD64ROLW)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHRW x (ANDQconst y [15])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))))
++	// cond: v.Type.Size() == 2
++	// result: (RORW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRW {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGQ {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
++				continue
++			}
++			v.reset(OpAMD64RORW)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
++	// match: (ORL (SHRW x (ANDLconst y [15])) (SHLL x (NEGL (ADDLconst (ANDLconst y [15]) [-16]))))
++	// cond: v.Type.Size() == 2
++	// result: (RORW x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRW {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 15 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGL {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -16 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 15 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 2) {
++				continue
++			}
++			v.reset(OpAMD64RORW)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
 +	// match: (ORL (SHLXL x (ANDQconst y [15])) (ANDL (SHRW x (NEGQ (ADDQconst (ANDQconst y [15]) [-16]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [15]) [-16])) [16]))))
 +	// cond: v.Type.Size() == 2
 +	// result: (ROLW x y)
@@ -77482,13 +78504,214 @@ func rewriteBlockAMD64(b *Block) bool {
 +		}
 +		break
 +	}
- 	// match: (ORL (SHLL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
- 	// cond: v.Type.Size() == 1
- 	// result: (ROLB x y)
-@@ -16616,6 +17177,214 @@
- 		}
- 		break
- 	}
++	// match: (ORL (SHLL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
++	// cond: v.Type.Size() == 1
++	// result: (ROLB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRB {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
++					continue
++				}
++				v.reset(OpAMD64ROLB)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHLL x (ANDLconst y [ 7])) (ANDL (SHRB x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8])) [ 8]))))
++	// cond: v.Type.Size() == 1
++	// result: (ROLB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64ANDL {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHRB {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_0_1_0 := v_1_0_1.Args[0]
++				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
++				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
++					continue
++				}
++				v.reset(OpAMD64ROLB)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORL (SHRB x (ANDQconst y [ 7])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))))
++	// cond: v.Type.Size() == 1
++	// result: (RORB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRB {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGQ {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
++				continue
++			}
++			v.reset(OpAMD64RORB)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
++	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
++	// cond: v.Type.Size() == 1
++	// result: (RORB x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRB {
++				continue
++			}
++			_ = v_0.Args[1]
++			x := v_0.Args[0]
++			v_0_1 := v_0.Args[1]
++			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
++				continue
++			}
++			y := v_0_1.Args[0]
++			if v_1.Op != OpAMD64SHLL {
++				continue
++			}
++			_ = v_1.Args[1]
++			if x != v_1.Args[0] {
++				continue
++			}
++			v_1_1 := v_1.Args[1]
++			if v_1_1.Op != OpAMD64NEGL {
++				continue
++			}
++			v_1_1_0 := v_1_1.Args[0]
++			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
++				continue
++			}
++			v_1_1_0_0 := v_1_1_0.Args[0]
++			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
++				continue
++			}
++			v.reset(OpAMD64RORB)
++			v.AddArg2(x, y)
++			return true
++		}
++		break
++	}
 +	// match: (ORL (SHLXL x (ANDQconst y [ 7])) (ANDL (SHRB x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))) (SBBLcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8])) [ 8]))))
 +	// cond: v.Type.Size() == 1
 +	// result: (ROLB x y)
@@ -77584,122 +78807,45 @@ func rewriteBlockAMD64(b *Block) bool {
 +				}
 +				v_1_0_1 := v_1_0.Args[1]
 +				if v_1_0_1.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_0_1_0 := v_1_0_1.Args[0]
-+				if v_1_0_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_0_1_0.AuxInt) != -8 {
-+					continue
-+				}
-+				v_1_0_1_0_0 := v_1_0_1_0.Args[0]
-+				if v_1_0_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_0_1_0_0.AuxInt) != 7 || y != v_1_0_1_0_0.Args[0] || v_1_1.Op != OpAMD64SBBLcarrymask {
-+					continue
-+				}
-+				v_1_1_0 := v_1_1.Args[0]
-+				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 8 {
-+					continue
-+				}
-+				v_1_1_0_0 := v_1_1_0.Args[0]
-+				if v_1_1_0_0.Op != OpAMD64NEGL {
-+					continue
-+				}
-+				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
-+				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -8 {
-+					continue
-+				}
-+				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
-+				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 7 || y != v_1_1_0_0_0_0.Args[0] || !(v.Type.Size() == 1) {
-+					continue
-+				}
-+				v.reset(OpAMD64ROLB)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
+ 					continue
+ 				}
+ 				v_1_0_1_0 := v_1_0_1.Args[0]
+@@ -16536,7 +17305,7 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHRB x (ANDQconst y [ 7])) (SHLL x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))))
 +	// match: (ORL (SHRB x (ANDQconst y [ 7])) (SHLXL x (NEGQ (ADDQconst (ANDQconst y [ 7]) [ -8]))))
-+	// cond: v.Type.Size() == 1
-+	// result: (RORB x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRB {
-+				continue
-+			}
-+			_ = v_0.Args[1]
-+			x := v_0.Args[0]
-+			v_0_1 := v_0.Args[1]
-+			if v_0_1.Op != OpAMD64ANDQconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
-+				continue
-+			}
-+			y := v_0_1.Args[0]
-+			if v_1.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			if x != v_1.Args[0] {
-+				continue
-+			}
-+			v_1_1 := v_1.Args[1]
-+			if v_1_1.Op != OpAMD64NEGQ {
-+				continue
-+			}
-+			v_1_1_0 := v_1_1.Args[0]
-+			if v_1_1_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
-+				continue
-+			}
-+			v_1_1_0_0 := v_1_1_0.Args[0]
-+			if v_1_1_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
-+				continue
-+			}
-+			v.reset(OpAMD64RORB)
-+			v.AddArg2(x, y)
-+			return true
-+		}
-+		break
-+	}
-+	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLXL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
-+	// cond: v.Type.Size() == 1
-+	// result: (RORB x y)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRB {
-+				continue
-+			}
-+			_ = v_0.Args[1]
-+			x := v_0.Args[0]
-+			v_0_1 := v_0.Args[1]
-+			if v_0_1.Op != OpAMD64ANDLconst || auxIntToInt32(v_0_1.AuxInt) != 7 {
-+				continue
-+			}
-+			y := v_0_1.Args[0]
-+			if v_1.Op != OpAMD64SHLXL {
-+				continue
-+			}
-+			_ = v_1.Args[1]
-+			if x != v_1.Args[0] {
-+				continue
-+			}
-+			v_1_1 := v_1.Args[1]
-+			if v_1_1.Op != OpAMD64NEGL {
-+				continue
-+			}
-+			v_1_1_0 := v_1_1.Args[0]
-+			if v_1_1_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0.AuxInt) != -8 {
-+				continue
-+			}
-+			v_1_1_0_0 := v_1_1_0.Args[0]
-+			if v_1_1_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0.AuxInt) != 7 || y != v_1_1_0_0.Args[0] || !(v.Type.Size() == 1) {
-+				continue
-+			}
-+			v.reset(OpAMD64RORB)
-+			v.AddArg2(x, y)
-+			return true
-+		}
-+		break
-+	}
- 	// match: (ORL x x)
- 	// result: x
+ 	// cond: v.Type.Size() == 1
+ 	// result: (RORB x y)
  	for {
+@@ -16551,7 +17320,7 @@
+ 				continue
+ 			}
+ 			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
++			if v_1.Op != OpAMD64SHLXL {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+@@ -16576,7 +17345,7 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
++	// match: (ORL (SHRB x (ANDLconst y [ 7])) (SHLXL x (NEGL (ADDLconst (ANDLconst y [ 7]) [ -8]))))
+ 	// cond: v.Type.Size() == 1
+ 	// result: (RORB x y)
+ 	for {
+@@ -16591,7 +17360,7 @@
+ 				continue
+ 			}
+ 			y := v_0_1.Args[0]
+-			if v_1.Op != OpAMD64SHLL {
++			if v_1.Op != OpAMD64SHLXL {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
 @@ -17509,6 +18278,25 @@
  		}
  		break
@@ -77726,10 +78872,118 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (ORQ (MOVQconst [c]) x)
  	// cond: isUint64PowerOfTwo(c) && uint64(c) >= 128
  	// result: (BTSQconst [int8(log64(c))] x)
-@@ -17789,6 +18577,206 @@
- 		}
- 		break
- 	}
+@@ -17682,123 +18470,371 @@
+ 				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
+ 					continue
+ 				}
+-				v.reset(OpAMD64ROLQ)
++				v.reset(OpAMD64ROLQ)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGQ y)) (SBBQcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [63]) [-64])) [64]))))
++	// result: (RORQ x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRQ {
++				continue
++			}
++			y := v_0.Args[1]
++			x := v_0.Args[0]
++			if v_1.Op != OpAMD64ANDQ {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHLQ {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGQ {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
++					continue
++				}
++				v.reset(OpAMD64RORQ)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
++	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGL y)) (SBBQcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [63]) [-64])) [64]))))
++	// result: (RORQ x y)
++	for {
++		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
++			if v_0.Op != OpAMD64SHRQ {
++				continue
++			}
++			y := v_0.Args[1]
++			x := v_0.Args[0]
++			if v_1.Op != OpAMD64ANDQ {
++				continue
++			}
++			_ = v_1.Args[1]
++			v_1_0 := v_1.Args[0]
++			v_1_1 := v_1.Args[1]
++			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
++				if v_1_0.Op != OpAMD64SHLQ {
++					continue
++				}
++				_ = v_1_0.Args[1]
++				if x != v_1_0.Args[0] {
++					continue
++				}
++				v_1_0_1 := v_1_0.Args[1]
++				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
++					continue
++				}
++				v_1_1_0 := v_1_1.Args[0]
++				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
++					continue
++				}
++				v_1_1_0_0 := v_1_1_0.Args[0]
++				if v_1_1_0_0.Op != OpAMD64NEGL {
++					continue
++				}
++				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
++				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
++					continue
++				}
++				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
++				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
++					continue
++				}
++				v.reset(OpAMD64RORQ)
++				v.AddArg2(x, y)
++				return true
++			}
++		}
++		break
++	}
 +	// match: (ORQ (SHLXQ x y) (ANDQ (SHRXQ x (NEGQ y)) (SBBQcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [63]) [-64])) [64]))))
 +	// result: (ROLQ x y)
 +	for {
@@ -77924,70 +79178,171 @@ func rewriteBlockAMD64(b *Block) bool {
 +					continue
 +				}
 +				v.reset(OpAMD64RORQ)
-+				v.AddArg2(x, y)
-+				return true
-+			}
-+		}
-+		break
-+	}
- 	// match: (ORQ (SHRQ lo bits) (SHLQ hi (NEGQ bits)))
- 	// result: (SHRDQ lo hi bits)
- 	for {
-@@ -17837,6 +18825,54 @@
+ 				v.AddArg2(x, y)
+ 				return true
+ 			}
  		}
  		break
  	}
-+	// match: (ORQ (SHRXQ lo bits) (SHLXQ hi (NEGQ bits)))
+-	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGQ y)) (SBBQcarrymask (CMPQconst (NEGQ (ADDQconst (ANDQconst y [63]) [-64])) [64]))))
+-	// result: (RORQ x y)
++	// match: (ORQ (SHRQ lo bits) (SHLQ hi (NEGQ bits)))
 +	// result: (SHRDQ lo hi bits)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHRXQ {
-+				continue
-+			}
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+ 			if v_0.Op != OpAMD64SHRQ {
+ 				continue
+ 			}
+-			y := v_0.Args[1]
+-			x := v_0.Args[0]
+-			if v_1.Op != OpAMD64ANDQ {
 +			bits := v_0.Args[1]
 +			lo := v_0.Args[0]
-+			if v_1.Op != OpAMD64SHLXQ {
-+				continue
-+			}
-+			_ = v_1.Args[1]
++			if v_1.Op != OpAMD64SHLQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+-			v_1_0 := v_1.Args[0]
 +			hi := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
+ 			v_1_1 := v_1.Args[1]
+-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHLQ {
+-					continue
+-				}
+-				_ = v_1_0.Args[1]
+-				if x != v_1_0.Args[0] {
+-					continue
+-				}
+-				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGQ || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
+-					continue
+-				}
+-				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPQconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
+-					continue
+-				}
+-				v_1_1_0_0 := v_1_1_0.Args[0]
+-				if v_1_1_0_0.Op != OpAMD64NEGQ {
+-					continue
+-				}
+-				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDQconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
+-					continue
+-				}
+-				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDQconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
+-					continue
+-				}
+-				v.reset(OpAMD64RORQ)
+-				v.AddArg2(x, y)
+-				return true
 +			if v_1_1.Op != OpAMD64NEGQ || bits != v_1_1.Args[0] {
 +				continue
-+			}
+ 			}
 +			v.reset(OpAMD64SHRDQ)
 +			v.AddArg3(lo, hi, bits)
 +			return true
-+		}
-+		break
-+	}
-+	// match: (ORQ (SHLXQ lo bits) (SHRXQ hi (NEGQ bits)))
+ 		}
+ 		break
+ 	}
+-	// match: (ORQ (SHRQ x y) (ANDQ (SHLQ x (NEGL y)) (SBBQcarrymask (CMPLconst (NEGL (ADDLconst (ANDLconst y [63]) [-64])) [64]))))
+-	// result: (RORQ x y)
++	// match: (ORQ (SHLQ lo bits) (SHRQ hi (NEGQ bits)))
 +	// result: (SHLDQ lo hi bits)
-+	for {
-+		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-+			if v_0.Op != OpAMD64SHLXQ {
-+				continue
-+			}
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRQ {
++			if v_0.Op != OpAMD64SHLQ {
+ 				continue
+ 			}
+-			y := v_0.Args[1]
+-			x := v_0.Args[0]
+-			if v_1.Op != OpAMD64ANDQ {
 +			bits := v_0.Args[1]
 +			lo := v_0.Args[0]
-+			if v_1.Op != OpAMD64SHRXQ {
-+				continue
-+			}
-+			_ = v_1.Args[1]
++			if v_1.Op != OpAMD64SHRQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+-			v_1_0 := v_1.Args[0]
 +			hi := v_1.Args[0]
-+			v_1_1 := v_1.Args[1]
+ 			v_1_1 := v_1.Args[1]
+-			for _i1 := 0; _i1 <= 1; _i1, v_1_0, v_1_1 = _i1+1, v_1_1, v_1_0 {
+-				if v_1_0.Op != OpAMD64SHLQ {
+-					continue
+-				}
+-				_ = v_1_0.Args[1]
+-				if x != v_1_0.Args[0] {
+-					continue
+-				}
+-				v_1_0_1 := v_1_0.Args[1]
+-				if v_1_0_1.Op != OpAMD64NEGL || y != v_1_0_1.Args[0] || v_1_1.Op != OpAMD64SBBQcarrymask {
+-					continue
+-				}
+-				v_1_1_0 := v_1_1.Args[0]
+-				if v_1_1_0.Op != OpAMD64CMPLconst || auxIntToInt32(v_1_1_0.AuxInt) != 64 {
+-					continue
+-				}
+-				v_1_1_0_0 := v_1_1_0.Args[0]
+-				if v_1_1_0_0.Op != OpAMD64NEGL {
+-					continue
+-				}
+-				v_1_1_0_0_0 := v_1_1_0_0.Args[0]
+-				if v_1_1_0_0_0.Op != OpAMD64ADDLconst || auxIntToInt32(v_1_1_0_0_0.AuxInt) != -64 {
+-					continue
+-				}
+-				v_1_1_0_0_0_0 := v_1_1_0_0_0.Args[0]
+-				if v_1_1_0_0_0_0.Op != OpAMD64ANDLconst || auxIntToInt32(v_1_1_0_0_0_0.AuxInt) != 63 || y != v_1_1_0_0_0_0.Args[0] {
+-					continue
+-				}
+-				v.reset(OpAMD64RORQ)
+-				v.AddArg2(x, y)
+-				return true
 +			if v_1_1.Op != OpAMD64NEGQ || bits != v_1_1.Args[0] {
 +				continue
-+			}
+ 			}
 +			v.reset(OpAMD64SHLDQ)
 +			v.AddArg3(lo, hi, bits)
 +			return true
-+		}
-+		break
-+	}
- 	// match: (ORQ (MOVQconst [c]) (MOVQconst [d]))
- 	// result: (MOVQconst [c|d])
+ 		}
+ 		break
+ 	}
+-	// match: (ORQ (SHRQ lo bits) (SHLQ hi (NEGQ bits)))
++	// match: (ORQ (SHRXQ lo bits) (SHLXQ hi (NEGQ bits)))
+ 	// result: (SHRDQ lo hi bits)
  	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHRQ {
++			if v_0.Op != OpAMD64SHRXQ {
+ 				continue
+ 			}
+ 			bits := v_0.Args[1]
+ 			lo := v_0.Args[0]
+-			if v_1.Op != OpAMD64SHLQ {
++			if v_1.Op != OpAMD64SHLXQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
+@@ -17813,16 +18849,16 @@
+ 		}
+ 		break
+ 	}
+-	// match: (ORQ (SHLQ lo bits) (SHRQ hi (NEGQ bits)))
++	// match: (ORQ (SHLXQ lo bits) (SHRXQ hi (NEGQ bits)))
+ 	// result: (SHLDQ lo hi bits)
+ 	for {
+ 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
+-			if v_0.Op != OpAMD64SHLQ {
++			if v_0.Op != OpAMD64SHLXQ {
+ 				continue
+ 			}
+ 			bits := v_0.Args[1]
+ 			lo := v_0.Args[0]
+-			if v_1.Op != OpAMD64SHRQ {
++			if v_1.Op != OpAMD64SHRXQ {
+ 				continue
+ 			}
+ 			_ = v_1.Args[1]
 @@ -22062,6 +23098,60 @@
  		}
  		break
