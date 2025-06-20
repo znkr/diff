@@ -300,7 +300,7 @@ func getIndent(line byteview.ByteView) int {
 		case ' ':
 			indent++
 		case '\t':
-			indent += 8 - indent&8
+			indent += 8 - indent%8
 		case '\n', '\v', '\r':
 			// Ignore other whitespace.
 		default:

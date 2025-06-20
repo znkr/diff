@@ -61822,10 +61822,11 @@ func rewriteBlockPPC64(b *Block) bool {
  	}
  	return false
  }
-@@ -6279,35 +5948,22 @@
+@@ -6278,72 +5947,46 @@
+ func rewriteValuePPC64_OpPPC64FADD_0(v *Value) bool {
  	// match: (FADD (FMUL x y) z)
  	// result: (FMADD x y z)
- 	for {
+-	for {
 -		z := v.Args[1]
 -		v_0 := v.Args[0]
 -		if v_0.Op != OpPPC64FMUL {
@@ -61841,7 +61842,7 @@ func rewriteBlockPPC64(b *Block) bool {
 -	}
 -	// match: (FADD z (FMUL x y))
 -	// result: (FMADD x y z)
--	for {
+ 	for {
  		_ = v.Args[1]
 -		z := v.Args[0]
 -		v_1 := v.Args[1]
@@ -61872,10 +61873,10 @@ func rewriteBlockPPC64(b *Block) bool {
  	}
  	return false
  }
-@@ -6315,35 +5971,22 @@
+ func rewriteValuePPC64_OpPPC64FADDS_0(v *Value) bool {
  	// match: (FADDS (FMULS x y) z)
  	// result: (FMADDS x y z)
- 	for {
+-	for {
 -		z := v.Args[1]
 -		v_0 := v.Args[0]
 -		if v_0.Op != OpPPC64FMULS {
@@ -61891,7 +61892,7 @@ func rewriteBlockPPC64(b *Block) bool {
 -	}
 -	// match: (FADDS z (FMULS x y))
 -	// result: (FMADDS x y z)
--	for {
+ 	for {
  		_ = v.Args[1]
 -		z := v.Args[0]
 -		v_1 := v.Args[1]

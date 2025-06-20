@@ -1,0 +1,18 @@
+-- input --
+ 		host, port, err := net.SplitHostPort(u.Host)
+ 		if err != nil {
++			// try port addition once
++			host, port, err = net.SplitHostPort(net.JoinHostPort(u.Host, defaultPort))
++		}
++		if err != nil {
+ 			return "", fmt.Errorf("Invalid bind address format: %s", tryAddr)
+ 		}
+-- want --
+ 		host, port, err := net.SplitHostPort(u.Host)
++		if err != nil {
++			// try port addition once
++			host, port, err = net.SplitHostPort(net.JoinHostPort(u.Host, defaultPort))
++		}
+ 		if err != nil {
+ 			return "", fmt.Errorf("Invalid bind address format: %s", tryAddr)
+ 		}

@@ -86477,10 +86477,11 @@ var linkRegWasm = int8(-1)
  	OpRISCV64CTZ
  	OpRISCV64CTZW
  	OpRISCV64NOT
-@@ -33888,6 +33890,32 @@
+@@ -33887,6 +33889,32 @@
+ 			},
  		},
  	},
- 	{
++	{
 +		name:   "CPOP",
 +		argLen: 1,
 +		asm:    riscv.ACPOP,
@@ -86506,7 +86507,6 @@ var linkRegWasm = int8(-1)
 +			},
 +		},
 +	},
-+	{
+ 	{
  		name:   "CTZ",
  		argLen: 1,
- 		asm:    riscv.ACTZ,
