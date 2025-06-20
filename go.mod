@@ -2,7 +2,10 @@ module znkr.io/diff
 
 go 1.24
 
-tool golang.org/x/tools/cmd/stringer
+tool (
+	golang.org/x/tools/cmd/stringer
+	znkr.io/diff/internal/cmd/specializemyers
+)
 
 require (
 	github.com/google/go-cmp v0.7.0
