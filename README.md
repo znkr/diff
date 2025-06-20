@@ -10,9 +10,13 @@ This module provides diffing for arbitrary Go slices and text.
 
 Documentation at http://pkg.go.dev/znkr.io/diff.
 
-## Stability: WIP
+## Stability: Beta
 
-This project is a work in progress, pending reviews and better testing. Feedback is very welcome.
+This project is in beta, pending API reviews and general feedback, both are very welcome.
+
+As a general rule, the exact diff output will never be guaranteed to be stable: I expect that
+performance and quality improvements will always be possible and they will likely change the output
+of a diff. Therefore, committing to a stable diff result would be too limiting.
 
 ## Example - Comparing Slices
 
@@ -128,11 +132,65 @@ fmt.Print(textdiff.Unified(x, y))
 Diffs produced by this module are intended to be readable by humans.
 
 Readable diffs have been the subject of a lot of discussions and have even resulted in some new
-diffing algorithms like the patience or heuristic algorithms in git. However, the best work about
+diffing algorithms like the patience or histogram algorithms in git. However, the best work about
 diff readability by far is [diff-slider-tools](https://github.com/mhagger/diff-slider-tools) by
 [Michael Haggerty](https://github.com/mhagger). He implemented a heuristic that's applied in a
 post-processing step to improve the readability. This module implements this heuristic in the
 [textdiff](https://pkg.go.dev/znkr.io/diff/textdiff) package.
+
+For example:
+
+```go
+x := `// ...
+["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`
+
+y := `// ...
+["foo", "bar", "baz"].map do |i|
+  i
+end
+
+["foo", "bar", "baz"].map do |i|
+  i.upcase
+end
+`
+
+fmt.Println("With textdiff.IndentHeuristic:")
+fmt.Print(textdiff.Unified(x, y, textdiff.IndentHeuristic()))
+fmt.Println()
+fmt.Println("Without textdiff.IndentHeuristic:")
+fmt.Print(textdiff.Unified(x, y))
+// Output:
+// With textdiff.IndentHeuristic:
+// @@ -1,4 +1,8 @@
+//  // ...
+// +["foo", "bar", "baz"].map do |i|
+// +  i
+// +end
+// +
+//  ["foo", "bar", "baz"].map do |i|
+//    i.upcase
+//  end
+//
+// Without textdiff.IndentHeuristic:
+// @@ -1,4 +1,8 @@
+//  // ...
+//  ["foo", "bar", "baz"].map do |i|
+// +  i
+// +end
+// +
+// +["foo", "bar", "baz"].map do |i|
+//    i.upcase
+//  end
+```
+
+## Performance
+
+The underlying diff algorithm used is Myers' algorithm augmented by a number of standard heuristics
+to speed up the algorithm in exchange for non-minimal diffs. The `diff.Optimal` option is provided
+to skip these heuristics to get a minimal diff independent of the costs.
 
 ## License
 
