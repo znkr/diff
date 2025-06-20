@@ -579,6 +579,9 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				s := vf[k0]
 				t := s - k
 				v := (s - smin) + (t - tmin) - max(fmid-d, d-fmid)
+				if s < smin || smax <= s || t < tmin || tmax <= t {
+					continue
+				}
 				if v <= goodDiagMagic*d || v < best.v {
 					continue // not good enough, check next diagonal
 				}
@@ -611,6 +614,9 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				k0 := k + v0
 				s := vb[k0]
 				t := s - k
+				if s < smin || smax <= s || t < tmin || tmax <= t {
+					continue
+				}
 				v := (smax - s) + (tmax - t) - max(bmid-d, d-bmid)
 				if v <= goodDiagMagic*d || v < best.v {
 					continue
