@@ -127,12 +127,12 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 // Edits returns edits for every element in the input. If both x and y are identical, the output
 // will consist of a match edit for every input element.
 //
-// The following option is supported: [diff.Optimal]
+// The following options are supported: [diff.Optimal], [textdiff.IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T string | []byte](x, y T, opts ...diff.Option) []Edit[T] {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
+	cfg := config.FromOptions(opts, config.Optimal|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := myers.Diff(xlines, ylines, cfg)
