@@ -192,6 +192,31 @@ The underlying diff algorithm used is Myers' algorithm augmented by a number of 
 to speed up the algorithm in exchange for non-minimal diffs. The `diff.Optimal` option is provided
 to skip these heuristics to get a minimal diff independent of the costs.
 
+On an M1 Mac, the default settings almost always result in runtimes &lt; 1 ms, but truly large diffs
+(e.g. caused by changing generators for generated files) can result in runtimes around 100 ms and
+more. Below is the distribution of runtimes applying `textdiff.Unified` to every commit in the [Go
+repository](http://go.googlesource.com/go):
+
+![histogram of textdiff.Unified runtime](doc/perf_go_repo.png)
+
+The data underlying this histogram can be created using the exhaustive test for `textdiff.Unified`
+
+```
+go test -run TestUnifiedExhaustive -timeout 0 ./textdiff -exhaustive -stats <filename>
+```
+
+## Correctness
+
+I tested this diff implementation against every commit and in the [Go
+repository](http://go.googlesource.com/go) using the standard unix `patch` tool to ensure that all
+diffs result in correct result.
+
+This test is part of the test suite for this module and can be run with
+
+```
+go test -run TestUnifiedExhaustive -timeout 0 ./textdiff -exhaustive -validate
+```
+
 ## License
 
 This module is distributed under the [Apache License, Version
