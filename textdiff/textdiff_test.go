@@ -859,6 +859,11 @@ func logger(t *testing.T) func(t *testing.T, commitID, filename string, d time.D
 func patch(t *testing.T, orig, diff []byte) []byte {
 	t.Helper()
 
+	// Using patch with an empty diff will not create an output file.
+	if len(diff) == 0 {
+		return orig
+	}
+
 	dir, err := os.MkdirTemp("", "patch-*")
 	if err != nil {
 		t.Fatalf("failed to create temporary directory: %v", err)
