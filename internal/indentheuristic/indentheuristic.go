@@ -66,8 +66,8 @@ const relativeIndentPenalty = -4           // Indented more than predecessor
 const relativeIndentWithBlankPenalty = 10  // Indented more than predecessor, with blank lines
 const relativeOutdentPenalty = 24          // Indented less than predecessor
 const relativeOutdentWithBlankPenalty = 17 // Indented less than predecessor, with blank lines
-const relativeDentPenalty = 23             // Indented less than predecessor but not less than successor
-const relativeDentWithBlankPenalty = 17    // Indented less than predecessor but not less than successor, with blank lines
+const relativeDedentPenalty = 23           // Indented less than predecessor but not less than successor
+const relativeDedentWithBlankPenalty = 17  // Indented less than predecessor but not less than successor, with blank lines
 
 // We only consider whether the sum of the effective indents for splits are less than (-1), equal
 // to (0), or greater than (+1) each other. The resulting value is multiplied by the following
@@ -369,9 +369,9 @@ func (s *shiftScore) add(m measure) {
 			}
 		} else {
 			if totalBlank != 0 {
-				s.penalty += relativeDentWithBlankPenalty
+				s.penalty += relativeDedentWithBlankPenalty
 			} else {
-				s.penalty += relativeDentPenalty
+				s.penalty += relativeDedentPenalty
 			}
 		}
 	}
