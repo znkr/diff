@@ -15,31 +15,24 @@
 package textdiff
 
 import (
-	"bufio"
 	"bytes"
 	"flag"
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/tools/txtar"
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/unixpatch"
 )
 
 var (
-	update     = flag.Bool("update", false, "update golden files")
-	validate   = flag.Bool("validate", false, "perform validation using the unix patch cli tool")
-	exhaustive = flag.Bool("exhaustive", false, "perform the exhaustive test")
-	offline    = flag.Bool("offline", false, "don't try to clone or update the exhaustive corpus")
-	stats      = flag.String("stats", "", "output file for stats of the exhaustive test")
+	update   = flag.Bool("update", false, "update golden files")
+	validate = flag.Bool("validate", false, "perform validation using the unix patch cli tool")
 )
 
 func TestUnified(t *testing.T) {
@@ -54,7 +47,11 @@ func TestUnified(t *testing.T) {
 						t.Errorf("UnifiedBytes(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, diff)
 					}
 					if *validate && len(got) > 0 {
-						if diff := cmp.Diff(tt.y, patch(t, tt.x, got)); diff != "" {
+						patched, err := unixpatch.Patch(string(tt.x), string(got))
+						if err != nil {
+							t.Fatalf("failed to run patch: %v", err)
+						}
+						if diff := cmp.Diff(tt.y, []byte(patched)); diff != "" {
 							t.Errorf("file is different after applying patch [-got,+want]:\n%s", diff)
 						}
 					}
@@ -178,7 +175,11 @@ func TestUnifiedEdgeCases(t *testing.T) {
 				t.Errorf("Unified(...) if different:\ngot:  %q\nwant: %q", got, tt.want)
 			}
 			if *validate && len(got) > 0 {
-				if diff := cmp.Diff([]byte(tt.y), patch(t, []byte(tt.x), []byte(got))); diff != "" {
+				patched, err := unixpatch.Patch(tt.x, got)
+				if err != nil {
+					t.Fatalf("failed to run patch: %v", err)
+				}
+				if diff := cmp.Diff(tt.y, patched); diff != "" {
 					t.Errorf("file is different after applying patch [-got,+want]:\n%s", diff)
 				}
 			}
@@ -709,199 +710,4 @@ func parseTests(t testing.TB) []test {
 		tests = append(tests, test)
 	}
 	return tests
-}
-
-func TestUnifiedExhaustive(t *testing.T) {
-	if !*exhaustive {
-		t.Skip("skipping exhaustive test, -exhaustive not specified")
-	}
-
-	log := logger(t)
-
-	tests := []struct {
-		name string
-		repo string
-	}{
-		{
-			name: "go",
-			repo: "https://go.googlesource.com/go",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			repo := "corpus/" + tt.name + ".git"
-			if _, err := os.Stat(repo); os.IsNotExist(err) {
-				if *offline {
-					t.Skip("skipping, no data")
-				}
-				git(t, "clone", "--quiet", "--bare", tt.repo, repo)
-			} else {
-				if !*offline {
-					git(t, "-C", repo, "fetch", "--quiet")
-				}
-			}
-
-			commitIDs := git(t, "-C", repo, "rev-list", "--no-merges", "HEAD")
-			for commitID := range bytes.Lines(commitIDs) {
-
-				commitID = commitID[:len(commitID)-1] // strip trailing newline
-				t.Run(string(commitID), func(t *testing.T) {
-					treeDiff := git(t, "-C", repo, "diff-tree", "-r", string(commitID))
-					files := bytes.Split(treeDiff, []byte("\n"))[1:]
-					for _, file := range files {
-						if len(file) == 0 {
-							continue
-						}
-						if file[0] != ':' {
-							t.Fatalf("not starting with ':': %s", file)
-						}
-						fields := bytes.Fields(file[1:])
-						oldBlobID := fields[2]
-						newBlobID := fields[3]
-						filename := string(fields[5])
-
-						if strings.HasSuffix(filename, ".zip") || strings.HasSuffix(filename, ".syso") {
-							continue
-						}
-
-						var old, new []byte
-						if !bytes.Equal(oldBlobID, []byte("0000000000000000000000000000000000000000")) {
-							old = git(t, "-C", repo, "cat-file", "blob", string(oldBlobID))
-						}
-						if !bytes.Equal(newBlobID, []byte("0000000000000000000000000000000000000000")) {
-							new = git(t, "-C", repo, "cat-file", "blob", string(newBlobID))
-						}
-
-						testname := strings.ReplaceAll(filename, "/", "_")
-						t.Run(testname, func(t *testing.T) {
-							storeExemplar := func() {
-								filename := "testdata/" + tt.name + "_" + string(commitID) + "_" + testname + ".test"
-								if _, err := os.Stat(filename); err == nil {
-									// File already exists, don't override it.
-									return
-								}
-
-								var buf bytes.Buffer
-								fmt.Fprintf(&buf, "From %s\ncommit %s\nfile %s\n", tt.repo, commitID, filename)
-								buf.WriteString("-- x --\n")
-								buf.Write(old)
-								buf.WriteString("-- y --\n")
-								buf.Write(new)
-								buf.WriteString("-- diff --\n")
-								buf.WriteString("-- diff --\n# indent-heuristic: true\n")
-								err := os.WriteFile(filename, buf.Bytes(), 0o644)
-								if err != nil {
-									t.Errorf("failed to write reproducer: %v", err)
-								}
-							}
-							defer func() {
-								if p := recover(); p != nil {
-									storeExemplar()
-									panic(p)
-								}
-							}()
-							start := time.Now()
-							diff := Unified(old, new, IndentHeuristic())
-							d := time.Since(start)
-
-							if *validate {
-								patched := patch(t, old, diff)
-								if diff := cmp.Diff(new, patched, cmpopts.EquateEmpty()); diff != "" {
-									storeExemplar()
-									t.Errorf("file is different after applying patch [-got,+want]:\n%s", diff)
-								}
-							}
-
-							log(t, string(commitID), string(filename), d)
-						})
-					}
-				})
-			}
-		})
-	}
-}
-
-func logger(t *testing.T) func(t *testing.T, commitID, filename string, d time.Duration) {
-	t.Helper()
-	if *stats == "" {
-		return func(t *testing.T, commitID, filename string, d time.Duration) {}
-	}
-	f, err := os.Create(*stats)
-	if err != nil {
-		t.Fatalf("failed to create stats file: %v", err)
-	}
-
-	w := bufio.NewWriter(f)
-	t.Cleanup(func() {
-		if err := w.Flush(); err != nil {
-			t.Fatalf("failed to flush stats file: %v", w)
-		}
-
-		if err := f.Close(); err != nil {
-			t.Fatalf("failed to close stats file: %v", w)
-		}
-	})
-
-	header := "commit_id,filename,duration_us"
-	if _, err := fmt.Fprintf(w, "%s\n", header); err != nil {
-		t.Fatalf("failed to write header: %v", err)
-	}
-
-	return func(t *testing.T, commitID, filename string, d time.Duration) {
-		_, err := fmt.Fprintf(w, "%s,%q,%d\n", commitID, filename, d/time.Microsecond)
-		if err != nil {
-			t.Fatalf("failed to log stats: %v", err)
-		}
-	}
-}
-
-func patch(t *testing.T, orig, diff []byte) []byte {
-	t.Helper()
-
-	// Using patch with an empty diff will not create an output file.
-	if len(diff) == 0 {
-		return orig
-	}
-
-	dir, err := os.MkdirTemp("", "patch-*")
-	if err != nil {
-		t.Fatalf("failed to create temporary directory: %v", err)
-	}
-	defer os.RemoveAll(dir)
-
-	patchfile := filepath.Join(dir, "patch")
-	origfile := filepath.Join(dir, "orig")
-	outfile := filepath.Join(dir, "out")
-
-	if err := os.WriteFile(patchfile, diff, 0o644); err != nil {
-		t.Fatalf("failed to write patch file: %v", err)
-	}
-	if err := os.WriteFile(origfile, orig, 0o644); err != nil {
-		t.Fatalf("failed to write orig file: %v", err)
-	}
-
-	cmd := exec.Command("patch", "-u", "-i", patchfile, "-o", outfile, origfile)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("failed to run patch command: patch %s: %v\n%s", strings.Join(cmd.Args, " "), err, out)
-	}
-
-	out, err := os.ReadFile(outfile)
-	if err != nil {
-		t.Fatalf("failed to read outfile: %v", err)
-	}
-
-	return out
-}
-
-func git(t *testing.T, args ...string) []byte {
-	t.Helper()
-	var wout, werr bytes.Buffer
-	cmd := exec.Command("git", args...)
-	cmd.Stdout = &wout
-	cmd.Stderr = &werr
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("failed to run git command: git %s: %v\n%s", strings.Join(args, " "), err, werr.Bytes())
-	}
-	return wout.Bytes()
 }

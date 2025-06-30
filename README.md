@@ -199,12 +199,6 @@ repository](http://go.googlesource.com/go):
 
 ![histogram of textdiff.Unified runtime](doc/perf_go_repo.png)
 
-The data underlying this histogram can be created using the exhaustive test for `textdiff.Unified`
-
-```
-go test -run TestUnifiedExhaustive -timeout 0 ./textdiff -exhaustive -stats <filename>
-```
-
 ## Correctness
 
 I tested this diff implementation against every commit and in the [Go
@@ -214,7 +208,7 @@ diffs result in correct result.
 This test is part of the test suite for this module and can be run with
 
 ```
-go test -run TestUnifiedExhaustive -timeout 0 ./textdiff -exhaustive -validate
+go run ./internal/cmd/eval -repo <repo>
 ```
 
 ## License
