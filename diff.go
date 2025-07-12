@@ -33,12 +33,12 @@ const (
 	Insert           // An insertion of an element from the right side
 )
 
-// Edit describes a singe edit of a diff.
+// Edit describes a single edit of a diff.
 //
 //   - For Match, X and Y are set to their respective elements.
 //   - For Delete, X is set to the element of the left slice that's missing in the right one and Y is
 //     set to the zero value.
-//   - For Insert, Y is set to he element of the right slice that's missing in the left one and X is
+//   - For Insert, Y is set to the element of the right slice that's missing in the left one and X is
 //     set to the zero value.
 type Edit[T any] struct {
 	Op   Op
@@ -82,7 +82,7 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 //
 // The following options are supported: [diff.Context], [diff.Optimal]
 //
-// Mote that this function has generally worse performance than [Hunks] for diffs with many changes.
+// Note that this function has generally worse performance than [Hunks] for diffs with many changes.
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
@@ -168,7 +168,7 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 //
 // The following option is supported: [diff.Optimal]
 //
-// Mote that this function has generally worse performance than [Edits] for diffs with many changes.
+// Note that this function has generally worse performance than [Edits] for diffs with many changes.
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.

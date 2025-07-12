@@ -33,7 +33,7 @@ import (
 	"znkr.io/diff/internal/rvecs"
 )
 
-// Edit describes a singe edit of a line-by-line diff.
+// Edit describes a single edit of a line-by-line diff.
 type Edit[T string | []byte] struct {
 	Op   diff.Op
 	Line T

@@ -138,7 +138,7 @@ func apply0(lines, lineso []byteview.ByteView, r, ro []bool) {
 		default:
 			// The group can be shifted around somewhat, we can use the possible shift range to
 			// apply heuristics that make the diff easier to read. Right now, the group is shifted
-			// to it's lowest position, so we only have to consider upward shifts.
+			// to its lowest position, so we only have to consider upward shifts.
 
 			bestShift := -1
 			var bestScore shiftScore
@@ -346,7 +346,7 @@ func (s *shiftScore) add(m measure) {
 	if indent == -1 || m.preIndent == -1 {
 		// No additional adjustment needed.
 	} else if indent > m.preIndent {
-		// The line is indented more than it's predecessors.
+		// The line is indented more than its predecessors.
 		if totalBlank != 0 {
 			s.penalty += relativeIndentWithBlankPenalty
 		} else {
@@ -355,7 +355,7 @@ func (s *shiftScore) add(m measure) {
 	} else if indent == m.preIndent {
 		// Same indentation as previous line, no adjustments need.
 	} else {
-		// Line is indented more than it's predecessor. It could be the block terminator of the
+		// Line is indented less than its predecessor. It could be the block terminator of the
 		// previous block, but it could also be the start of a new block (e.g., an "else" block, or
 		// maybe the previous block didn't have a block terminator). Try to distinguish those cases
 		// based on what comes next.
