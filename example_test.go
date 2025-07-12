@@ -26,7 +26,7 @@ import (
 // particular line endings (esp. at the end of the input) are handled differently.
 //
 // More generally, comparing text line by line is better solved with the textdiff subpackage.
-func ExampleHunks_psudoUnified() {
+func ExampleHunks_pseudoUnified() {
 	x := `this paragraph
 is not
 changed and

@@ -80,7 +80,7 @@ equality function.
 
 ## Example - Comparing Text
 
-Because of it's importance, comparing text line by line has special support and produces output
+Because of its importance, comparing text line by line has special support and produces output
 in the unified diff format:
 
 ```go
