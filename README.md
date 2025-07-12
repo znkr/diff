@@ -1,4 +1,4 @@
-# diff
+# znkr.io/diff
 
 A difference algorithm module for Go.
 
