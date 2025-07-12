@@ -355,7 +355,7 @@ func (s *shiftScore) add(m measure) {
 	} else if indent == m.preIndent {
 		// Same indentation as previous line, no adjustments need.
 	} else {
-		// Line is indented less than its predecessor. It could be the block terminator of the
+		// Line is indented more than its predecessor. It could be the block terminator of the
 		// previous block, but it could also be the start of a new block (e.g., an "else" block, or
 		// maybe the previous block didn't have a block terminator). Try to distinguish those cases
 		// based on what comes next.
