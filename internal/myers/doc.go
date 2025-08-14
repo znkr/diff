@@ -99,7 +99,7 @@
 // Myers, E.W. An O(ND) difference algorithm and its variations. Algorithmica 1, 251-266 (1986).
 // https://doi.org/10.1007/BF01840446
 //
-// The algorithm was independently discoverd by Ekko Ukkonen:
+// The algorithm was independently discovered by Ekko Ukkonen:
 //
 // Ukkonen, E. Algorithms for approximate string matching. Information and Control, Volume 64,
 // Issues 1-3, 100-118 (1985). https://doi.org/10.1016/S0019-9958(85)80046-2

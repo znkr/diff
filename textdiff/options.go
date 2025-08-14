@@ -19,7 +19,12 @@ import (
 	"znkr.io/diff/internal/config"
 )
 
-// IndentHeuristic applies a heuristic to make diffs easier to read.
+// IndentHeuristic applies a heuristic to make diffs easier to read by improving the placement of
+// edit boundaries.
+//
+// This implements a heuristic that shifts edit boundaries to align with indentation patterns,
+// making the resulting diff more readable for humans. The heuristic is particularly effective with
+// code and structured text.
 func IndentHeuristic() diff.Option {
 	return func(cfg *config.Config) config.Flag {
 		cfg.IndentHeuristic = true

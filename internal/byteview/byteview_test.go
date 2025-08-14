@@ -120,7 +120,7 @@ func TestSplitLines(t *testing.T) {
 				t.Errorf("SplitLines(...) result difference [-got, +want]:\n%s", diff)
 			}
 			if gotMissingNewline != tt.wantMissingNewline {
-				t.Errorf("SplitLines(...) returnd missing newline at %v, want %v", gotMissingNewline, tt.wantMissingNewline)
+				t.Errorf("SplitLines(...) returned missing newline at %v, want %v", gotMissingNewline, tt.wantMissingNewline)
 			}
 		})
 	}

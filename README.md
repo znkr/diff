@@ -3,8 +3,8 @@
 A difference algorithm module for Go.
 
 Difference algorithms compare two inputs and find the edits that transform one to the other. This is
-very useful to understand changes, for example when comparing a test result with the tests
-expectation or to understand which changes have been made to a file.
+very useful to understand changes, for example when comparing a test result with the expected result
+or to understand which changes have been made to a file.
 
 This module provides diffing for arbitrary Go slices and text.
 
@@ -201,9 +201,9 @@ repository](http://go.googlesource.com/go):
 
 ## Correctness
 
-I tested this diff implementation against every commit and in the [Go
+I tested this diff implementation against every commit in the [Go
 repository](http://go.googlesource.com/go) using the standard unix `patch` tool to ensure that all
-diffs result in correct result.
+diff results are correct.
 
 This test is part of the test suite for this module and can be run with
 

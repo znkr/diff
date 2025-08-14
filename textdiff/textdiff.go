@@ -14,11 +14,12 @@
 
 // Package textdiff provides functions to efficiently compare text line-by-line.
 //
-// By default the comparison functions in this package will try to find an optimal path, but may
-// fall back to a good-enough path for large files with many differences to speed up the comparison.
-// Unless [diff.Optimal] is used to disable these heuristics, the time complexity is O(N^1.5 log N)
-// and the space complexity is O(N) with N = len(x) + len(y). With [diff.Optimal] the complexity
-// becomes O(ND) where D is the number of edits.
+// This package is specialized for text comparison and provides unified diff output like the Unix
+// diff command. The main functions are [Hunks] for grouped changes, [Edits] for individual changes,
+// and [Unified] for standard diff format output.
+//
+// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [Optimal], time
+// complexity becomes O(ND) where N = len(x) + len(y) and D is the number of edits.
 package textdiff
 
 import (
@@ -121,11 +122,11 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 	return hout
 }
 
-// Edits compares the lines in x and y and returns the changes necessary to convert from one to
-// the other.
+// Edits compares the lines in x and y and returns the changes necessary to convert from one to the
+// other.
 //
-// Edits returns edits for every element in the input. If both x and y are identical, the output
-// will consist of a match edit for every input element.
+// Edits returns edits for every element in the input. If x and y are identical, the output will
+// consist of a match edit for every input element.
 //
 // The following options are supported: [diff.Optimal], [textdiff.IndentHeuristic]
 //
@@ -249,7 +250,7 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 		n += len(missingNewline)
 	}
 
-	// Format output
+	// Format output.
 	var b byteview.Builder[T]
 	b.Grow(n)
 	for h := range rvecs.Hunks(rx, ry, cfg) {

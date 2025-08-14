@@ -19,9 +19,12 @@ import "znkr.io/diff/internal/config"
 // Option configures the behavior of comparison functions.
 type Option = config.Option
 
-// Context sets the number of matches to include as a prefix and postfix for hunks. The default is 3.
+// Context sets the number of unchanged elements to include around each hunk. The default is 3.
 //
-// Only supported by functions that returns hunks.
+// Context anchors diffs in the surrounding context in addition to position information. For
+// example, with Context(2), you'll see 2 unchanged elements before and after each group of changes.
+//
+// Only supported by functions that return hunks.
 func Context(n int) Option {
 	return func(cfg *config.Config) config.Flag {
 		cfg.Context = max(0, n)
@@ -29,12 +32,15 @@ func Context(n int) Option {
 	}
 }
 
-// Optimal finds an optimal diff irrespective of the cost. By default, the comparison functions in
-// this package limit the cost for large inputs with many differences by applying heuristics that
-// reduce the time complexity.
+// Optimal ensures the diff algorithm finds the shortest possible diff by disabling performance
+// heuristics.
 //
-// With this option, the runtime is O(ND) where N = len(x) + len(y), and D is the number of
-// differences between x and y.
+// By default, the diff functions use heuristics to speed up computation for large inputs with many
+// changes, which may produce slightly longer diffs. Use this option when you need the absolute
+// shortest diff, at the cost of potentially slower performance.
+//
+// Performance impact: Changes time complexity from O(N^1.5 log N) to O(ND) where N = len(x) +
+// len(y) and D is the number of differences.
 func Optimal() Option {
 	return func(cfg *config.Config) config.Flag {
 		cfg.Optimal = true

@@ -35,11 +35,9 @@ const (
 
 // Edit describes a single edit of a diff.
 //
-//   - For Match, X and Y are set to their respective elements.
-//   - For Delete, X is set to the element of the left slice that's missing in the right one and Y is
-//     set to the zero value.
-//   - For Insert, Y is set to the element of the right slice that's missing in the left one and X is
-//     set to the zero value.
+//   - For Match, both X and Y contain the matching element.
+//   - For Delete, X contains the deleted element and Y is unset (zero value).
+//   - For Insert, Y contains the inserted element and X is unset (zero value).
 type Edit[T any] struct {
 	Op   Op
 	X, Y T
@@ -55,9 +53,9 @@ type Hunk[T any] struct {
 // Hunks compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
 //
-// The output is a sequence of hunks that each describe a number of consecutive edits. Hunks include
-// a number of matching elements before and after the last delete or insert operation. The number of
-// elements can be configured using [Context].
+// The output is a sequence of hunks. A hunk represents a contiguous block of changes (insertions
+// and deletions) along with some surrounding context. The amount of context can be configured using
+// [Context].
 //
 // If x and y are identical, the output has length zero.
 //
@@ -147,8 +145,8 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 // Edits compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
 //
-// Edits returns edits for every element in the input. If both x and y are identical, the output
-// will consist of a match edit for every input element.
+// Edits returns one edit for every element in the input slices. If x and y are identical, the
+// output will consist of a match edit for every input element.
 //
 // The following option is supported: [diff.Optimal]
 //
