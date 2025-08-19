@@ -80,20 +80,31 @@ func TestDiff(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			{
+			t.Run("diff", func(t *testing.T) {
 				rx, ry := Diff(tt.x, tt.y, config.Default)
 				got := render(rx, ry, len(tt.x), len(tt.y))
 				if diff := cmp.Diff(tt.want, got); diff != "" {
 					t.Errorf("Diff(...) differs [-want,+got]:\n%s", diff)
 				}
-			}
-			{
+			})
+
+			t.Run("diff_with_anchoring", func(t *testing.T) {
+				cfg := config.Default
+				cfg.AnchoringHeuristic = true
+				rx, ry := Diff(tt.x, tt.y, cfg)
+				got := render(rx, ry, len(tt.x), len(tt.y))
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("Diff(...) differs [-want,+got]:\n%s", diff)
+				}
+			})
+
+			t.Run("diff_func", func(t *testing.T) {
 				rx, ry := DiffFunc(tt.x, tt.y, func(a, b string) bool { return a == b }, config.Default)
 				got := render(rx, ry, len(tt.x), len(tt.y))
 				if diff := cmp.Diff(tt.want, got); diff != "" {
 					t.Errorf("DiffFunc(...) differs [-want,+got]:\n%s", diff)
 				}
-			}
+			})
 		})
 	}
 }

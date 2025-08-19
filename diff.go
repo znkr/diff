@@ -64,7 +64,7 @@ type Hunk[T any] struct {
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.AnchoringHeuristic)
 	rx, ry := myers.Diff(x, y, cfg)
 	return hunks(x, y, rx, ry, cfg)
 }
@@ -153,7 +153,7 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
-	cfg := config.FromOptions(opts, config.Optimal)
+	cfg := config.FromOptions(opts, config.Optimal|config.AnchoringHeuristic)
 	rx, ry := myers.Diff(x, y, cfg)
 	return edits(x, y, rx, ry)
 }

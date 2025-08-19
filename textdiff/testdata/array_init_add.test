@@ -60,6 +60,18 @@ var m = []struct{
          name: "We're Only in It for the Money",
          year: 1967,
 -- diff --
+@@ -9,6 +9,10 @@
+         year: 1966,
+     },
+     {
++        name: "Absolutely Free",
++        year: 1967,
++    },
++    {
+         name: "We're Only in It for the Money",
+         year: 1967,
+     },
+-- diff --
 # context: 1
 # indent-heuristic: true
 @@ -10,2 +10,6 @@
