@@ -287,7 +287,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 			continue
 		}
 
-		// Heuristic (GOOD_DIAGONAL): If we're over the cost limit for this heuristic, we  accept a
+		// Heuristic (GOOD_DIAGONAL): If we're over the cost limit for this heuristic, we accept a
 		// good diagonal to split the search space instead of searching for the optimal split point.
 		//
 		// A good diagonal is one that's longer than goodDiagMinLen, not too far from a corner and
