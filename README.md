@@ -197,7 +197,7 @@ On an M1 Mac, the default settings almost always result in runtimes &lt; 1 ms, b
 more. Below is the distribution of runtimes applying `textdiff.Unified` to every commit in the [Go
 repository](http://go.googlesource.com/go):
 
-![histogram of textdiff.Unified runtime](doc/perf_go_repo.png)
+![histogram of textdiff.Unified runtime](plots/perf_go_repo.png)
 
 ## Correctness
 
