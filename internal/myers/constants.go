@@ -22,3 +22,6 @@ const minCostLimit = 4096
 const goodDiagMinLen = 20     // Minimal length of a diagonal for it to be considered.
 const goodDiagCostLimit = 256 // The Heuristic is only applied if the cost exceeds this number.
 const goodDiagMagic = 4       // Magic number for diagonal selection.
+
+// Constants for ANCHORING heuristic.
+const anchoringHeuristicMinInputLen = 5_000 // Minimum length for enabling the anchoring heuristic.

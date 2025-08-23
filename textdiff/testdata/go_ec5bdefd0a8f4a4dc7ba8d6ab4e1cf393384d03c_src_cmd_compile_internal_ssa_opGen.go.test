@@ -78593,11 +78593,10 @@ var linkRegWasm = int8(-1)
  	BlockMIPSEQ:  "EQ",
  	BlockMIPSNE:  "NE",
  	BlockMIPSLTZ: "LTZ",
-@@ -1686,6 +1705,127 @@
- 	OpARM64LoweredPanicBoundsC
+@@ -1687,6 +1706,127 @@
  	OpARM64PRFM
  	OpARM64DMB
-+
+ 
 +	OpLOONG64ADDV
 +	OpLOONG64ADDVconst
 +	OpLOONG64SUBV
@@ -78718,14 +78717,14 @@ var linkRegWasm = int8(-1)
 +	OpLOONG64LoweredPanicBoundsA
 +	OpLOONG64LoweredPanicBoundsB
 +	OpLOONG64LoweredPanicBoundsC
- 
++
  	OpMIPSADD
  	OpMIPSADDconst
-@@ -22656,7 +22796,1644 @@
- 		reg:            regInfo{},
+ 	OpMIPSSUB
+@@ -22657,6 +22797,1643 @@
  	},
  
-+	{
+ 	{
 +		name:        "ADDV",
 +		argLen:      2,
 +		commutative: true,
@@ -78846,7 +78845,7 @@ var linkRegWasm = int8(-1)
 +			},
 +		},
 +	},
- 	{
++	{
 +		name:        "ADDF",
 +		argLen:      2,
 +		commutative: true,

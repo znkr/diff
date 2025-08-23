@@ -68102,12 +68102,10 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (MOVBstore [i] {s} p x1:(MOVBload [j] {s2} p2 mem) mem2:(MOVBstore [i-1] {s} p x2:(MOVBload [j-1] {s2} p2 mem) mem))
  	// cond: x1.Uses == 1 && x2.Uses == 1 && mem2.Uses == 1 && clobber(x1, x2, mem2)
  	// result: (MOVWstore [i-1] {s} p (MOVWload [j-1] {s2} p2 mem) mem)
-@@ -11386,60 +10571,8 @@
- 		v.AuxInt = valAndOffToAuxInt(ValAndOff(sc).addOffset32(off))
- 		v.Aux = symToAux(mergeSym(sym1, sym2))
+@@ -11388,58 +10573,6 @@
  		v.AddArg2(ptr, mem)
--		return true
--	}
+ 		return true
+ 	}
 -	// match: (MOVBstoreconst [c] {s} p1 x:(MOVBstoreconst [a] {s} p0 mem))
 -	// cond: x.Uses == 1 && sequentialAddresses(p0, p1, int64(a.Off()+1-c.Off())) && clobber(x)
 -	// result: (MOVWstoreconst [makeValAndOff(a.Val()&0xff | c.Val()<<8, a.Off())] {s} p0 mem)
@@ -68132,8 +68130,8 @@ func rewriteBlockAMD64(b *Block) bool {
 -		v.AuxInt = valAndOffToAuxInt(makeValAndOff(a.Val()&0xff|c.Val()<<8, a.Off()))
 -		v.Aux = symToAux(s)
 -		v.AddArg2(p0, mem)
- 		return true
- 	}
+-		return true
+-	}
 -	// match: (MOVBstoreconst [a] {s} p0 x:(MOVBstoreconst [c] {s} p1 mem))
 -	// cond: x.Uses == 1 && sequentialAddresses(p0, p1, int64(a.Off()+1-c.Off())) && clobber(x)
 -	// result: (MOVWstoreconst [makeValAndOff(a.Val()&0xff | c.Val()<<8, a.Off())] {s} p0 mem)
@@ -68351,12 +68349,10 @@ func rewriteBlockAMD64(b *Block) bool {
  	return false
  }
  func rewriteValueAMD64_OpAMD64MOVOload(v *Value) bool {
-@@ -14385,224 +13351,6 @@
- 		v.AuxInt = int32ToAuxInt(off1 + off2)
- 		v.Aux = symToAux(mergeSym(sym1, sym2))
+@@ -14387,224 +13353,6 @@
  		v.AddArg3(base, val, mem)
--		return true
--	}
+ 		return true
+ 	}
 -	// match: (MOVWstore [i] {s} p (SHRLconst [16] w) x:(MOVWstore [i-2] {s} p w mem))
 -	// cond: x.Uses == 1 && clobber(x)
 -	// result: (MOVLstore [i-2] {s} p w mem)
@@ -68573,15 +68569,15 @@ func rewriteBlockAMD64(b *Block) bool {
 -		v.AuxInt = int32ToAuxInt(i)
 -		v.Aux = symToAux(s)
 -		v.AddArg3(p0, w0, mem)
- 		return true
- 	}
- 	// match: (MOVWstore [i] {s} p x1:(MOVWload [j] {s2} p2 mem) mem2:(MOVWstore [i-2] {s} p x2:(MOVWload [j-2] {s2} p2 mem) mem))
-@@ -14714,60 +13462,8 @@
- 		v.AuxInt = valAndOffToAuxInt(ValAndOff(sc).addOffset32(off))
- 		v.Aux = symToAux(mergeSym(sym1, sym2))
- 		v.AddArg2(ptr, mem)
 -		return true
 -	}
+ 	// match: (MOVWstore [i] {s} p x1:(MOVWload [j] {s2} p2 mem) mem2:(MOVWstore [i-2] {s} p x2:(MOVWload [j-2] {s2} p2 mem) mem))
+ 	// cond: x1.Uses == 1 && x2.Uses == 1 && mem2.Uses == 1 && clobber(x1, x2, mem2)
+ 	// result: (MOVLstore [i-2] {s} p (MOVLload [j-2] {s2} p2 mem) mem)
+@@ -14716,58 +13464,6 @@
+ 		v.AddArg2(ptr, mem)
+ 		return true
+ 	}
 -	// match: (MOVWstoreconst [c] {s} p1 x:(MOVWstoreconst [a] {s} p0 mem))
 -	// cond: x.Uses == 1 && sequentialAddresses(p0, p1, int64(a.Off()+2-c.Off())) && clobber(x)
 -	// result: (MOVLstoreconst [makeValAndOff(a.Val()&0xffff | c.Val()<<16, a.Off())] {s} p0 mem)
@@ -68606,8 +68602,8 @@ func rewriteBlockAMD64(b *Block) bool {
 -		v.AuxInt = valAndOffToAuxInt(makeValAndOff(a.Val()&0xffff|c.Val()<<16, a.Off()))
 -		v.Aux = symToAux(s)
 -		v.AddArg2(p0, mem)
- 		return true
- 	}
+-		return true
+-	}
 -	// match: (MOVWstoreconst [a] {s} p0 x:(MOVWstoreconst [c] {s} p1 mem))
 -	// cond: x.Uses == 1 && sequentialAddresses(p0, p1, int64(a.Off()+2-c.Off())) && clobber(x)
 -	// result: (MOVLstoreconst [makeValAndOff(a.Val()&0xffff | c.Val()<<16, a.Off())] {s} p0 mem)
@@ -68646,11 +68642,10 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (ORL (SHLL (MOVLconst [1]) y) x)
  	// result: (BTSL x y)
  	for {
-@@ -16083,585 +14777,7 @@
- 		}
+@@ -16084,584 +14778,6 @@
  		v.copyOf(x)
  		return true
--	}
+ 	}
 -	// match: (ORL x0:(MOVBload [i0] {s} p mem) sh:(SHLLconst [8] x1:(MOVBload [i1] {s} p mem)))
 -	// cond: i1 == i0+1 && x0.Uses == 1 && x1.Uses == 1 && sh.Uses == 1 && mergePoint(b,x0,x1) != nil && clobber(x0, x1, sh)
 -	// result: @mergePoint(b,x0,x1) (MOVWload [i0] {s} p mem)
@@ -69099,7 +69094,7 @@ func rewriteBlockAMD64(b *Block) bool {
 -			return true
 -		}
 -		break
- 	}
+-	}
 -	// match: (ORL s0:(SHLLconst [j0] x0:(MOVBload [i0] {s} p mem)) or:(ORL s1:(SHLLconst [j1] x1:(MOVBload [i1] {s} p mem)) y))
 -	// cond: i1 == i0+1 && j1 == j0-8 && j1 % 16 == 0 && x0.Uses == 1 && x1.Uses == 1 && s0.Uses == 1 && s1.Uses == 1 && or.Uses == 1 && mergePoint(b,x0,x1,y) != nil && clobber(x0, x1, s0, s1, or)
 -	// result: @mergePoint(b,x0,x1,y) (ORL <v.Type> (SHLLconst <v.Type> [j1] (ROLWconst <typ.UInt16> [8] (MOVWload [i0] {s} p mem))) y)
@@ -69241,11 +69236,10 @@ func rewriteBlockAMD64(b *Block) bool {
  	// match: (ORQ (SHLQ (MOVQconst [1]) y) x)
  	// result: (BTSQ x y)
  	for {
-@@ -17146,1020 +15260,6 @@
- 		}
+@@ -17147,1020 +15261,6 @@
  		v.copyOf(x)
  		return true
--	}
+ 	}
 -	// match: (ORQ x0:(MOVBload [i0] {s} p mem) sh:(SHLQconst [8] x1:(MOVBload [i1] {s} p mem)))
 -	// cond: i1 == i0+1 && x0.Uses == 1 && x1.Uses == 1 && sh.Uses == 1 && mergePoint(b,x0,x1) != nil && clobber(x0, x1, sh)
 -	// result: @mergePoint(b,x0,x1) (MOVWload [i0] {s} p mem)
@@ -70259,17 +70253,14 @@ func rewriteBlockAMD64(b *Block) bool {
 -			}
 -		}
 -		break
- 	}
+-	}
  	// match: (ORQ x l:(MOVQload [off] {sym} ptr mem))
  	// cond: canMergeLoadClobber(v, l, x) && clobber(l)
-@@ -18182,85 +15282,10 @@
- 			v.AuxInt = int32ToAuxInt(off)
- 			v.Aux = symToAux(sym)
- 			v.AddArg3(x, ptr, mem)
--			return true
--		}
--		break
--	}
+ 	// result: (ORQload x [off] {sym} ptr mem)
+@@ -18186,81 +15286,6 @@
+ 		}
+ 		break
+ 	}
 -	// match: (ORQ x0:(MOVBELload [i0] {s} p mem) sh:(SHLQconst [32] x1:(MOVBELload [i1] {s} p mem)))
 -	// cond: i0 == i1+4 && x0.Uses == 1 && x1.Uses == 1 && sh.Uses == 1 && mergePoint(b,x0,x1) != nil && clobber(x0, x1, sh)
 -	// result: @mergePoint(b,x0,x1) (MOVBEQload [i1] {s} p mem)
@@ -70305,10 +70296,10 @@ func rewriteBlockAMD64(b *Block) bool {
 -			v0.AuxInt = int32ToAuxInt(i1)
 -			v0.Aux = symToAux(s)
 -			v0.AddArg2(p, mem)
- 			return true
- 		}
- 		break
- 	}
+-			return true
+-		}
+-		break
+-	}
 -	// match: (ORQ x0:(MOVBELload [i] {s} p0 mem) sh:(SHLQconst [32] x1:(MOVBELload [i] {s} p1 mem)))
 -	// cond: x0.Uses == 1 && x1.Uses == 1 && sh.Uses == 1 && sequentialAddresses(p1, p0, 4) && mergePoint(b,x0,x1) != nil && clobber(x0, x1, sh)
 -	// result: @mergePoint(b,x0,x1) (MOVBEQload [i] {s} p1 mem)

@@ -106,8 +106,14 @@
 //
 // # Heuristics
 //
-// GOOD_DIAGONAL: A heuristic used by many diff implementations to eagerly use a good diagonal as
-// a split point instead of trying to find an optimal one.
+// ANCHORING: A heuristic used anchor the diff around lines that are provably one 1:1
+// correspondences in both files. This heuristic is similar to the patience diff algorithm, but the
+// idea is used as a heuristic to reduce the problem size. This heuristic speeds up diffs for large
+// files and produces better diffs than other heuristics we use to limit the time complexity of the
+// algorithm. However, this heuristic only works for comparable types.
+//
+// GOOD_DIAGONAL: A heuristic used by many diff implementations to eagerly use a good diagonal as a
+// split point instead of trying to find an optimal one.
 //
 // TOO_EXPENSIVE: A heuristic by Paul Eggert that reduces the time complexity significantly for
 // large files with many differences at the cost of suboptimal diffs. If the search for an optimal

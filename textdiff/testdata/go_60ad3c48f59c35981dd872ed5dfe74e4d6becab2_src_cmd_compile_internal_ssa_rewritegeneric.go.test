@@ -59000,14 +59000,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (Add8 (Const8 [c]) (Const8 [d]))
  	// result: (Const8 [c+d])
  	for {
-@@ -1605,6 +2533,314 @@
- 			v0 := b.NewValue0(v.Pos, OpConst8, t)
- 			v0.AuxInt = int8ToAuxInt(c + d)
- 			v.AddArg2(v0, x)
-+			return true
-+		}
-+		break
-+	}
+@@ -1609,6 +2537,314 @@
+ 		}
+ 		break
+ 	}
 +	// match: (Add8 (Lsh8x64 x z:(Const64 <t> [c])) (Rsh8Ux64 x (Const64 [d])))
 +	// cond: c < 8 && d == 8-c && canRotate(config, 8)
 +	// result: (RotateLeft8 x z)
@@ -59312,27 +59308,25 @@ func rewriteBlockgeneric(b *Block) bool {
 +			}
 +			v.reset(OpRotateLeft8)
 +			v.AddArg2(x, z)
- 			return true
- 		}
- 		break
-@@ -17106,7 +18342,8 @@
- 	v_1 := v.Args[1]
- 	v_0 := v.Args[0]
- 	b := v.Block
--	// match: (Or16 (Const16 [c]) (Const16 [d]))
-+	config := b.Func.Config
-+	// match: (Or16 (Const16 [c]) (Const16 [d]))
- 	// result: (Const16 [c|d])
- 	for {
- 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
-@@ -17291,16 +18528,325 @@
- 				v0.AuxInt = int16ToAuxInt(c | d)
- 				v.AddArg2(v0, x)
- 				return true
-+			}
++			return true
 +		}
 +		break
 +	}
+ 	return false
+ }
+ func rewriteValuegeneric_OpAddPtr(v *Value) bool {
+@@ -17106,6 +18342,7 @@
+ 	v_1 := v.Args[1]
+ 	v_0 := v.Args[0]
+ 	b := v.Block
++	config := b.Func.Config
+ 	// match: (Or16 (Const16 [c]) (Const16 [d]))
+ 	// result: (Const16 [c|d])
+ 	for {
+@@ -17295,12 +18532,321 @@
+ 		}
+ 		break
+ 	}
 +	// match: (Or16 (Lsh16x64 x z:(Const64 <t> [c])) (Rsh16Ux64 x (Const64 [d])))
 +	// cond: c < 16 && d == 16-c && canRotate(config, 16)
 +	// result: (RotateLeft16 x z)
@@ -59566,13 +59560,13 @@ func rewriteBlockgeneric(b *Block) bool {
 +			z_0 := z.Args[0]
 +			if z_0.Op != OpConst32 || auxIntToInt32(z_0.AuxInt) != 16 || y != z.Args[1] || !((shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 16)) {
 +				continue
- 			}
++			}
 +			v.reset(OpRotateLeft16)
 +			v.AddArg2(x, z)
 +			return true
- 		}
- 		break
- 	}
++		}
++		break
++	}
 +	// match: (Or16 right:(Rsh16Ux16 x y) left:(Lsh16x16 x z:(Sub16 (Const16 [16]) y)))
 +	// cond: (shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 16)
 +	// result: (RotateLeft16 x z)
@@ -59973,14 +59967,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (Or64 (Const64 [c]) (Const64 [d]))
  	// result: (Const64 [c|d])
  	for {
-@@ -17681,16 +19536,325 @@
- 				v0.AuxInt = int64ToAuxInt(c | d)
- 				v.AddArg2(v0, x)
- 				return true
-+			}
-+		}
-+		break
-+	}
+@@ -17685,12 +19540,321 @@
+ 		}
+ 		break
+ 	}
 +	// match: (Or64 (Lsh64x64 x z:(Const64 <t> [c])) (Rsh64Ux64 x (Const64 [d])))
 +	// cond: c < 64 && d == 64-c && canRotate(config, 64)
 +	// result: (RotateLeft64 x z)
@@ -60229,7 +60219,7 @@ func rewriteBlockgeneric(b *Block) bool {
 +			right := v_0
 +			if right.Op != OpRsh64Ux16 {
 +				continue
- 			}
++			}
 +			y := right.Args[1]
 +			x := right.Args[0]
 +			left := v_1
@@ -60252,9 +60242,9 @@ func rewriteBlockgeneric(b *Block) bool {
 +			v.reset(OpRotateLeft64)
 +			v.AddArg2(x, z)
 +			return true
- 		}
- 		break
- 	}
++		}
++		break
++	}
 +	// match: (Or64 right:(Rsh64Ux8 x y) left:(Lsh64x8 x z:(Sub8 (Const8 [64]) y)))
 +	// cond: (shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 64)
 +	// result: (RotateLeft64 x z)
@@ -60623,29 +60613,18 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (RotateLeft16 x (Const16 [c]))
  	// cond: c%16 == 0
  	// result: x
-@@ -19345,31 +21819,929 @@
+@@ -19345,11 +21819,460 @@
  		v.copyOf(x)
  		return true
  	}
--	return false
--}
--func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
--	v_1 := v.Args[1]
--	v_0 := v.Args[0]
--	// match: (RotateLeft32 x (Const32 [c]))
--	// cond: c%32 == 0
--	// result: x
 +	// match: (RotateLeft16 x (And64 y (Const64 [c])))
 +	// cond: c&15 == 15
 +	// result: (RotateLeft16 x y)
- 	for {
- 		x := v_0
--		if v_1.Op != OpConst32 {
++	for {
++		x := v_0
 +		if v_1.Op != OpAnd64 {
- 			break
- 		}
--		c := auxIntToInt32(v_1.AuxInt)
--		if !(c%32 == 0) {
++			break
++		}
 +		_ = v_1.Args[1]
 +		v_1_0 := v_1.Args[0]
 +		v_1_1 := v_1.Args[1]
@@ -61077,36 +61056,28 @@ func rewriteBlockgeneric(b *Block) bool {
 +		t := v_1.Type
 +		c := auxIntToInt64(v_1.AuxInt)
 +		if !(config.PtrSize == 4) {
- 			break
- 		}
++			break
++		}
 +		v.reset(OpRotateLeft16)
 +		v0 := b.NewValue0(v.Pos, OpConst32, t)
 +		v0.AuxInt = int32ToAuxInt(int32(c))
 +		v.AddArg2(x, v0)
 +		return true
 +	}
-+	return false
-+}
-+func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
-+	v_1 := v.Args[1]
-+	v_0 := v.Args[0]
+ 	return false
+ }
+ func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
+ 	v_1 := v.Args[1]
+ 	v_0 := v.Args[0]
 +	b := v.Block
 +	config := b.Func.Config
-+	// match: (RotateLeft32 x (Const32 [c]))
-+	// cond: c%32 == 0
-+	// result: x
-+	for {
-+		x := v_0
-+		if v_1.Op != OpConst32 {
-+			break
-+		}
-+		c := auxIntToInt32(v_1.AuxInt)
-+		if !(c%32 == 0) {
-+			break
-+		}
+ 	// match: (RotateLeft32 x (Const32 [c]))
+ 	// cond: c%32 == 0
+ 	// result: x
+@@ -19365,11 +22288,460 @@
  		v.copyOf(x)
  		return true
-+	}
+ 	}
 +	// match: (RotateLeft32 x (And64 y (Const64 [c])))
 +	// cond: c&31 == 31
 +	// result: (RotateLeft32 x y)
@@ -61306,7 +61277,7 @@ func rewriteBlockgeneric(b *Block) bool {
 +			return true
 +		}
 +		break
- 	}
++	}
 +	// match: (RotateLeft32 x (Neg8 (And8 y (Const8 [c]))))
 +	// cond: c&31 == 31
 +	// result: (RotateLeft32 x (Neg8 <y.Type> y))
@@ -61564,12 +61535,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (RotateLeft64 x (Const64 [c]))
  	// cond: c%64 == 0
  	// result: x
-@@ -19383,6 +22755,453 @@
- 			break
- 		}
+@@ -19385,11 +22757,460 @@
  		v.copyOf(x)
-+		return true
-+	}
+ 		return true
+ 	}
 +	// match: (RotateLeft64 x (And64 y (Const64 [c])))
 +	// cond: c&63 == 63
 +	// result: (RotateLeft64 x y)
@@ -62015,10 +61984,10 @@ func rewriteBlockgeneric(b *Block) bool {
 +		v0 := b.NewValue0(v.Pos, OpConst32, t)
 +		v0.AuxInt = int32ToAuxInt(int32(c))
 +		v.AddArg2(x, v0)
- 		return true
- 	}
++		return true
++	}
  	return false
-@@ -19390,6 +23209,8 @@
+ }
  func rewriteValuegeneric_OpRotateLeft8(v *Value) bool {
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
@@ -62027,12 +61996,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (RotateLeft8 x (Const8 [c]))
  	// cond: c%8 == 0
  	// result: x
-@@ -19403,6 +23224,453 @@
- 			break
- 		}
+@@ -19405,6 +23226,453 @@
  		v.copyOf(x)
-+		return true
-+	}
+ 		return true
+ 	}
 +	// match: (RotateLeft8 x (And64 y (Const64 [c])))
 +	// cond: c&7 == 7
 +	// result: (RotateLeft8 x y)
@@ -62478,9 +62445,11 @@ func rewriteBlockgeneric(b *Block) bool {
 +		v0 := b.NewValue0(v.Pos, OpConst32, t)
 +		v0.AuxInt = int32ToAuxInt(int32(c))
 +		v.AddArg2(x, v0)
- 		return true
- 	}
++		return true
++	}
  	return false
+ }
+ func rewriteValuegeneric_OpRound32F(v *Value) bool {
 @@ -25200,6 +29468,7 @@
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
@@ -62489,14 +62458,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (Xor16 (Const16 [c]) (Const16 [d]))
  	// result: (Const16 [c^d])
  	for {
-@@ -25352,7 +29621,315 @@
- 				v0.AuxInt = int16ToAuxInt(c ^ d)
- 				v.AddArg2(v0, x)
- 				return true
-+			}
-+		}
-+		break
-+	}
+@@ -25356,12 +29625,321 @@
+ 		}
+ 		break
+ 	}
 +	// match: (Xor16 (Lsh16x64 x z:(Const64 <t> [c])) (Rsh16Ux64 x (Const64 [d])))
 +	// cond: c < 16 && d == 16-c && canRotate(config, 16)
 +	// result: (RotateLeft16 x z)
@@ -62793,7 +62758,7 @@ func rewriteBlockgeneric(b *Block) bool {
 +			z := left.Args[1]
 +			if z.Op != OpSub8 {
 +				continue
- 			}
++			}
 +			_ = z.Args[1]
 +			z_0 := z.Args[0]
 +			if z_0.Op != OpConst8 || auxIntToInt8(z_0.AuxInt) != 16 || y != z.Args[1] || !((shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 16)) {
@@ -62802,10 +62767,12 @@ func rewriteBlockgeneric(b *Block) bool {
 +			v.reset(OpRotateLeft16)
 +			v.AddArg2(x, z)
 +			return true
- 		}
- 		break
- 	}
-@@ -25362,6 +29939,7 @@
++		}
++		break
++	}
+ 	return false
+ }
+ func rewriteValuegeneric_OpXor32(v *Value) bool {
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
  	b := v.Block
@@ -62813,14 +62780,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (Xor32 (Const32 [c]) (Const32 [d]))
  	// result: (Const32 [c^d])
  	for {
-@@ -25514,7 +30092,315 @@
- 				v0.AuxInt = int32ToAuxInt(c ^ d)
- 				v.AddArg2(v0, x)
- 				return true
-+			}
-+		}
-+		break
-+	}
+@@ -25518,12 +30096,321 @@
+ 		}
+ 		break
+ 	}
 +	// match: (Xor32 (Lsh32x64 x z:(Const64 <t> [c])) (Rsh32Ux64 x (Const64 [d])))
 +	// cond: c < 32 && d == 32-c && canRotate(config, 32)
 +	// result: (RotateLeft32 x z)
@@ -63117,7 +63080,7 @@ func rewriteBlockgeneric(b *Block) bool {
 +			z := left.Args[1]
 +			if z.Op != OpSub8 {
 +				continue
- 			}
++			}
 +			_ = z.Args[1]
 +			z_0 := z.Args[0]
 +			if z_0.Op != OpConst8 || auxIntToInt8(z_0.AuxInt) != 32 || y != z.Args[1] || !((shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 32)) {
@@ -63126,10 +63089,12 @@ func rewriteBlockgeneric(b *Block) bool {
 +			v.reset(OpRotateLeft32)
 +			v.AddArg2(x, z)
 +			return true
- 		}
- 		break
- 	}
-@@ -25524,6 +30410,7 @@
++		}
++		break
++	}
+ 	return false
+ }
+ func rewriteValuegeneric_OpXor64(v *Value) bool {
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
  	b := v.Block
@@ -63137,14 +63102,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (Xor64 (Const64 [c]) (Const64 [d]))
  	// result: (Const64 [c^d])
  	for {
-@@ -25676,7 +30563,315 @@
- 				v0.AuxInt = int64ToAuxInt(c ^ d)
- 				v.AddArg2(v0, x)
- 				return true
-+			}
-+		}
-+		break
-+	}
+@@ -25680,12 +30567,321 @@
+ 		}
+ 		break
+ 	}
 +	// match: (Xor64 (Lsh64x64 x z:(Const64 <t> [c])) (Rsh64Ux64 x (Const64 [d])))
 +	// cond: c < 64 && d == 64-c && canRotate(config, 64)
 +	// result: (RotateLeft64 x z)
@@ -63441,7 +63402,7 @@ func rewriteBlockgeneric(b *Block) bool {
 +			z := left.Args[1]
 +			if z.Op != OpSub8 {
 +				continue
- 			}
++			}
 +			_ = z.Args[1]
 +			z_0 := z.Args[0]
 +			if z_0.Op != OpConst8 || auxIntToInt8(z_0.AuxInt) != 64 || y != z.Args[1] || !((shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 64)) {
@@ -63450,10 +63411,12 @@ func rewriteBlockgeneric(b *Block) bool {
 +			v.reset(OpRotateLeft64)
 +			v.AddArg2(x, z)
 +			return true
- 		}
- 		break
- 	}
-@@ -25686,6 +30881,7 @@
++		}
++		break
++	}
+ 	return false
+ }
+ func rewriteValuegeneric_OpXor8(v *Value) bool {
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
  	b := v.Block
@@ -63461,11 +63424,10 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (Xor8 (Const8 [c]) (Const8 [d]))
  	// result: (Const8 [c^d])
  	for {
-@@ -25838,7 +31034,315 @@
- 				v0.AuxInt = int8ToAuxInt(c ^ d)
+@@ -25839,6 +31035,314 @@
  				v.AddArg2(v0, x)
  				return true
-+			}
+ 			}
 +		}
 +		break
 +	}
@@ -63765,7 +63727,7 @@ func rewriteBlockgeneric(b *Block) bool {
 +			z := left.Args[1]
 +			if z.Op != OpSub8 {
 +				continue
- 			}
++			}
 +			_ = z.Args[1]
 +			z_0 := z.Args[0]
 +			if z_0.Op != OpConst8 || auxIntToInt8(z_0.AuxInt) != 8 || y != z.Args[1] || !((shiftIsBounded(left) || shiftIsBounded(right)) && canRotate(config, 8)) {
@@ -65070,16 +65032,14 @@ func rewriteBlockgeneric(b *Block) bool {
  	return false
  }
  func rewriteValuegeneric_OpAddPtr(v *Value) bool {
-@@ -17106,7 +18342,8 @@
+@@ -17106,6 +18342,7 @@
  	v_1 := v.Args[1]
  	v_0 := v.Args[0]
  	b := v.Block
--	// match: (Or16 (Const16 [c]) (Const16 [d]))
 +	config := b.Func.Config
-+	// match: (Or16 (Const16 [c]) (Const16 [d]))
+ 	// match: (Or16 (Const16 [c]) (Const16 [d]))
  	// result: (Const16 [c|d])
  	for {
- 		for _i0 := 0; _i0 <= 1; _i0, v_0, v_1 = _i0+1, v_1, v_0 {
 @@ -17295,12 +18532,321 @@
  		}
  		break
@@ -66370,29 +66330,18 @@ func rewriteBlockgeneric(b *Block) bool {
  	// match: (RotateLeft16 x (Const16 [c]))
  	// cond: c%16 == 0
  	// result: x
-@@ -19345,31 +21819,929 @@
+@@ -19345,11 +21819,460 @@
  		v.copyOf(x)
  		return true
  	}
--	return false
--}
--func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
--	v_1 := v.Args[1]
--	v_0 := v.Args[0]
--	// match: (RotateLeft32 x (Const32 [c]))
--	// cond: c%32 == 0
--	// result: x
 +	// match: (RotateLeft16 x (And64 y (Const64 [c])))
 +	// cond: c&15 == 15
 +	// result: (RotateLeft16 x y)
- 	for {
- 		x := v_0
--		if v_1.Op != OpConst32 {
++	for {
++		x := v_0
 +		if v_1.Op != OpAnd64 {
- 			break
- 		}
--		c := auxIntToInt32(v_1.AuxInt)
--		if !(c%32 == 0) {
++			break
++		}
 +		_ = v_1.Args[1]
 +		v_1_0 := v_1.Args[0]
 +		v_1_1 := v_1.Args[1]
@@ -66832,25 +66781,17 @@ func rewriteBlockgeneric(b *Block) bool {
 +		v.AddArg2(x, v0)
 +		return true
 +	}
-+	return false
-+}
-+func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
-+	v_1 := v.Args[1]
-+	v_0 := v.Args[0]
+ 	return false
+ }
+ func rewriteValuegeneric_OpRotateLeft32(v *Value) bool {
+ 	v_1 := v.Args[1]
+ 	v_0 := v.Args[0]
 +	b := v.Block
 +	config := b.Func.Config
-+	// match: (RotateLeft32 x (Const32 [c]))
-+	// cond: c%32 == 0
-+	// result: x
-+	for {
-+		x := v_0
-+		if v_1.Op != OpConst32 {
-+			break
-+		}
-+		c := auxIntToInt32(v_1.AuxInt)
-+		if !(c%32 == 0) {
- 			break
- 		}
+ 	// match: (RotateLeft32 x (Const32 [c]))
+ 	// cond: c%32 == 0
+ 	// result: x
+@@ -19365,11 +22288,460 @@
  		v.copyOf(x)
  		return true
  	}

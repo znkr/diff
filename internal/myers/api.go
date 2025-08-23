@@ -185,9 +185,16 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 	smin0, smax0, tmin0, tmax0 := m.init(x0, y0)
 
 	switch {
+	case cfg.Optimal:
+		fallthrough
 	default:
 		m.compare(smin0, smax0, tmin0, tmax0, cfg.Optimal)
 
+	// Heuristic (ANCHORING): If the input is too large and we have found anchors, use the anchoring
+	// heuristic. This provides a significant performance boost and provides more optimal results
+	// than the other heuristics.
+	case nanchors > 0 && (smax0-smin0)+(tmax0-tmin0) > anchoringHeuristicMinInputLen:
+		fallthrough
 	case cfg.AnchoringHeuristic:
 		segments := segments(smin0, smax0, tmin0, tmax0, nanchors, counts, x0, y0)
 		done := segments[0]
