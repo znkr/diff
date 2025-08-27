@@ -684,15 +684,14 @@ func parseTests(t testing.TB) []test {
 							t.Fatalf("invalid value for indent-heuristic: %q", v)
 						}
 						name = append(name, k)
-					case "anchoring-heuristic":
+					case "force-anchoring-heuristic":
 						switch v {
 						case "true":
 							// The inline function definition is necessary, because the anchoring
-							// heuristic is currently only exported as an experimental flag guarded
-							// by a build tag.
+							// heuristic is not exported as an option.
 							st.opts = append(st.opts, func(cfg *config.Config) config.Flag {
-								cfg.AnchoringHeuristic = true
-								return config.AnchoringHeuristic
+								cfg.ForceAnchoringHeuristic = true
+								return 0
 							})
 						case "false":
 							// do nothing

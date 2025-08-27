@@ -61,7 +61,7 @@ type Hunk[T string | []byte] struct {
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Hunks[T string | []byte](x, y T, opts ...diff.Option) []Hunk[T] {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic|config.AnchoringHeuristic)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := myers.Diff(xlines, ylines, cfg)
@@ -133,7 +133,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T string | []byte](x, y T, opts ...diff.Option) []Edit[T] {
-	cfg := config.FromOptions(opts, config.Optimal|config.IndentHeuristic|config.AnchoringHeuristic)
+	cfg := config.FromOptions(opts, config.Optimal|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := myers.Diff(xlines, ylines, cfg)
@@ -211,7 +211,7 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic|config.AnchoringHeuristic)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
 
 	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))

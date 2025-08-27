@@ -33,7 +33,7 @@ func main() {
      }
  }
 -- diff --
-# anchoring-heuristic: true
+# force-anchoring-heuristic: true
 @@ -4,6 +4,9 @@
  
  func main() {

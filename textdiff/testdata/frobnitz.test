@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 +    frobnitz(fib(10));
  }
 -- diff --
-# anchoring-heuristic: true
+# force-anchoring-heuristic: true
 @@ -1,26 +1,25 @@
  #include <stdio.h>
  
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 +    frobnitz(fib(10));
  }
 -- diff --
-# anchoring-heuristic: true
+# force-anchoring-heuristic: true
 # indent-heuristic: true
 @@ -1,26 +1,25 @@
  #include <stdio.h>

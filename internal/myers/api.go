@@ -195,7 +195,7 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 	// than the other heuristics.
 	case nanchors > 0 && (smax0-smin0)+(tmax0-tmin0) > anchoringHeuristicMinInputLen:
 		fallthrough
-	case cfg.AnchoringHeuristic:
+	case cfg.ForceAnchoringHeuristic:
 		segments := segments(smin0, smax0, tmin0, tmax0, nanchors, counts, x0, y0)
 		done := segments[0]
 		for _, anchor := range segments[1:] {

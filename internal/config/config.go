@@ -31,16 +31,17 @@ type Config struct {
 	// If set, textdiff will apply ident heuristics.
 	IndentHeuristic bool
 
-	// If set, internal/myers will apply the anchoring heuristic.
-	AnchoringHeuristic bool
+	// If set, internal/myers will always use the anchoring heuristic. This configuration is not
+	// exposed via an option API, it's main use is for testing.
+	ForceAnchoringHeuristic bool
 }
 
 // Default is the default configuration.
 var Default = Config{
-	Context:            3,
-	Optimal:            false,
-	IndentHeuristic:    false,
-	AnchoringHeuristic: false,
+	Context:                 3,
+	Optimal:                 false,
+	IndentHeuristic:         false,
+	ForceAnchoringHeuristic: false,
 }
 
 // Flag describes a single config entry. This is used to detect if configurations are being set
@@ -51,7 +52,6 @@ const (
 	Context Flag = 1 << iota
 	Optimal
 	IndentHeuristic
-	AnchoringHeuristic
 )
 
 // Option is the mechanism used to expose the configuration to users.
@@ -66,7 +66,7 @@ func FromOptions(opts []Option, allowed Flag) Config {
 			panic("Option " + printFlag(flag) + " not allowed here")
 		}
 	}
-	if cfg.Optimal && cfg.AnchoringHeuristic {
+	if cfg.Optimal && cfg.ForceAnchoringHeuristic {
 		panic("Options diff.Optimal and diff.AnchoringHeuristic cannot be set at the same time")
 	}
 	return cfg
@@ -80,8 +80,6 @@ func printFlag(flag Flag) string {
 		return "diff.Optimal"
 	case IndentHeuristic:
 		return "textdiff.IndentHeuristic"
-	case AnchoringHeuristic:
-		return "diff.AnchoringHeuristic"
 	default:
 		panic("never reached")
 	}

@@ -90,7 +90,7 @@ func TestDiff(t *testing.T) {
 
 			t.Run("diff_with_anchoring", func(t *testing.T) {
 				cfg := config.Default
-				cfg.AnchoringHeuristic = true
+				cfg.ForceAnchoringHeuristic = true
 				rx, ry := Diff(tt.x, tt.y, cfg)
 				got := render(rx, ry, len(tt.x), len(tt.y))
 				if diff := cmp.Diff(tt.want, got); diff != "" {

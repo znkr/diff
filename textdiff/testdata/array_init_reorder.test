@@ -54,7 +54,7 @@ var m = []struct{
      },
  }
 -- diff --
-# anchoring-heuristic: true
+# force-anchoring-heuristic: true
 @@ -9,11 +9,11 @@
          year: 1966,
      },
