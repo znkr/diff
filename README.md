@@ -11,6 +11,14 @@ or to understand which changes have been made to a file.
 
 This module provides diffing for arbitrary Go slices and text.
 
+## Installation
+
+To use this module in your Go project, run:
+
+```bash
+go get znkr.io/diff
+```
+
 ## API Documentation
 
 Full documentation available at [pkg.go.dev/znkr.io/diff](https://pkg.go.dev/znkr.io/diff).
