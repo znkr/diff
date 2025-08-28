@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package myers contains an implementation of Myers' algorithm.
+// Package impl contains an implementation of Myers' algorithm.
 //
 // The implementation in this package uses the linear space variant described in section 4.2. In
 // addition, the TOO_EXPENSIVE heuristic by Paul Eggert is used to limit the amount of time spend
@@ -119,4 +119,4 @@
 // large files with many differences at the cost of suboptimal diffs. If the search for an optimal
 // d-path exceeds a cost limit (in terms of d), the search is aborted and the furthest reaching
 // d-path that optimizes x + y is used to determine a split.
-package myers
+package impl

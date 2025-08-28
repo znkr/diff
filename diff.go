@@ -18,7 +18,7 @@ import (
 	"slices"
 
 	"znkr.io/diff/internal/config"
-	"znkr.io/diff/internal/myers"
+	"znkr.io/diff/internal/impl"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -65,7 +65,7 @@ type Hunk[T any] struct {
 // DO NOT rely on the output being stable.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Optimal)
-	rx, ry := myers.Diff(x, y, cfg)
+	rx, ry := impl.Diff(x, y, cfg)
 	return hunks(x, y, rx, ry, cfg)
 }
 
@@ -86,7 +86,7 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 // DO NOT rely on the output being stable.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Optimal)
-	rx, ry := myers.DiffFunc(x, y, eq, cfg)
+	rx, ry := impl.DiffFunc(x, y, eq, cfg)
 	return hunks(x, y, rx, ry, cfg)
 }
 
@@ -154,7 +154,7 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 // DO NOT rely on the output being stable.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Optimal)
-	rx, ry := myers.Diff(x, y, cfg)
+	rx, ry := impl.Diff(x, y, cfg)
 	return edits(x, y, rx, ry)
 }
 
@@ -172,7 +172,7 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 // DO NOT rely on the output being stable.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Optimal)
-	rx, ry := myers.DiffFunc(x, y, eq, cfg)
+	rx, ry := impl.DiffFunc(x, y, eq, cfg)
 	return edits(x, y, rx, ry)
 }
 

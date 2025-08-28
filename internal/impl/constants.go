@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package myers
+package impl
 
 // minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
 // applied when the cost exceeds this number (large files with a lot of differences).

@@ -29,8 +29,8 @@ import (
 	"znkr.io/diff"
 	"znkr.io/diff/internal/byteview"
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/impl"
 	"znkr.io/diff/internal/indentheuristic"
-	"znkr.io/diff/internal/myers"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -64,7 +64,7 @@ func Hunks[T string | []byte](x, y T, opts ...diff.Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
-	rx, ry := myers.Diff(xlines, ylines, cfg)
+	rx, ry := impl.Diff(xlines, ylines, cfg)
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
 	}
@@ -136,7 +136,7 @@ func Edits[T string | []byte](x, y T, opts ...diff.Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Optimal|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
-	rx, ry := myers.Diff(xlines, ylines, cfg)
+	rx, ry := impl.Diff(xlines, ylines, cfg)
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
 	}
@@ -216,7 +216,7 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))
 
-	rx, ry := myers.Diff(xlines, ylines, cfg)
+	rx, ry := impl.Diff(xlines, ylines, cfg)
 
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)

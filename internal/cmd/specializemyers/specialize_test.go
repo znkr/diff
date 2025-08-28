@@ -22,12 +22,12 @@ import (
 )
 
 func TestSpecialize(t *testing.T) {
-	got, err := specialize("../../myers/myers.go")
+	got, err := specialize("../../impl/myers.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want, err := os.ReadFile("../../myers/gen_myers_int.go")
+	want, err := os.ReadFile("../../impl/gen_myers_int.go")
 	if err != nil {
 		t.Fatal(err)
 	}
