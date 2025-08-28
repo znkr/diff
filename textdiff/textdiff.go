@@ -47,8 +47,8 @@ type Hunk[T string | []byte] struct {
 	Edits      []Edit[T] // Edits to transform x[PosX:EndX] to y[PosY:EndY]
 }
 
-// Hunks compares the lines in x and y and returns the changes necessary to convert from one to
-// the other.
+// Hunks compares the lines in x and y and returns the changes necessary to convert from one to the
+// other.
 //
 // The output is a sequence of hunks that each describe a number of consecutive edits. Hunks include
 // a number of matching elements before and after the last delete or insert operation. The number of
@@ -56,12 +56,13 @@ type Hunk[T string | []byte] struct {
 //
 // If x and y are identical, the output has length zero.
 //
-// The following options are supported: [diff.Context], [diff.Optimal], [textdiff.IndentHeuristic]
+// The following options are supported: [diff.Context], [diff.Optimal], [diff.Fast],
+// [textdiff.IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Hunks[T string | []byte](x, y T, opts ...diff.Option) []Hunk[T] {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.Fast|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := impl.Diff(xlines, ylines, cfg)
@@ -128,12 +129,12 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 // Edits returns edits for every element in the input. If x and y are identical, the output will
 // consist of a match edit for every input element.
 //
-// The following options are supported: [diff.Optimal], [textdiff.IndentHeuristic]
+// The following options are supported: [diff.Optimal], [diff.Fast], [textdiff.IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T string | []byte](x, y T, opts ...diff.Option) []Edit[T] {
-	cfg := config.FromOptions(opts, config.Optimal|config.IndentHeuristic)
+	cfg := config.FromOptions(opts, config.Optimal|config.Fast|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := impl.Diff(xlines, ylines, cfg)
@@ -206,12 +207,13 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // Unified compares the lines in x and y and returns the changes necessary to convert from one to
 // the other in unified format.
 //
-// The following options are supported: [diff.Context], [diff.Optimal], [textdiff.IndentHeuristic]
+// The following options are supported: [diff.Context], [diff.Optimal], [diff.Fast],
+// [textdiff.IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.IndentHeuristic)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.Fast|config.IndentHeuristic)
 
 	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))

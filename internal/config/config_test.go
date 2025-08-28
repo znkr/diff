@@ -41,7 +41,7 @@ func TestFromOptions(t *testing.T) {
 			},
 			want: config.Config{
 				Context:         5,
-				Optimal:         config.Default.Optimal,
+				Mode:            config.Default.Mode,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
@@ -52,7 +52,7 @@ func TestFromOptions(t *testing.T) {
 			},
 			want: config.Config{
 				Context:         config.Default.Context,
-				Optimal:         true,
+				Mode:            config.ModeOptimal,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
@@ -64,7 +64,7 @@ func TestFromOptions(t *testing.T) {
 			},
 			want: config.Config{
 				Context:         5,
-				Optimal:         true,
+				Mode:            config.ModeOptimal,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
@@ -77,7 +77,7 @@ func TestFromOptions(t *testing.T) {
 			},
 			want: config.Config{
 				Context:         1,
-				Optimal:         true,
+				Mode:            config.ModeOptimal,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
@@ -90,7 +90,7 @@ func TestFromOptions(t *testing.T) {
 			},
 			want: config.Config{
 				Context:         5,
-				Optimal:         true,
+				Mode:            config.ModeOptimal,
 				IndentHeuristic: true,
 			},
 		},

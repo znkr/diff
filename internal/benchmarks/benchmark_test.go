@@ -33,6 +33,12 @@ var implementations = []impl{
 		},
 	},
 	{
+		name: "znkr-fast",
+		diff: func(x, y []byte) []byte {
+			return textdiff.Unified(x, y, diff.Fast())
+		},
+	},
+	{
 		name: "go-internal",
 		diff: func(x, y []byte) []byte {
 			return gointernal.Diff("x", x, "y", y)

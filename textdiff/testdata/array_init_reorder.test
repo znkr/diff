@@ -70,6 +70,22 @@ var m = []struct{
      },
  }
 -- diff --
+# fast: true
+@@ -9,11 +9,11 @@
+         year: 1966,
+     },
+     {
+-        name: "We're Only in It for the Money",
++        name: "Absolutely Free",
+         year: 1967,
+     },
+     {
+-        name: "Absolutely Free",
++        name: "We're Only in It for the Money",
+         year: 1967,
+     },
+ }
+-- diff --
 # indent-heuristic: true
 @@ -9,11 +9,11 @@
          year: 1966,

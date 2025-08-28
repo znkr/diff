@@ -59,12 +59,12 @@ type Hunk[T any] struct {
 //
 // If x and y are identical, the output has length zero.
 //
-// The following options are supported: [diff.Context], [diff.Optimal]
+// The following options are supported: [diff.Context], [diff.Optimal], [diff.Fast]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
-	cfg := config.FromOptions(opts, config.Context|config.Optimal)
+	cfg := config.FromOptions(opts, config.Context|config.Optimal|config.Fast)
 	rx, ry := impl.Diff(x, y, cfg)
 	return hunks(x, y, rx, ry, cfg)
 }
@@ -148,12 +148,12 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 // Edits returns one edit for every element in the input slices. If x and y are identical, the
 // output will consist of a match edit for every input element.
 //
-// The following option is supported: [diff.Optimal]
+// The following option is supported: [diff.Optimal], [diff.Fast]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
-	cfg := config.FromOptions(opts, config.Optimal)
+	cfg := config.FromOptions(opts, config.Optimal|config.Fast)
 	rx, ry := impl.Diff(x, y, cfg)
 	return edits(x, y, rx, ry)
 }

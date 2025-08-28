@@ -43,7 +43,24 @@ func Context(n int) Option {
 // len(y) and D is the number of differences.
 func Optimal() Option {
 	return func(cfg *config.Config) config.Flag {
-		cfg.Optimal = true
+		cfg.Mode = config.ModeOptimal
 		return config.Optimal
+	}
+}
+
+// Fast uses a heuristic to find a reasonable diff instead of trying to find a minimal diff.
+//
+// This option trades diff minimality for runtime performance. The resulting diff can be a lot
+// larger than the diff created by default. The speedup from using [Fast] only really manifests for
+// relatively few, very large inputs because the default already use the underlying heuristic to
+// speed up large inputs.
+//
+// The heuristic only works for comparable types.
+//
+// Performance impact: This option changes the complexity to O(N log N).
+func Fast() Option {
+	return func(cfg *config.Config) config.Flag {
+		cfg.Mode = config.ModeFast
+		return config.Fast
 	}
 }

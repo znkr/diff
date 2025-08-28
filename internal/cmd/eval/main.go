@@ -41,6 +41,7 @@ type config struct {
 	sample   int
 	parallel int
 	stats    string
+	validate bool
 }
 
 func main() {
@@ -49,10 +50,17 @@ func main() {
 	flag.IntVar(&cfg.sample, "sample", 0, "if >0, sample commits to the value of the flag")
 	flag.IntVar(&cfg.parallel, "parallel", runtime.GOMAXPROCS(0), "number of evaluations to run in parallel")
 	flag.StringVar(&cfg.stats, "stats", "", "file to store stats in")
+	flag.BoolVar(&cfg.validate, "validate", true, "if validation should be performed")
 	flag.Parse()
+
+	if len(flag.CommandLine.Args()) > 0 {
+		fmt.Fprintf(os.Stderr, "error: unexpected command line arguments: %v\n", flag.CommandLine.Args())
+		os.Exit(1)
+	}
 
 	if err := run(&cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -174,8 +182,10 @@ func run(cfg *config) error {
 			defer processWG.Done()
 			for change := range changes {
 				variants := map[string][]diff.Option{
-					"optimal": {diff.Optimal()},
-					"regular": nil,
+					"default":          nil,
+					"optimal":          {diff.Optimal()},
+					"fast":             {diff.Fast()},
+					"indent-heuristic": {textdiff.IndentHeuristic()},
 				}
 
 				lines := func(s string) int {
@@ -198,40 +208,44 @@ func run(cfg *config) error {
 				N, M := lines(old), lines(new)
 
 				for variant, opts := range variants {
-					start := time.Now()
-					hunks := textdiff.Hunks(change.old, change.new, opts...)
-					duration := time.Since(start)
-					nedits := 0
-					for _, hunk := range hunks {
-						for _, edits := range hunk.Edits {
-							if edits.Op == diff.Delete || edits.Op == diff.Insert {
-								nedits++
+					if results != nil {
+						start := time.Now()
+						hunks := textdiff.Hunks(change.old, change.new, opts...)
+						duration := time.Since(start)
+						nedits := 0
+						for _, hunk := range hunks {
+							for _, edits := range hunk.Edits {
+								if edits.Op == diff.Delete || edits.Op == diff.Insert {
+									nedits++
+								}
 							}
 						}
+						results <- result{
+							commitID: change.commitID,
+							file:     change.filename,
+							variant:  variant,
+							N:        N,
+							M:        M,
+							D:        nedits,
+							duration: duration,
+						}
 					}
-					results <- result{
-						commitID: change.commitID,
-						file:     change.filename,
-						variant:  variant,
-						N:        N,
-						M:        M,
-						D:        nedits,
-						duration: duration,
-					}
-				}
 
-				diff := textdiff.Unified(change.old, change.new, textdiff.IndentHeuristic())
-				patched, err := unixpatch.Patch(change.old, diff)
-				if err != nil {
-					notes <- note{
-						prefix: change.commitID + ":" + change.filename,
-						msg:    fmt.Sprintf("failed to run patch: %v", err),
-					}
-				}
-				if change.new != patched {
-					notes <- note{
-						prefix: change.commitID + ":" + change.filename,
-						msg:    fmt.Sprintf("file is different after applying patch. got:\n%s\nwant:\n%s", change.new, patched),
+					if cfg.validate {
+						unified := textdiff.Unified(change.old, change.new, opts...)
+						patched, err := unixpatch.Patch(change.old, unified)
+						if err != nil {
+							notes <- note{
+								prefix: change.commitID + ":" + change.filename,
+								msg:    fmt.Sprintf("failed to run patch: %v", err),
+							}
+						}
+						if change.new != patched {
+							notes <- note{
+								prefix: change.commitID + ":" + change.filename,
+								msg:    fmt.Sprintf("file is different after applying patch. got:\n%s\nwant:\n%s", change.new, patched),
+							}
+						}
 					}
 				}
 				processed.Add(1)
@@ -313,7 +327,9 @@ func run(cfg *config) error {
 	close(changes)
 	processWG.Wait()
 	close(done)
-	close(results)
+	if results != nil {
+		close(results)
+	}
 	ioWG.Wait()
 
 	return nil

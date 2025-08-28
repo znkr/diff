@@ -45,6 +45,18 @@ func main() {
      }
  }
 -- diff --
+# fast: true
+@@ -4,6 +4,9 @@
+ 
+ func main() {
+     if os.Args[1] == "foo" {
++        // ...
++    }
++    if os.Args[1] == "foo" {
+         foo()
+     }
+ }
+-- diff --
 # indent-heuristic: true
 @@ -3,6 +3,9 @@
  import "os"

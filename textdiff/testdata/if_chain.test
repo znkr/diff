@@ -43,6 +43,19 @@ func main() {
          help()
      }
 -- diff --
+# fast: true
+@@ -7,6 +7,10 @@
+         fizz()
+     }
+ 
++    if os.Args[1] == "buzz" {
++        buzz()
++    }
++
+     if os.Args[1] == "help" {
+         help()
+     }
+-- diff --
 # indent-heuristic: true
 @@ -7,6 +7,10 @@
          fizz()

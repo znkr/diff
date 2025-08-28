@@ -696,9 +696,18 @@ func parseTests(t testing.TB) []test {
 						case "false":
 							// do nothing
 						default:
-							t.Fatalf("invalid value for anchoring-heuristic: %q", v)
+							t.Fatalf("invalid value for force-anchoring-heuristic: %q", v)
 						}
 						name = append(name, k)
+					case "fast":
+						switch v {
+						case "true":
+							st.opts = append(st.opts, diff.Fast())
+						case "false":
+							// do nothing
+						default:
+							t.Fatalf("invalid value for fast: %q", v)
+						}
 					case "context":
 						n, err := strconv.ParseInt(v, 10, 64)
 						if err != nil {

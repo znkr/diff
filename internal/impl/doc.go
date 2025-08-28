@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package impl contains an implementation of Myers' algorithm.
+// Package impl contains an implementation of diff algorithms.
+//
+// # Myers' Algorithm
 //
 // The implementation in this package uses the linear space variant described in section 4.2. In
 // addition, the TOO_EXPENSIVE heuristic by Paul Eggert is used to limit the amount of time spend
@@ -21,8 +23,6 @@
 // Without the heuristic, the runtime of Myers' algorithm is O(ND) where N is the sum of the length
 // of both inputs and D is the number of differences. The TOO_EXPENSIVE heuristic reduces the time
 // complexity to O(N^1.5 log N) but it produces suboptimal diffs.
-//
-// # Myers Algorithm
 //
 // The algorithm is a graph search on the graph modelling all possible edits that transform x to y.
 // For simplicity, let's say that T is the []byte representation of string and the inputs are x =
@@ -104,7 +104,7 @@
 // Ukkonen, E. Algorithms for approximate string matching. Information and Control, Volume 64,
 // Issues 1-3, 100-118 (1985). https://doi.org/10.1016/S0019-9958(85)80046-2
 //
-// # Heuristics
+// ## Heuristics
 //
 // ANCHORING: A heuristic used anchor the diff around lines that are provably one 1:1
 // correspondences in both files. This heuristic is similar to the patience diff algorithm, but the
@@ -119,4 +119,20 @@
 // large files with many differences at the cost of suboptimal diffs. If the search for an optimal
 // d-path exceeds a cost limit (in terms of d), the search is aborted and the furthest reaching
 // d-path that optimizes x + y is used to determine a split.
+//
+// # Patience Diff (aka Anchored Diff)
+//
+// The patience diff algorithm is a heuristic to find a reasonably small diff. When the heuristics
+// fails, the resulting diff can be maximal (D = N+M). The upside is that this heuristic has much
+// better long-tail performance; O(N log N) vs O(ND) or O(N^1.5 log N).
+//
+// The algorithm works like this:
+//
+//  1. Find all anchors in x and y. That is elements that appear only once in both x and y.
+//  2. Find the longest common subsequence (LCS) of anchors.
+//  3. Expand the matching elements before and after each anchor. The regions that are not matched
+//     this way are the diff.
+//
+// This diff algorithm is the basis for the ANCHORING heuristic. The difference is that for the
+// heuristic we apply Myers' algorithm on the unmatched regions.
 package impl

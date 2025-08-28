@@ -25,6 +25,7 @@ import (
 func TestDiff(t *testing.T) {
 	tests := []struct {
 		name string
+		skip func(cfg config.Config) bool
 		x, y []string
 		want string
 	}{
@@ -54,9 +55,21 @@ func TestDiff(t *testing.T) {
 		},
 		{
 			name: "ABCABBA_to_CBABAC",
+			skip: func(cfg config.Config) bool {
+				return cfg.Mode == config.ModeFast
+			},
 			x:    strings.Split("ABCABBA", ""),
 			y:    strings.Split("CBABAC", ""),
 			want: "DIMDMMDMI",
+		},
+		{
+			name: "ABCABBA_to_CBABAC",
+			skip: func(cfg config.Config) bool {
+				return cfg.Mode != config.ModeFast
+			},
+			x:    strings.Split("ABCABBA", ""),
+			y:    strings.Split("CBABAC", ""),
+			want: "DDDDDDDIIIIII",
 		},
 		{
 			name: "same-prefix",
@@ -81,7 +94,11 @@ func TestDiff(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Run("diff", func(t *testing.T) {
-				rx, ry := Diff(tt.x, tt.y, config.Default)
+				cfg := config.Default
+				if tt.skip != nil && tt.skip(cfg) {
+					return
+				}
+				rx, ry := Diff(tt.x, tt.y, cfg)
 				got := render(rx, ry, len(tt.x), len(tt.y))
 				if diff := cmp.Diff(tt.want, got); diff != "" {
 					t.Errorf("Diff(...) differs [-want,+got]:\n%s", diff)
@@ -91,6 +108,22 @@ func TestDiff(t *testing.T) {
 			t.Run("diff_with_anchoring", func(t *testing.T) {
 				cfg := config.Default
 				cfg.ForceAnchoringHeuristic = true
+				if tt.skip != nil && tt.skip(cfg) {
+					return
+				}
+				rx, ry := Diff(tt.x, tt.y, cfg)
+				got := render(rx, ry, len(tt.x), len(tt.y))
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("Diff(...) differs [-want,+got]:\n%s", diff)
+				}
+			})
+
+			t.Run("diff_fast", func(t *testing.T) {
+				cfg := config.Default
+				cfg.Mode = config.ModeFast
+				if tt.skip != nil && tt.skip(cfg) {
+					return
+				}
 				rx, ry := Diff(tt.x, tt.y, cfg)
 				got := render(rx, ry, len(tt.x), len(tt.y))
 				if diff := cmp.Diff(tt.want, got); diff != "" {
@@ -99,7 +132,11 @@ func TestDiff(t *testing.T) {
 			})
 
 			t.Run("diff_func", func(t *testing.T) {
-				rx, ry := DiffFunc(tt.x, tt.y, func(a, b string) bool { return a == b }, config.Default)
+				cfg := config.Default
+				if tt.skip != nil && tt.skip(cfg) {
+					return
+				}
+				rx, ry := DiffFunc(tt.x, tt.y, func(a, b string) bool { return a == b }, cfg)
 				got := render(rx, ry, len(tt.x), len(tt.y))
 				if diff := cmp.Diff(tt.want, got); diff != "" {
 					t.Errorf("DiffFunc(...) differs [-want,+got]:\n%s", diff)

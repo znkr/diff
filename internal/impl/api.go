@@ -46,6 +46,7 @@
 package impl
 
 import (
+	"fmt"
 	"sort"
 
 	"znkr.io/diff/internal/config"
@@ -54,20 +55,7 @@ import (
 // Diff compares the contents of x and y and returns the changes necessary to convert from one to
 // the other.
 func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
-	smin, tmin := 0, 0
-	smax, tmax := len(x), len(y)
-
-	// Strip common prefix.
-	for smin < smax && tmin < tmax && x[smin] == y[tmin] {
-		smin++
-		tmin++
-	}
-
-	// Strip common suffix.
-	for smax > smin && tmax > tmin && x[smax-1] == y[tmax-1] {
-		smax--
-		tmax--
-	}
+	smin, smax, tmin, tmax := diffBounds(x, y)
 
 	// Allocate result vectors.
 	r := make([]bool, (len(x) + len(y) + 2))
@@ -178,24 +166,60 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 	}
 	x0 = x0[:i]
 
-	// Perform Myers algorithm on the unique IDs.
-	var m myersInt
-	m.xidx, m.yidx = xidx, yidx
-	m.rx, m.ry = rx, ry
-	smin0, smax0, tmin0, tmax0 := m.init(x0, y0)
+	// Perform diff algorithm on the unique IDs.
+	switch cfg.Mode {
+	case config.ModeOptimal:
+		var m myersInt
+		m.xidx, m.yidx = xidx, yidx
+		m.rx, m.ry = rx, ry
+		smin0, smax0, tmin0, tmax0 := m.init(x0, y0)
+		m.compare(smin0, smax0, tmin0, tmax0, true)
 
-	switch {
-	case cfg.Optimal:
-		fallthrough
-	default:
-		m.compare(smin0, smax0, tmin0, tmax0, cfg.Optimal)
+	case config.ModeDefault:
+		var m myersInt
+		m.xidx, m.yidx = xidx, yidx
+		m.rx, m.ry = rx, ry
+		smin0, smax0, tmin0, tmax0 := m.init(x0, y0)
 
-	// Heuristic (ANCHORING): If the input is too large and we have found anchors, use the anchoring
-	// heuristic. This provides a significant performance boost and provides more optimal results
-	// than the other heuristics.
-	case nanchors > 0 && (smax0-smin0)+(tmax0-tmin0) > anchoringHeuristicMinInputLen:
-		fallthrough
-	case cfg.ForceAnchoringHeuristic:
+		// Heuristic (ANCHORING): If the input is too large and we have found anchors, use the
+		// anchoring heuristic. This provides a significant performance boost and provides more
+		// optimal results than the other heuristics.
+		anchoring := nanchors > 0 && (smax0-smin0)+(tmax0-tmin0) > anchoringHeuristicMinInputLen
+		if anchoring || cfg.ForceAnchoringHeuristic {
+			segments := segments(smin0, smax0, tmin0, tmax0, nanchors, counts, x0, y0)
+			done := segments[0]
+			for _, anchor := range segments[1:] {
+				if anchor.s < done.s {
+					// Already handled scanning forward from earlier match.
+					continue
+				}
+
+				start := anchor
+				for start.s > done.s && start.t > done.t && x0[start.s-1] == y0[start.t-1] {
+					start.s--
+					start.t--
+				}
+				end := anchor
+				for end.s < smax0 && end.t < tmax0 && x0[end.s] == y0[end.t] {
+					end.s++
+					end.t++
+				}
+
+				m.compare(done.s, start.s, done.t, start.t, false)
+
+				if end.s >= smax0 && end.t >= tmax0 {
+					break
+				}
+
+				done = end
+			}
+		} else {
+			m.compare(smin0, smax0, tmin0, tmax0, false)
+		}
+
+	case config.ModeFast:
+		// Fast mode uses patience diff.
+		smin0, smax0, tmin0, tmax0 := diffBounds(x0, y0)
 		segments := segments(smin0, smax0, tmin0, tmax0, nanchors, counts, x0, y0)
 		done := segments[0]
 		for _, anchor := range segments[1:] {
@@ -215,7 +239,12 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 				end.t++
 			}
 
-			m.compare(done.s, start.s, done.t, start.t, cfg.Optimal)
+			for s := done.s; s < start.s; s++ {
+				rx[xidx[s]] = true
+			}
+			for t := done.t; t < start.t; t++ {
+				ry[yidx[t]] = true
+			}
 
 			if end.s >= smax0 && end.t >= tmax0 {
 				break
@@ -223,9 +252,32 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 
 			done = end
 		}
+
+	default:
+		panic(fmt.Sprintf("unknown mode: %v", cfg.Mode))
 	}
 
 	return rx, ry
+}
+
+// diffBounds returns the upper and lower bounds for the changed portion of the inputs.
+func diffBounds[T comparable](x, y []T) (smin, smax, tmin, tmax int) {
+	smin, tmin = 0, 0
+	smax, tmax = len(x), len(y)
+
+	// Strip common prefix.
+	for smin < smax && tmin < tmax && x[smin] == y[tmin] {
+		smin++
+		tmin++
+	}
+
+	// Strip common suffix.
+	for smax > smin && tmax > tmin && x[smax-1] == y[tmax-1] {
+		smax--
+		tmax--
+	}
+
+	return
 }
 
 type pair struct{ s, t int }
@@ -346,6 +398,6 @@ func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry 
 	var m myers[T]
 	m.rx, m.ry = rx, ry
 	smin, smax, tmin, tmax = m.init(x, y, eq)
-	m.compare(smin, smax, tmin, tmax, cfg.Optimal, eq)
+	m.compare(smin, smax, tmin, tmax, cfg.Mode == config.ModeOptimal, eq)
 	return m.rx, m.ry
 }
