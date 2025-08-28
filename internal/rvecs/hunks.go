@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package rvecs contains functions to work with the result vectors, the internal representation
-// that's used by the myers algorithm and is then translated to a user facing API. The internal
-// representation is separate from the exported representation because it needs to solve a number of
-// different problems.
 package rvecs
 
 import (
