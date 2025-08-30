@@ -6,82 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	gointernal "github.com/rogpeppe/go-internal/diff"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/tools/txtar"
 	"znkr.io/diff"
 	"znkr.io/diff/textdiff"
 )
-
-type impl struct {
-	name string
-	diff func(x, y []byte) []byte
-	dist func(x, y []byte) int
-}
-
-var implementations = []impl{
-	{
-		name: "znkr",
-		diff: func(x, y []byte) []byte {
-			return textdiff.Unified(x, y)
-		},
-	},
-	{
-		name: "znkr-optimal",
-		diff: func(x, y []byte) []byte {
-			return textdiff.Unified(x, y, diff.Optimal())
-		},
-	},
-	{
-		name: "znkr-fast",
-		diff: func(x, y []byte) []byte {
-			return textdiff.Unified(x, y, diff.Fast())
-		},
-	},
-	{
-		name: "go-internal",
-		diff: func(x, y []byte) []byte {
-			return gointernal.Diff("x", x, "y", y)
-		},
-	},
-	{
-		name: "diffmatchpatch",
-		diff: func(x, y []byte) []byte {
-			// This function is not exactly creating a unified diff, but it's close enough to be
-			// comparable.
-			dmp := diffmatchpatch.New()
-			rx, ry, lines := dmp.DiffLinesToRunes(string(x), string(y))
-			diffs := dmp.DiffMainRunes(rx, ry, false)
-			diffs = dmp.DiffCharsToLines(diffs, lines)
-
-			var buf bytes.Buffer
-			for _, diff := range diffs {
-				text := diff.Text
-
-				switch diff.Type {
-				case diffmatchpatch.DiffInsert:
-					lines := strings.SplitAfter(text, "\n")
-					for _, line := range lines {
-						buf.WriteString("+")
-						buf.WriteString(line)
-					}
-
-				case diffmatchpatch.DiffDelete:
-					lines := strings.SplitAfter(text, "\n")
-					for _, line := range lines {
-						buf.WriteString("-")
-						buf.WriteString(line)
-					}
-
-				case diffmatchpatch.DiffEqual:
-					// skip equal sections to emulate the unified format without any context
-				}
-			}
-
-			return buf.Bytes()
-		},
-	},
-}
 
 type testdata struct {
 	name string
@@ -133,16 +61,16 @@ func BenchmarkDiffs(b *testing.B) {
 		optD[td.name] = d
 	}
 
-	for _, impl := range implementations {
-		b.Run("impl="+impl.name, func(b *testing.B) {
+	for _, impl := range Impls {
+		b.Run("impl="+impl.Name, func(b *testing.B) {
 			for _, td := range loadTestdata(b) {
 				b.Run("name="+td.name, func(b *testing.B) {
 					for b.Loop() {
-						_ = impl.diff(td.x, td.y)
+						_ = impl.Diff(td.x, td.y)
 					}
 					b.StopTimer()
 
-					out := impl.diff(td.x, td.y)
+					out := impl.Diff(td.x, td.y)
 					edits := 0
 					for _, line := range bytes.Split(out, []byte("\n")) {
 						if bytes.HasPrefix(line, []byte{'+'}) || bytes.HasPrefix(line, []byte{'-'}) {

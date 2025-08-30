@@ -229,6 +229,9 @@ interesting for larger inputs where superlinear growth can become a problem. Bel
 - **znkr-fast**: With `diff.Fast()` option for fastest possible diffing
 - **go-internal**: Patience diff algorithm from [`github.com/rogpeppe/go-internal`](https://github.com/rogpeppe/go-internal)
 - **diffmatchpatch**: Implementation from [`github.com/sergi/go-diff`](https://github.com/sergi/go-diff)
+- **godebug**: Implementation from [`golang.org/x/tools/godebug`](https://pkg.go.dev/golang.org/x/tools/godebug)
+- **mb0**: Implementation from [`github.com/mb0/diff`](https://github.com/mb0/diff)
+- **udiff**: Implementation from [`github.com/aymanbagabas/go-udiff`](https://github.com/aymanbagabas/go-udiff)
 
 **Note:** It's possible that the benchmark is using `diffmatchpatch` incorrectly, the benchmark
 numbers certainly look suspiciously high. However, the way it's used in the benchmark is used in
@@ -240,25 +243,25 @@ On the benchmarks used for this comparison znkr.io/diff almost always outperform
 implementations. However, there's one case where go-internal is significantly faster, but the
 resulting diff is 10% larger (see numbers below).
 
-| Test Case | znkr (baseline) | znkr-optimal | znkr-fast | go-internal | diffmatchpatch |
-|-----------|-----------------|--------------|-----------|-------------|----------------|
-| **large_01** | 2.605ms | 10.813ms<br>(+315.06%) | 2.606ms<br>(±0%) | 4.888ms<br>(+87.60%) | 42.546ms<br>(+1533.09%) |
-| **large_02** | 20.611ms | 49.379ms<br>(+139.58%) | 1.805ms<br>(-91.24%) | 4.190ms<br>(-79.67%) | 628.690ms<br>(+2950.32%) |
-| **large_03** | 3.054ms | 14.910ms<br>(+388.18%) | 3.129ms<br>(±0%) | 4.789ms<br>(+56.80%) | 30.803ms<br>(+908.56%) |
-| **large_04** | 6.707ms | 251.801ms<br>(+3654.45%) | 5.749ms<br>(-14.28%) | 8.735ms<br>(+30.24%) | 1011.684ms<br>(+14984.61%) |
-| **medium** | 25.00µs | 24.72µs<br>(±0%) | 27.46µs<br>(+9.86%) | 67.55µs<br>(+170.24%) | 247.63µs<br>(+890.72%) |
-| **small** | 17.15µs | 16.99µs<br>(±0%) | 16.71µs<br>(-2.56%) | 39.48µs<br>(+130.15%) | 72.75µs<br>(+324.13%) |
+| Test Case | znkr (baseline) | znkr-optimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
+|-----------|-----------------|--------------|-----------|-------------|----------------|---------|-----|-------|
+| **large_01** | 2.707ms | 10.993ms<br>(+306.14%) | 2.642ms<br>(-2.40%) | 4.928ms<br>(+82.04%) | 43.205ms<br>(+1496.15%) | 181.374ms<br>(+6600.66%) | 84.950ms<br>(+3038.39%) | 7.915ms<br>(+192.40%) |
+| **large_02** | 20.591ms | 49.798ms<br>(+141.84%) | 1.840ms<br>(-91.06%) | 4.139ms<br>(-79.90%) | 623.986ms<br>(+2930.32%) | 3000.340ms<br>(+14470.84%) | 1513.701ms<br>(+7251.13%) | 6.457ms<br>(-68.64%) |
+| **large_03** | 3.210ms | 15.138ms<br>(+371.61%) | 3.130ms<br>(-2.49%) | 4.688ms<br>(+46.04%) | 31.851ms<br>(+892.26%) | 187.093ms<br>(+5728.54%) | 105.379ms<br>(+3182.89%) | 10.057ms<br>(+213.31%) |
+| **large_04** | 7.125ms | 249.229ms<br>(+3397.94%) | 5.557ms<br>(-22.01%) | 8.656ms<br>(+21.49%) | 1012.579ms<br>(+14111.61%) | 13230.536ms<br>(+185591.43%) | 2229.906ms<br>(+31196.87%) | 15.818ms<br>(+122.01%) |
+| **medium** | 26.79µs | 27.38µs<br>(+2.23%) | 27.54µs<br>(+2.81%) | 64.70µs<br>(+141.55%) | 258.27µs<br>(+864.18%) | 705.62µs<br>(+2534.24%) | 269.56µs<br>(+906.34%) | 290.81µs<br>(+985.66%) |
+| **small** | 18.30µs | 18.49µs<br>(+1.05%) | 18.43µs<br>(±0%) | 38.06µs<br>(+107.97%) | 78.23µs<br>(+327.41%) | 200.04µs<br>(+992.97%) | 52.86µs<br>(+188.83%) | 106.99µs<br>(+484.55%) |
 
 #### Diff Minimality (number of edits produced)
 
-| Test Case | znkr (baseline) | znkr-optimal | znkr-fast | go-internal | diffmatchpatch |
-|-----------|----------------|--------------|-----------|-------------|----------------|
-| **large_01** | 5.615k edits | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.617k edits<br>(+0.04%) | 5.616k edits<br>(+0.02%) |
-| **large_02** | 28.87k edits | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.15%) | 31.81k edits<br>(+10.17%) | 28.83k edits<br>(-0.14%) |
-| **large_03** | 5.504k edits | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.506k edits<br>(+0.04%) | 5.505k edits<br>(+0.02%) |
-| **large_04** | 26.99k edits | 26.99k edits<br>(-0.01%) | 27.80k edits<br>(+2.99%) | 27.80k edits<br>(+2.99%) | 60.36k edits<br>(+123.65%) |
-| **medium** | 277 edits | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 283 edits<br>(+2.17%) | 278 edits<br>(+0.36%) |
-| **small** | 108 edits | 108 edits<br>(±0%) | 114 edits<br>(+5.56%) | 120 edits<br>(+11.11%) | 109 edits<br>(+0.93%) |
+| Test Case | znkr (baseline) | znkr-optimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
+|-----------|----------------|--------------|-----------|-------------|----------------|---------|-----|-------|
+| **large_01** | 5.615k edits | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.617k edits<br>(+0.04%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 35.805k edits<br>(+537.67%) |
+| **large_02** | 28.87k edits | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.15%) | 31.81k edits<br>(+10.17%) | 28.83k edits<br>(-0.14%) | 28.83k edits<br>(-0.15%) | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.13%) |
+| **large_03** | 5.504k edits | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.506k edits<br>(+0.04%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 55.738k edits<br>(+912.68%) |
+| **large_04** | 26.99k edits | 26.99k edits<br>(-0.01%) | 27.80k edits<br>(+2.99%) | 27.80k edits<br>(+2.99%) | 60.36k edits<br>(+123.65%) | 26.99k edits<br>(-0.01%) | 26.99k edits<br>(-0.01%) | 103.22k edits<br>(+282.45%) |
+| **medium** | 277 edits | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 283 edits<br>(+2.17%) | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 431 edits<br>(+55.60%) |
+| **small** | 108 edits | 108 edits<br>(±0%) | 114 edits<br>(+5.56%) | 120 edits<br>(+11.11%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) | 280 edits<br>(+159.26%) |
 
 ## Correctness
 
