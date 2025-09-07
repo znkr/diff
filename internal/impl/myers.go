@@ -112,7 +112,7 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, 
 		// Use split to divide the input into three pieces:
 		//
 		//   (1) A, possibly empty, rect (smin, tmin) to (s0, s1)
-		//   (2) A, possibly sequence of diagonals (matches) (s0, t0) to (s1, t1)
+		//   (2) A, possibly empty, sequence of diagonals (matches) (s0, t0) to (s1, t1)
 		//   (3) A, possibly empty, rect (s1, t1) to (smax, tmax)
 		//
 		// (1) and (3) will not have a common suffix or a common prefix, so we can use them directly

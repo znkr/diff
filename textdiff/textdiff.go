@@ -36,15 +36,15 @@ import (
 
 // Edit describes a single edit of a line-by-line diff.
 type Edit[T string | []byte] struct {
-	Op   diff.Op
-	Line T
+	Op   diff.Op // Edit operation
+	Line T       // Line, including newline character (if any)
 }
 
 // Hunk describes a sequence of consecutive edits.
 type Hunk[T string | []byte] struct {
-	PosX, EndX int       // Start and end position in x.
-	PosY, EndY int       // Start and end position in y.
-	Edits      []Edit[T] // Edits to transform x[PosX:EndX] to y[PosY:EndY]
+	PosX, EndX int       // Start and end line in x (zero-based).
+	PosY, EndY int       // Start and end line in y (zero-based).
+	Edits      []Edit[T] // Edits to transform x lines PosX..EndX to y lines PosY..EndY
 }
 
 // Hunks compares the lines in x and y and returns the changes necessary to convert from one to the
