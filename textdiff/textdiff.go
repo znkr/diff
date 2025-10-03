@@ -52,7 +52,7 @@ type Hunk[T string | []byte] struct {
 //
 // The output is a sequence of hunks that each describe a number of consecutive edits. Hunks include
 // a number of matching elements before and after the last delete or insert operation. The number of
-// elements can be configured using [Context].
+// elements can be configured using [diff.Context].
 //
 // If x and y are identical, the output has length zero.
 //
