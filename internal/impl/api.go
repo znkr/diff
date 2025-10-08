@@ -69,8 +69,8 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 	x0, y0, xidx, yidx, counts, nanchors := preprocess(rx, ry, smin, smax, tmin, tmax, x, y)
 
 	switch cfg.Mode {
-	case config.ModeOptimal:
-		diffOptimal(rx, ry, x0, y0, xidx, yidx)
+	case config.ModeMinimal:
+		diffMinimal(rx, ry, x0, y0, xidx, yidx)
 
 	case config.ModeDefault:
 		diffDefault(rx, ry, x0, y0, xidx, yidx, counts, nanchors, cfg.ForceAnchoringHeuristic)
@@ -100,7 +100,7 @@ func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry 
 	var m myers[T]
 	m.rx, m.ry = rx, ry
 	smin, smax, tmin, tmax = m.init(x, y, eq)
-	m.compare(smin, smax, tmin, tmax, cfg.Mode == config.ModeOptimal, eq)
+	m.compare(smin, smax, tmin, tmax, cfg.Mode == config.ModeMinimal, eq)
 	return m.rx, m.ry
 }
 
@@ -252,7 +252,7 @@ func preprocess[T comparable](rx, ry []bool, smin, smax, tmin, tmax int, x, y []
 	return
 }
 
-func diffOptimal(rx, ry []bool, x0, y0 []int, xidx, yidx []int) {
+func diffMinimal(rx, ry []bool, x0, y0 []int, xidx, yidx []int) {
 	var m myersInt
 	m.xidx, m.yidx = xidx, yidx
 	m.rx, m.ry = rx, ry

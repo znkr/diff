@@ -27,7 +27,7 @@ const (
 	ModeDefault Mode = iota
 
 	// Find a minimal diff irrespective of the cost.
-	ModeOptimal
+	ModeMinimal
 
 	// Find a diff as fast as possible.
 	ModeFast
@@ -63,7 +63,7 @@ type Flag int
 
 const (
 	Context Flag = 1 << iota
-	Optimal
+	Minimal
 	Fast
 	IndentHeuristic
 )
@@ -90,8 +90,8 @@ func printFlag(flag Flag) string {
 	switch flag {
 	case Context:
 		return "diff.Context"
-	case Optimal:
-		return "diff.Optimal"
+	case Minimal:
+		return "diff.Minimal"
 	case Fast:
 		return "diff.Fast"
 	case IndentHeuristic:

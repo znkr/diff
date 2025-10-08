@@ -26,9 +26,9 @@ var Impls = []Impl{
 		},
 	},
 	{
-		Name: "znkr-optimal",
+		Name: "znkr-minimal",
 		Diff: func(x, y []byte) []byte {
-			return textdiff.Unified(x, y, diff.Optimal(), textdiff.IndentHeuristic())
+			return textdiff.Unified(x, y, diff.Minimal(), textdiff.IndentHeuristic())
 		},
 	},
 	{

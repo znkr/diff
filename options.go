@@ -32,7 +32,7 @@ func Context(n int) Option {
 	}
 }
 
-// Optimal ensures the diff algorithm finds the shortest possible diff by disabling performance
+// Minimal ensures the diff algorithm finds the shortest possible diff by disabling performance
 // heuristics.
 //
 // By default, the diff functions use heuristics to speed up computation for large inputs with many
@@ -41,10 +41,10 @@ func Context(n int) Option {
 //
 // Performance impact: Changes time complexity from O(N^1.5 log N) to O(ND) where N = len(x) +
 // len(y) and D is the number of differences.
-func Optimal() Option {
+func Minimal() Option {
 	return func(cfg *config.Config) config.Flag {
-		cfg.Mode = config.ModeOptimal
-		return config.Optimal
+		cfg.Mode = config.ModeMinimal
+		return config.Minimal
 	}
 }
 

@@ -17,9 +17,9 @@
 //
 // The main functions are [Hunks], which groups changes into contextual blocks, and [Edits], which
 // returns every individual change. By default, the algorithms are optimized for performance and may
-// use heuristics for very large inputs. Use [Optimal] to disable these heuristics when you need the
+// use heuristics for very large inputs. Use [Minimal] to disable these heuristics when you need the
 // shortest possible diff.
 //
-// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [Optimal], time
+// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [Minimal], time
 // complexity becomes O(ND) where N = len(x) + len(y) and D is the number of edits.
 package diff

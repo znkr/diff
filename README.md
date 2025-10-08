@@ -206,7 +206,7 @@ fmt.Print(textdiff.Unified(x, y))
 ## Performance
 
 By default, the underlying diff algorithm used is Myers' algorithm augmented by a number of
-heuristics to speed up the algorithm in exchange for non-minimal diffs. The `diff.Optimal` option is
+heuristics to speed up the algorithm in exchange for non-minimal diffs. The `diff.Minimal` option is
 provided to skip these heuristics to get a minimal diff independent of the costs and `diff.Fast` to
 use a fast heuristic to get a non-minimal diff as fast as possible.
 
@@ -225,7 +225,7 @@ interesting for larger inputs where superlinear growth can become a problem. Bel
 `znkr.io/diff` against other popular Go diff modules:
 
 - **znkr**: Default configuration with performance optimizations enabled
-- **znkr-optimal**: With `diff.Optimal()` option for minimal diffs
+- **znkr-minimal**: With `diff.Minimal()` option for minimal diffs
 - **znkr-fast**: With `diff.Fast()` option for fastest possible diffing
 - **go-internal**: Patience diff algorithm from [`github.com/rogpeppe/go-internal`](https://github.com/rogpeppe/go-internal)
 - **diffmatchpatch**: Implementation from [`github.com/sergi/go-diff`](https://github.com/sergi/go-diff)
@@ -243,7 +243,7 @@ On the benchmarks used for this comparison znkr.io/diff almost always outperform
 implementations. However, there's one case where go-internal is significantly faster, but the
 resulting diff is 10% larger (see numbers below).
 
-| Test Case | znkr (baseline) | znkr-optimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
+| Test Case | znkr (baseline) | znkr-minimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
 |-----------|-----------------|--------------|-----------|-------------|----------------|---------|-----|-------|
 | **large_01** | 2.707ms | 10.993ms<br>(+306.14%) | 2.642ms<br>(-2.40%) | 4.928ms<br>(+82.04%) | 43.205ms<br>(+1496.15%) | 181.374ms<br>(+6600.66%) | 84.950ms<br>(+3038.39%) | 7.915ms<br>(+192.40%) |
 | **large_02** | 20.591ms | 49.798ms<br>(+141.84%) | 1.840ms<br>(-91.06%) | 4.139ms<br>(-79.90%) | 623.986ms<br>(+2930.32%) | 3000.340ms<br>(+14470.84%) | 1513.701ms<br>(+7251.13%) | 6.457ms<br>(-68.64%) |
@@ -254,8 +254,8 @@ resulting diff is 10% larger (see numbers below).
 
 #### Diff Minimality (number of edits produced)
 
-| Test Case | znkr (baseline) | znkr-optimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
-|-----------|----------------|--------------|-----------|-------------|----------------|---------|-----|-------|
+| Test Case | znkr (baseline) | znkr-minimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
+|-----------|----------------|---------------|-----------|-------------|----------------|---------|-----|-------|
 | **large_01** | 5.615k edits | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.617k edits<br>(+0.04%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 35.805k edits<br>(+537.67%) |
 | **large_02** | 28.87k edits | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.15%) | 31.81k edits<br>(+10.17%) | 28.83k edits<br>(-0.14%) | 28.83k edits<br>(-0.15%) | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.13%) |
 | **large_03** | 5.504k edits | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.506k edits<br>(+0.04%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 55.738k edits<br>(+912.68%) |

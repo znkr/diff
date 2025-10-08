@@ -183,7 +183,7 @@ func run(cfg *config) error {
 			for change := range changes {
 				variants := map[string][]diff.Option{
 					"default":          nil,
-					"optimal":          {diff.Optimal()},
+					"minimal":          {diff.Minimal()},
 					"fast":             {diff.Fast()},
 					"indent-heuristic": {textdiff.IndentHeuristic()},
 				}

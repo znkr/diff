@@ -46,25 +46,25 @@ func TestFromOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "optimal",
+			name: "minimal",
 			opts: []config.Option{
-				diff.Optimal(),
+				diff.Minimal(),
 			},
 			want: config.Config{
 				Context:         config.Default.Context,
-				Mode:            config.ModeOptimal,
+				Mode:            config.ModeMinimal,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
 		{
-			name: "optimal-context",
+			name: "minimal-context",
 			opts: []config.Option{
-				diff.Optimal(),
+				diff.Minimal(),
 				diff.Context(5),
 			},
 			want: config.Config{
 				Context:         5,
-				Mode:            config.ModeOptimal,
+				Mode:            config.ModeMinimal,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
@@ -72,12 +72,12 @@ func TestFromOptions(t *testing.T) {
 			name: "context-override",
 			opts: []config.Option{
 				diff.Context(5),
-				diff.Optimal(),
+				diff.Minimal(),
 				diff.Context(1),
 			},
 			want: config.Config{
 				Context:         1,
-				Mode:            config.ModeOptimal,
+				Mode:            config.ModeMinimal,
 				IndentHeuristic: config.Default.IndentHeuristic,
 			},
 		},
@@ -85,12 +85,12 @@ func TestFromOptions(t *testing.T) {
 			name: "everything",
 			opts: []config.Option{
 				diff.Context(5),
-				diff.Optimal(),
+				diff.Minimal(),
 				textdiff.IndentHeuristic(),
 			},
 			want: config.Config{
 				Context:         5,
-				Mode:            config.ModeOptimal,
+				Mode:            config.ModeMinimal,
 				IndentHeuristic: true,
 			},
 		},
@@ -98,7 +98,7 @@ func TestFromOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := config.FromOptions(tt.opts, config.Context|config.Optimal|config.IndentHeuristic)
+			got := config.FromOptions(tt.opts, config.Context|config.Minimal|config.IndentHeuristic)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("FromOptions(...) result are different [-want,+got]:\n%s", diff)
 			}

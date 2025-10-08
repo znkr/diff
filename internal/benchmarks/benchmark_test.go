@@ -51,7 +51,7 @@ func loadTestdata(t testing.TB) []testdata {
 func BenchmarkDiffs(b *testing.B) {
 	optD := make(map[string]int)
 	for _, td := range loadTestdata(b) {
-		edits := textdiff.Edits(td.x, td.y, diff.Optimal())
+		edits := textdiff.Edits(td.x, td.y, diff.Minimal())
 		d := 0
 		for _, edit := range edits {
 			if edit.Op != diff.Match {
