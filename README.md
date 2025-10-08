@@ -11,6 +11,9 @@ or to understand which changes have been made to a file.
 
 This module provides diffing for arbitrary Go slices and text.
 
+I wrote a bit about the background and the design decisions that went into this module on
+[flo.znkr.io/diff](https://flo.znkr.io/diff).
+
 ## Installation
 
 To use this module in your Go project, run:
