@@ -35,16 +35,24 @@ import (
 )
 
 // Edit describes a single edit of a line-by-line diff.
+//
+//   - For Match, Line contains the matching line. LineNoX and LineNoY contain the respective
+//     line numbers (zero-based) in the input.
+//   - For Delete, Line contains the deleted line from x. LineNoX contains the line number in x
+//     and LineNoY is -1.
+//   - For Insert, Line contains the inserted line from y. LineNoY contains the line number in y
+//     and LineNoX is -1.
 type Edit[T string | []byte] struct {
-	Op   diff.Op // Edit operation
-	Line T       // Line, including newline character (if any)
+	Op               diff.Op
+	LineNoX, LineNoY int
+	Line             T
 }
 
 // Hunk describes a sequence of consecutive edits.
 type Hunk[T string | []byte] struct {
-	PosX, EndX int       // Start and end line in x (zero-based).
-	PosY, EndY int       // Start and end line in y (zero-based).
-	Edits      []Edit[T] // Edits to transform x lines PosX..EndX to y lines PosY..EndY
+	LineNoX, EndLineNoX int       // Start and end line in x (zero-based).
+	LineNoY, EndLineNoY int       // Start and end line in y (zero-based).
+	Edits               []Edit[T] // Edits to transform x lines LineNoX..EndLineNoX to y lines LineNoY..EndLineNoY
 }
 
 // Hunks compares the lines in x and y and returns the changes necessary to convert from one to the
@@ -90,33 +98,39 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
 			for s < hunk.S1 && rx[s] {
 				eout = append(eout, Edit[T]{
-					Op:   diff.Delete,
-					Line: byteview.UnsafeAs[T](x[s]),
+					Op:      diff.Delete,
+					Line:    byteview.UnsafeAs[T](x[s]),
+					LineNoX: s,
+					LineNoY: -1,
 				})
 				s++
 			}
 			for t < hunk.T1 && ry[t] {
 				eout = append(eout, Edit[T]{
-					Op:   diff.Insert,
-					Line: byteview.UnsafeAs[T](y[t]),
+					Op:      diff.Insert,
+					Line:    byteview.UnsafeAs[T](y[t]),
+					LineNoX: -1,
+					LineNoY: t,
 				})
 				t++
 			}
 			for s < hunk.S1 && t < hunk.T1 && !rx[s] && !ry[t] {
 				eout = append(eout, Edit[T]{
-					Op:   diff.Match,
-					Line: byteview.UnsafeAs[T](x[s]),
+					Op:      diff.Match,
+					Line:    byteview.UnsafeAs[T](x[s]),
+					LineNoX: s,
+					LineNoY: t,
 				})
 				s++
 				t++
 			}
 		}
 		hout = append(hout, Hunk[T]{
-			PosX:  hunk.S0,
-			EndX:  hunk.S1,
-			PosY:  hunk.T0,
-			EndY:  hunk.T1,
-			Edits: slices.Clip(eout),
+			LineNoX:    hunk.S0,
+			EndLineNoX: hunk.S1,
+			LineNoY:    hunk.T0,
+			EndLineNoY: hunk.T1,
+			Edits:      slices.Clip(eout),
 		})
 		eout = eout[len(eout):]
 	}
@@ -172,22 +186,28 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry []bool) []Edit[T]
 	for s, t := 0, 0; s < n || t < m; {
 		for s < n && rx[s] {
 			eout = append(eout, Edit[T]{
-				Op:   diff.Delete,
-				Line: byteview.UnsafeAs[T](x[s]),
+				Op:      diff.Delete,
+				Line:    byteview.UnsafeAs[T](x[s]),
+				LineNoX: s,
+				LineNoY: -1,
 			})
 			s++
 		}
 		for t < m && ry[t] {
 			eout = append(eout, Edit[T]{
-				Op:   diff.Insert,
-				Line: byteview.UnsafeAs[T](y[t]),
+				Op:      diff.Insert,
+				Line:    byteview.UnsafeAs[T](y[t]),
+				LineNoX: -1,
+				LineNoY: t,
 			})
 			t++
 		}
 		for s < n && t < m && !rx[s] && !ry[t] {
 			eout = append(eout, Edit[T]{
-				Op:   diff.Match,
-				Line: byteview.UnsafeAs[T](x[s]),
+				Op:      diff.Match,
+				Line:    byteview.UnsafeAs[T](x[s]),
+				LineNoX: s,
+				LineNoY: t,
 			})
 			s++
 			t++

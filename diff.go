@@ -35,12 +35,16 @@ const (
 
 // Edit describes a single edit of a diff.
 //
-//   - For Match, both X and Y contain the matching element.
-//   - For Delete, X contains the deleted element and Y is unset (zero value).
-//   - For Insert, Y contains the inserted element and X is unset (zero value).
+//   - For Match, both X and Y contain the matching element. PosX and PosY contain their respective
+//     positions in the input.
+//   - For Delete, X contains the deleted element and Y is unset (zero value). PosX contains its
+//     position in the input and PosY is -1.
+//   - For Insert, Y contains the inserted element and X is unset (zero value). PosY contains its
+//     position in the input and PosX is -1.
 type Edit[T any] struct {
-	Op   Op
-	X, Y T
+	Op         Op
+	PosX, PosY int
+	X, Y       T
 }
 
 // Hunk describes a sequence of consecutive edits.
@@ -108,23 +112,29 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
 			for s < hunk.S1 && rx[s] {
 				eout = append(eout, Edit[T]{
-					Op: Delete,
-					X:  x[s],
+					Op:   Delete,
+					X:    x[s],
+					PosX: s,
+					PosY: -1,
 				})
 				s++
 			}
 			for t < hunk.T1 && ry[t] {
 				eout = append(eout, Edit[T]{
-					Op: Insert,
-					Y:  y[t],
+					Op:   Insert,
+					Y:    y[t],
+					PosX: -1,
+					PosY: t,
 				})
 				t++
 			}
 			for s < hunk.S1 && t < hunk.T1 && !rx[s] && !ry[t] {
 				eout = append(eout, Edit[T]{
-					Op: Match,
-					X:  x[s],
-					Y:  y[t],
+					Op:   Match,
+					X:    x[s],
+					Y:    y[t],
+					PosX: s,
+					PosY: t,
 				})
 				s++
 				t++
@@ -204,23 +214,29 @@ func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
 	for s, t := 0, 0; s < n || t < m; {
 		for s < n && rx[s] {
 			eout = append(eout, Edit[T]{
-				Op: Delete,
-				X:  x[s],
+				Op:   Delete,
+				X:    x[s],
+				PosX: s,
+				PosY: -1,
 			})
 			s++
 		}
 		for t < m && ry[t] {
 			eout = append(eout, Edit[T]{
-				Op: Insert,
-				Y:  y[t],
+				Op:   Insert,
+				Y:    y[t],
+				PosX: -1,
+				PosY: t,
 			})
 			t++
 		}
 		for s < n && t < m && !rx[s] && !ry[t] {
 			eout = append(eout, Edit[T]{
-				Op: Match,
-				X:  x[s],
-				Y:  y[t],
+				Op:   Match,
+				X:    x[s],
+				Y:    y[t],
+				PosX: s,
+				PosY: t,
 			})
 			s++
 			t++
