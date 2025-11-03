@@ -22,4 +22,8 @@
 //
 // Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [Minimal], time
 // complexity becomes O(ND) where N = len(x) + len(y) and D is the number of edits.
+//
+// Note: For a line-by-line diff of text, please see [znkr.io/diff/textdiff].
+//
+// [znkr.io/diff/textdiff]: https://pkg.go.dev/znkr.io/diff/textdiff
 package diff
