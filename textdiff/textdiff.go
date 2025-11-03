@@ -69,7 +69,7 @@ type Hunk[T string | []byte] struct {
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
-func Hunks[T string | []byte](x, y T, opts ...diff.Option) []Hunk[T] {
+func Hunks[T string | []byte](x, y T, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
@@ -147,7 +147,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
-func Edits[T string | []byte](x, y T, opts ...diff.Option) []Edit[T] {
+func Edits[T string | []byte](x, y T, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal|config.Fast|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
@@ -228,12 +228,12 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // the other in unified format.
 //
 // The following options are supported: [diff.Context], [diff.Minimal], [diff.Fast],
-// [IndentHeuristic]
+// [IndentHeuristic], [TerminalColors].
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
-func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
-	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic)
+func Unified[T string | []byte](x, y T, opts ...Option) T {
+	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic|config.TerminalColors)
 
 	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))
@@ -244,24 +244,39 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
 	}
 
+	var colors config.ColorConfig
+	if cfg.Colors != nil {
+		colors = *cfg.Colors
+	}
+
 	// Precompute output buffer size.
 	n := 0
 	for h := range rvecs.Hunks(rx, ry, cfg) {
 		n += len("@@ -, +, @@\n")
 		n += numDigits(h.S0+1) + numDigits(h.S1-h.S0) + numDigits(h.T0+1) + numDigits(h.T1-h.T0)
+		n += len(colors.HunkHeader) + len(colors.Reset)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
-			for s < h.S1 && rx[s] {
-				n += 1 + xlines[s].Len()
-				s++
+			if s < h.S1 && rx[s] {
+				n += len(colors.Delete) + len(colors.Reset)
+				for s < h.S1 && rx[s] {
+					n += 1 + xlines[s].Len()
+					s++
+				}
 			}
-			for t < h.T1 && ry[t] {
-				n += 1 + ylines[t].Len()
-				t++
+			if t < h.T1 && ry[t] {
+				n += len(colors.Insert) + len(colors.Reset)
+				for t < h.T1 && ry[t] {
+					n += 1 + ylines[t].Len()
+					t++
+				}
 			}
-			for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
-				n += 1 + xlines[s].Len()
-				s++
-				t++
+			if s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+				n += len(colors.Match) + len(colors.Reset)
+				for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+					n += 1 + xlines[s].Len()
+					s++
+					t++
+				}
 			}
 		}
 	}
@@ -276,32 +291,44 @@ func Unified[T string | []byte](x, y T, opts ...diff.Option) T {
 	var b byteview.Builder[T]
 	b.Grow(n)
 	for h := range rvecs.Hunks(rx, ry, cfg) {
-		fmt.Fprintf(&b, "@@ -%d,%d +%d,%d @@\n", h.S0+1, h.S1-h.S0, h.T0+1, h.T1-h.T0)
+		fmt.Fprintf(&b, "%s@@ -%d,%d +%d,%d @@%s\n", colors.HunkHeader, h.S0+1, h.S1-h.S0, h.T0+1, h.T1-h.T0, colors.Reset)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
-			for s < h.S1 && rx[s] {
-				b.WriteString(prefixDelete)
-				b.WriteByteView(xlines[s])
-				if s == xMissingNewline {
-					b.WriteString(missingNewline)
+			if s < h.S1 && rx[s] {
+				b.WriteString(colors.Delete)
+				for s < h.S1 && rx[s] {
+					b.WriteString(prefixDelete)
+					b.WriteByteView(xlines[s])
+					if s == xMissingNewline {
+						b.WriteString(missingNewline)
+					}
+					s++
 				}
-				s++
+				b.WriteString(colors.Reset)
 			}
-			for t < h.T1 && ry[t] {
-				b.WriteString(prefixInsert)
-				b.WriteByteView(ylines[t])
-				if t == yMissingNewline {
-					b.WriteString(missingNewline)
+			if t < h.T1 && ry[t] {
+				b.WriteString(colors.Insert)
+				for t < h.T1 && ry[t] {
+					b.WriteString(prefixInsert)
+					b.WriteByteView(ylines[t])
+					if t == yMissingNewline {
+						b.WriteString(missingNewline)
+					}
+					t++
 				}
-				t++
+				b.WriteString(colors.Reset)
 			}
-			for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
-				b.WriteString(prefixMatch)
-				b.WriteByteView(xlines[s])
-				if s == xMissingNewline {
-					b.WriteString(missingNewline)
+			if s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+				b.WriteString(colors.Match)
+				for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+					b.WriteString(prefixMatch)
+					b.WriteByteView(xlines[s])
+					if s == xMissingNewline {
+						b.WriteString(missingNewline)
+					}
+					s++
+					t++
 				}
-				s++
-				t++
+				b.WriteString(colors.Reset)
 			}
 		}
 	}

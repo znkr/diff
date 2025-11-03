@@ -44,9 +44,18 @@ type Config struct {
 	// If set, textdiff will apply ident heuristics.
 	IndentHeuristic bool
 
+	// If not nil, textdiff.Unify will use this to color the output.
+	Colors *ColorConfig
+
 	// If set, internal/myers will always use the anchoring heuristic. This configuration is not
 	// exposed via an option API, it's main use is for testing.
 	ForceAnchoringHeuristic bool
+}
+
+type ColorConfig struct {
+	Reset                 string
+	HunkHeader            string
+	Match, Delete, Insert string
 }
 
 // Default is the default configuration.
@@ -66,6 +75,7 @@ const (
 	Minimal
 	Fast
 	IndentHeuristic
+	TerminalColors
 )
 
 // Option is the mechanism used to expose the configuration to users.
@@ -96,6 +106,8 @@ func printFlag(flag Flag) string {
 		return "diff.Fast"
 	case IndentHeuristic:
 		return "textdiff.IndentHeuristic"
+	case TerminalColors:
+		return "textdiff.TerminalColors"
 	default:
 		panic("never reached")
 	}
