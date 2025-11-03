@@ -28,6 +28,7 @@ import (
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/unixpatch"
+	"znkr.io/diff/textdiff/color"
 )
 
 var (
@@ -44,7 +45,7 @@ func TestUnified(t *testing.T) {
 					t.Parallel()
 					got := Unified(tt.x, tt.y, st.opts...)
 					if diff := cmp.Diff(st.want, got); diff != "" {
-						t.Errorf("UnifiedBytes(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, diff)
+						t.Errorf("Unified(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, diff)
 					}
 					if *validate && len(got) > 0 {
 						patched, err := unixpatch.Patch(string(tt.x), string(got))
@@ -182,6 +183,140 @@ func TestUnifiedEdgeCases(t *testing.T) {
 				if diff := cmp.Diff(tt.y, patched); diff != "" {
 					t.Errorf("file is different after applying patch [-got,+want]:\n%s", diff)
 				}
+			}
+		})
+	}
+}
+
+func TestUnifiedColors(t *testing.T) {
+	tests := []struct {
+		name string
+		x, y string
+		opts []diff.Option
+		want string
+	}{
+		{
+			name: "no-colors",
+			x: `this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+
+this paragraph
+is going to be
+removed
+`,
+			y: `this is a new paragraph
+that is inserted at the top
+
+this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+`,
+			want: `@@ -1,9 +1,8 @@
++this is a new paragraph
++that is inserted at the top
++
+ this paragraph
+ stays but is
+ not long enough
+ to create a
+ new hunk
+-
+-this paragraph
+-is going to be
+-removed
+`,
+		},
+		{
+			name: "default-colors",
+			x: `this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+
+this paragraph
+is going to be
+removed
+`,
+			y: `this is a new paragraph
+that is inserted at the top
+
+this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+`,
+			opts: []diff.Option{TerminalColors()},
+			want: "\x1b[36m" + `@@ -1,9 +1,8 @@` + "\x1b[m" + `
+` + "\x1b[32m" + `+this is a new paragraph
++that is inserted at the top
++
+` + "\x1b[m" + ` this paragraph
+ stays but is
+ not long enough
+ to create a
+ new hunk
+` + "\x1b[m\x1b[31m" + `-
+-this paragraph
+-is going to be
+-removed
+` + "\x1b[m",
+		},
+		{
+			name: "custom-colors",
+			x: `this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+
+this paragraph
+is going to be
+removed
+`,
+			y: `this is a new paragraph
+that is inserted at the top
+
+this paragraph
+stays but is
+not long enough
+to create a
+new hunk
+`,
+			opts: []diff.Option{TerminalColors(
+				color.HunkHeaders(33), // Yellow
+				color.Matches(1, 33),  // Bold Yellow
+				color.Deletes(34),     // Blue
+				color.Inserts(35),     // Magenta
+			)},
+			want: "\x1b[33m" + `@@ -1,9 +1,8 @@` + "\x1b[m" + `
+` + "\x1b[35m" + `+this is a new paragraph
++that is inserted at the top
++
+` + "\x1b[m\x1b[1;33m" + ` this paragraph
+ stays but is
+ not long enough
+ to create a
+ new hunk
+` + "\x1b[m\x1b[34m" + `-
+-this paragraph
+-is going to be
+-removed
+` + "\x1b[m",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Unified(tt.x, tt.y, tt.opts...)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Unified(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, tt.want, diff)
 			}
 		})
 	}
