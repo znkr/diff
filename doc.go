@@ -21,7 +21,8 @@
 // shortest possible diff.
 //
 // Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [Minimal], time
-// complexity becomes O(ND) where N = len(x) + len(y) and D is the number of edits.
+// complexity is O(ND) where N = len(x) + len(y) and D is the number of edits. With [Fast], time
+// complexity is O(N log N).
 //
 // Note: For a line-by-line diff of text, please see [znkr.io/diff/textdiff].
 //
