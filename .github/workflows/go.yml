@@ -11,7 +11,7 @@ on:
 
 jobs:
 
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,10 +19,41 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.24'
+        go-version-file: 'go.mod'
 
     - name: Build
       run: go build -v ./...
-
+    
     - name: Test
-      run: go test -v ./...
+      run: go test -v -vet=off ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Go Format
+      run: gofmt -s -w . && git diff --exit-code
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Go Mod Tidy
+      run: go mod tidy && git diff --exit-code
+
+    - name: Go Vet
+      run: go vet ./...
+
+    - name: Go Generate
+      run: go generate ./... && git diff --exit-code
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Go Vulncheck
+      uses: golang/govulncheck-action@v1

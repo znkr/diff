@@ -18,8 +18,9 @@ const _Op_name = "MatchDeleteInsert"
 var _Op_index = [...]uint8{0, 5, 11, 17}
 
 func (i Op) String() string {
-	if i < 0 || i >= Op(len(_Op_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Op_index)-1 {
 		return "Op(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Op_name[_Op_index[i]:_Op_index[i+1]]
+	return _Op_name[_Op_index[idx]:_Op_index[idx+1]]
 }
