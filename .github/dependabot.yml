@@ -4,3 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    assignees:
+      - "znkr"
+    commit-message:
+      prefix: "all: "
