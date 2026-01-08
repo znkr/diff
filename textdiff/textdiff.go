@@ -65,7 +65,7 @@ type Hunk[T string | []byte] struct {
 // If x and y are identical, the output has length zero.
 //
 // The following options are supported: [diff.Context], [diff.Minimal], [diff.Fast],
-// [textdiff.IndentHeuristic]
+// [IndentHeuristic]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
@@ -228,7 +228,7 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // the other in unified format.
 //
 // The following options are supported: [diff.Context], [diff.Minimal], [diff.Fast],
-// [IndentHeuristic], [TerminalColors].
+// [IndentHeuristic], [TerminalColors]
 //
 // Important: The output is not guaranteed to be stable and may change with minor version upgrades.
 // DO NOT rely on the output being stable.
