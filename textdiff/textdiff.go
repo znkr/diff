@@ -18,7 +18,7 @@
 // diff command. The main functions are [Hunks] for grouped changes, [Edits] for individual changes,
 // and [Unified] for standard diff format output.
 //
-// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [Optimal], time
+// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [diff.Minimal], time
 // complexity becomes O(ND) where N = len(x) + len(y) and D is the number of edits.
 package textdiff
 
