@@ -20,7 +20,9 @@ import (
 	"znkr.io/diff/internal/config"
 )
 
-// A Option makes it possible to configure custom colors in [TerminalColors].
+// A Option makes it possible to configure custom colors in [textdiff.TerminalColors].
+//
+// [textdiff.TerminalColors]: https://pkg.go.dev/znkr.io/diff/textdiff#TerminalColors
 type Option func(*config.ColorConfig)
 
 // HunkHeaders colors hunk headers, the "@@ ... @@" part of the unified diff.
