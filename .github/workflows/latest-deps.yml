@@ -1,0 +1,26 @@
+name: Test Latest Deps
+
+on:
+  schedule:
+    - cron: '0 13 * * *' # daily at 1pm UTC
+  workflow_dispatch:
+
+jobs:
+  test-latest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Update all dependencies
+      run: go get -t -u ./...
+
+    - name: Tidy
+      run: go mod tidy
+
+    - name: Test
+      run: go test ./...
