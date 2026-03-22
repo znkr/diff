@@ -139,12 +139,11 @@ fmt.Print(textdiff.Unified(x, y))
 
 ## Stability
 
-**Status: Beta** - This project is in beta, pending API reviews and general feedback, both are very
-welcome.
+**API: Stable** - The API is stable and follows the Go module compatibility
+[guidelines](https://go.dev/doc/modules/version-policy).
 
-As a general rule, the exact diff output will never be guaranteed to be stable: I expect that
-performance and quality improvements will always be possible and they will likely change the output
-of a diff. Therefore, committing to a stable diff result would be too limiting.
+The exact diff output is not guaranteed to be stable: performance and quality improvements will
+likely change the output of a diff. Committing to a stable diff result would be too limiting.
 
 
 ## Diff Readability
