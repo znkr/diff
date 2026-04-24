@@ -1,6 +1,6 @@
 module znkr.io/diff
 
-go 1.24.13
+go 1.25
 
 tool (
 	golang.org/x/tools/cmd/stringer
