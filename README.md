@@ -1,7 +1,6 @@
 # znkr.io/diff
 
 [![Go Reference](https://pkg.go.dev/badge/znkr.io/diff.svg)](https://pkg.go.dev/znkr.io/diff)
-[![Go Report Card](https://goreportcard.com/badge/znkr.io/diff)](https://goreportcard.com/report/znkr.io/diff)
 
 A high-performance difference algorithm module for Go.
 
