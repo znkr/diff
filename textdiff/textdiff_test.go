@@ -130,25 +130,25 @@ func TestUnifiedEdgeCases(t *testing.T) {
 			name: "x-empty",
 			x:    "",
 			y:    "one-line\n",
-			want: "@@ -0,0 +1,1 @@\n+one-line\n",
+			want: "@@ -0,0 +1 @@\n+one-line\n",
 		},
 		{
 			name: "y-empty",
 			x:    "one-line\n",
 			y:    "",
-			want: "@@ -1,1 +0,0 @@\n-one-line\n",
+			want: "@@ -1 +0,0 @@\n-one-line\n",
 		},
 		{
 			name: "missing-newline-x",
 			x:    "first line",
 			y:    "first line\n",
-			want: "@@ -1,1 +1,1 @@\n-first line\n\\ No newline at end of file\n+first line\n",
+			want: "@@ -1 +1 @@\n-first line\n\\ No newline at end of file\n+first line\n",
 		},
 		{
 			name: "missing-newline-y",
 			x:    "first line\n",
 			y:    "first line",
-			want: "@@ -1,1 +1,1 @@\n-first line\n+first line\n\\ No newline at end of file\n",
+			want: "@@ -1 +1 @@\n-first line\n+first line\n\\ No newline at end of file\n",
 		},
 		{
 			name: "missing-newline-both",
@@ -160,13 +160,13 @@ func TestUnifiedEdgeCases(t *testing.T) {
 			name: "missing-newline-empty-x",
 			x:    "",
 			y:    "\n",
-			want: "@@ -0,0 +1,1 @@\n+\n", // no missing newline note here
+			want: "@@ -0,0 +1 @@\n+\n", // no missing newline note here
 		},
 		{
 			name: "missing-newline-empty-y",
 			x:    "\n",
 			y:    "",
-			want: "@@ -1,1 +0,0 @@\n-\n", // no missing newline note here
+			want: "@@ -1 +0,0 @@\n-\n", // no missing newline note here
 		},
 	}
 	for _, tt := range tests {
