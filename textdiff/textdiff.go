@@ -24,6 +24,7 @@ package textdiff
 
 import (
 	"fmt"
+	"io"
 	"slices"
 
 	"znkr.io/diff"
@@ -252,8 +253,8 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	// Precompute output buffer size.
 	n := 0
 	for h := range rvecs.Hunks(rx, ry, cfg) {
-		n += len("@@ -, +, @@\n")
-		n += numDigits(rangeStart(h.S0, h.S1)) + numDigits(h.S1-h.S0) + numDigits(rangeStart(h.T0, h.T1)) + numDigits(h.T1-h.T0)
+		n += len("@@ - + @@\n")
+		n += rangeLen(h.S0, h.S1) + rangeLen(h.T0, h.T1)
 		n += len(colors.HunkHeader) + len(colors.Reset)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			if s < h.S1 && rx[s] {
@@ -291,7 +292,14 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	var b byteview.Builder[T]
 	b.Grow(n)
 	for h := range rvecs.Hunks(rx, ry, cfg) {
-		fmt.Fprintf(&b, "%s@@ -%d,%d +%d,%d @@%s\n", colors.HunkHeader, rangeStart(h.S0, h.S1), h.S1-h.S0, rangeStart(h.T0, h.T1), h.T1-h.T0, colors.Reset)
+		b.WriteString(colors.HunkHeader)
+		b.WriteString("@@ -")
+		writeRange(&b, h.S0, h.S1)
+		b.WriteString(" +")
+		writeRange(&b, h.T0, h.T1)
+		b.WriteString(" @@")
+		b.WriteString(colors.Reset)
+		b.WriteString("\n")
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			if s < h.S1 && rx[s] {
 				b.WriteString(colors.Delete)
@@ -344,6 +352,25 @@ func rangeStart(lo, hi int) int {
 		return lo
 	}
 	return lo + 1
+}
+
+// writeRange writes the hunk range [lo, hi) in a hunk header. Like GNU diff, it
+// leaves out the line count when the count is 1.
+func writeRange(w io.Writer, lo, hi int) {
+	if hi-lo == 1 {
+		fmt.Fprintf(w, "%d", lo+1)
+	} else {
+		fmt.Fprintf(w, "%d,%d", rangeStart(lo, hi), hi-lo)
+	}
+}
+
+// rangeLen returns the number of bytes that [writeRange] writes for [lo, hi).
+func rangeLen(lo, hi int) int {
+	n := numDigits(rangeStart(lo, hi))
+	if hi-lo != 1 {
+		n += len(",") + numDigits(hi-lo)
+	}
+	return n
 }
 
 func numDigits(v int) (n int) {
