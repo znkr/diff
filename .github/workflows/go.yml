@@ -27,6 +27,9 @@ jobs:
     - name: Test
       run: go test -v -vet=off ./...
 
+    - name: Validate unified diffs with patch
+      run: go test -vet=off ./textdiff -validate
+
   lint:
     runs-on: ubuntu-latest
     steps:
