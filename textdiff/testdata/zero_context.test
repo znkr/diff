@@ -1,0 +1,38 @@
+Insertions and deletions at the start, middle, and end; with zero context, patch places each hunk by its header alone
+-- x --
+a
+b
+c
+d
+e
+f
+g
+-- y --
+X
+a
+b
+Y
+c
+e
+f
+-- diff --
+@@ -1,7 +1,7 @@
++X
+ a
+ b
++Y
+ c
+-d
+ e
+ f
+-g
+-- diff --
+# context: 0
+@@ -0,0 +1,1 @@
++X
+@@ -2,0 +4,1 @@
++Y
+@@ -4,1 +5,0 @@
+-d
+@@ -7,1 +7,0 @@
+-g

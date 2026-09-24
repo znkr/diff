@@ -253,7 +253,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	n := 0
 	for h := range rvecs.Hunks(rx, ry, cfg) {
 		n += len("@@ -, +, @@\n")
-		n += numDigits(h.S0+1) + numDigits(h.S1-h.S0) + numDigits(h.T0+1) + numDigits(h.T1-h.T0)
+		n += numDigits(rangeStart(h.S0, h.S1)) + numDigits(h.S1-h.S0) + numDigits(rangeStart(h.T0, h.T1)) + numDigits(h.T1-h.T0)
 		n += len(colors.HunkHeader) + len(colors.Reset)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			if s < h.S1 && rx[s] {
@@ -291,7 +291,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	var b byteview.Builder[T]
 	b.Grow(n)
 	for h := range rvecs.Hunks(rx, ry, cfg) {
-		fmt.Fprintf(&b, "%s@@ -%d,%d +%d,%d @@%s\n", colors.HunkHeader, h.S0+1, h.S1-h.S0, h.T0+1, h.T1-h.T0, colors.Reset)
+		fmt.Fprintf(&b, "%s@@ -%d,%d +%d,%d @@%s\n", colors.HunkHeader, rangeStart(h.S0, h.S1), h.S1-h.S0, rangeStart(h.T0, h.T1), h.T1-h.T0, colors.Reset)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			if s < h.S1 && rx[s] {
 				b.WriteString(colors.Delete)
@@ -333,6 +333,17 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 		}
 	}
 	return b.Build()
+}
+
+// rangeStart returns the line number that starts the hunk range [lo, hi) in a hunk
+// header. Line numbers are 1-based, except that an empty range names the line
+// before it, the same as GNU diff. Without context lines, patch has only this
+// number to place an insertion by.
+func rangeStart(lo, hi int) int {
+	if lo == hi {
+		return lo
+	}
+	return lo + 1
 }
 
 func numDigits(v int) (n int) {
