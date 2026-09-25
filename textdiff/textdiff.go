@@ -337,8 +337,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 
 // rangeStart returns the line number that starts the hunk range [lo, hi) in a hunk
 // header. Line numbers are 1-based, except that an empty range names the line
-// before it, the same as GNU diff. Without context lines, patch has only this
-// number to place an insertion by.
+// before it, the same as GNU diff.
 func rangeStart(lo, hi int) int {
 	if lo == hi {
 		return lo
