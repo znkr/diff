@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/lines"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -35,6 +36,25 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry rvecs.Vec) {
 	// IDs instead of Ts. This is only possible for comparable types, because
 	// assigning IDs hashes and compares Ts.
 	p := preprocess(rx, ry, smin, smax, tmin, tmax, x, y)
+	run(rx, ry, &p, cfg)
+	p.release()
+	return rx, ry
+}
+
+// DiffLines compares the lines of x and y and returns the changes necessary to
+// convert from one to the other. prefix and suffix are the number of lines in
+// the longest common prefix and suffix of x and y, as returned by
+// [lines.SplitPair]; DiffLines doesn't compare them.
+func DiffLines(x, y *lines.Lines, prefix, suffix int, cfg config.Config) (rx, ry rvecs.Vec) {
+	n, m := x.Len(), y.Len()
+	rx, ry = rvecs.Make(n, m)
+
+	smin, smax, tmin, tmax := prefix, n-suffix, prefix, m-suffix
+	if handleTrivialBounds(rx, ry, smin, smax, tmin, tmax) {
+		return
+	}
+
+	p := preprocessLines(rx, ry, smin, smax, tmin, tmax, x, y)
 	run(rx, ry, &p, cfg)
 	p.release()
 	return rx, ry

@@ -17,11 +17,13 @@ package impl
 import (
 	"math"
 	"math/rand/v2"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/lines"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -181,6 +183,108 @@ func TestDiffMatchesDiffFunc(t *testing.T) {
 		checkDiffMatchesDiffFunc(t, ax, ay)
 		checkDiffMatchesDiffFunc(t, px, py)
 	}
+}
+
+func TestDiffLinesPrefixSuffix(t *testing.T) {
+	// DiffLines with prefix and suffix returns the diff of the lines in
+	// between, and matches for the prefix and suffix. The prefix and suffix
+	// lines differ between x and y, so comparing them changes the result.
+	rng := rand.New(rand.NewPCG(1, 2))
+	gen := func(n int) []string {
+		s := make([]string, n)
+		for i := range s {
+			s[i] = strings.Repeat("a", 1+rng.IntN(3))
+		}
+		return s
+	}
+	for range 500 {
+		npre, nsuf := rng.IntN(5), rng.IntN(5)
+		xmid, ymid := gen(rng.IntN(10)), gen(rng.IntN(10))
+		// The prefix and suffix passed to DiffLines are maximal, so the middles
+		// start and end with different lines.
+		for len(xmid) > 0 && len(ymid) > 0 && xmid[0] == ymid[0] {
+			xmid, ymid = xmid[1:], ymid[1:]
+		}
+		for len(xmid) > 0 && len(ymid) > 0 && xmid[len(xmid)-1] == ymid[len(ymid)-1] {
+			xmid, ymid = xmid[:len(xmid)-1], ymid[:len(ymid)-1]
+		}
+		x := lines.Split(text(slices.Concat(fill(npre, "x"), xmid, fill(nsuf, "x"))))
+		y := lines.Split(text(slices.Concat(fill(npre, "y"), ymid, fill(nsuf, "y"))))
+		for _, cfg := range []config.Config{
+			{Mode: config.ModeMinimal},
+			{Mode: config.ModeDefault},
+			{Mode: config.ModeDefault, ForceAnchoringHeuristic: true},
+			{Mode: config.ModeFast},
+		} {
+			rx, ry := Diff(xmid, ymid, cfg)
+			want := strings.Repeat("M", npre) + render(rx, ry, len(xmid), len(ymid)) + strings.Repeat("M", nsuf)
+			rx, ry = DiffLines(&x, &y, npre, nsuf, cfg)
+			got := render(rx, ry, x.Len(), y.Len())
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("DiffLines(%v, %v) with prefix %d and suffix %d differs [-want,+got]:\n%s", x, y, npre, nsuf, diff)
+			}
+		}
+		x.Release()
+		y.Release()
+	}
+}
+
+func TestDiffLinesMatchesDiff(t *testing.T) {
+	rng := rand.New(rand.NewPCG(3, 4))
+	gen := func(n, alpha int) []string {
+		s := make([]string, n)
+		for i := range s {
+			s[i] = strings.Repeat("a", rng.IntN(alpha))
+		}
+		return s
+	}
+	for range 500 {
+		alpha := 1 + rng.IntN(20)
+		xl, yl := gen(rng.IntN(200), alpha), gen(rng.IntN(200), alpha)
+		x, y, prefix, suffix := lines.SplitPair(text(xl), text(yl))
+		xb, yb, _, _ := lines.SplitPair([]byte(text(xl)), []byte(text(yl)))
+		for _, cfg := range []config.Config{
+			{Mode: config.ModeMinimal},
+			{Mode: config.ModeDefault},
+			{Mode: config.ModeDefault, ForceAnchoringHeuristic: true},
+			{Mode: config.ModeFast},
+		} {
+			rx, ry := Diff(xl, yl, cfg)
+			want := render(rx, ry, len(xl), len(yl))
+			rx, ry = DiffLines(&x, &y, prefix, suffix, cfg)
+			got := render(rx, ry, x.Len(), y.Len())
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("DiffLines(%q, %q) differs from Diff [-want,+got]:\n%s", xl, yl, diff)
+			}
+			rx, ry = DiffLines(&xb, &yb, prefix, suffix, cfg)
+			got = render(rx, ry, xb.Len(), yb.Len())
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("DiffLines([]byte(%q), []byte(%q)) differs from Diff [-want,+got]:\n%s", xl, yl, diff)
+			}
+		}
+		x.Release()
+		y.Release()
+		xb.Release()
+		yb.Release()
+	}
+}
+
+// text returns the lines in l, each followed by a newline character.
+func text(l []string) string {
+	var sb strings.Builder
+	for _, s := range l {
+		sb.WriteString(s)
+		sb.WriteByte('\n')
+	}
+	return sb.String()
+}
+
+func fill(n int, s string) []string {
+	r := make([]string, n)
+	for i := range r {
+		r[i] = s
+	}
+	return r
 }
 
 func checkDiffMatchesDiffFunc[T comparable](t *testing.T, x, y []T) {

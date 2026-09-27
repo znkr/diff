@@ -26,14 +26,14 @@ package textdiff
 
 import (
 	"fmt"
-	"io"
 	"slices"
+	"unsafe"
 
 	"znkr.io/diff"
-	"znkr.io/diff/internal/byteview"
 	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/impl"
 	"znkr.io/diff/internal/indentheuristic"
+	"znkr.io/diff/internal/lines"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -79,17 +79,13 @@ type Hunk[T string | []byte] struct {
 // minor version upgrades. DO NOT rely on the output being stable.
 func Hunks[T string | []byte](x, y T, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic)
-	xlines, _ := byteview.SplitLines(byteview.From(x))
-	ylines, _ := byteview.SplitLines(byteview.From(y))
-	rx, ry := impl.Diff(xlines, ylines, cfg)
-	defer rvecs.Release(rx, ry)
-	if cfg.IndentHeuristic {
-		indentheuristic.Apply(xlines, ylines, rx, ry)
-	}
-	return hunks[T](xlines, ylines, rx, ry, cfg)
+	d := diffLines(x, y, cfg)
+	defer d.release()
+	return hunks(&d, cfg)
 }
 
-func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec, cfg config.Config) []Hunk[T] {
+func hunks[T string | []byte](d *lineDiff[T], cfg config.Config) []Hunk[T] {
+	rx, ry := d.rx, d.ry
 	var buf [16]rvecs.Hunk
 	hs := rvecs.AppendHunks(buf[:0], rx, ry, cfg)
 	if len(hs) == 0 {
@@ -108,7 +104,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec, cfg co
 			for e := min(rx.NextClear(s), hunk.S1); s < e; {
 				eout = append(eout, Edit[T]{
 					Op:      diff.Delete,
-					Line:    byteview.UnsafeAs[T](x[s]),
+					Line:    d.xLine(s),
 					LineNoX: s,
 					LineNoY: -1,
 				})
@@ -117,7 +113,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec, cfg co
 			for e := min(ry.NextClear(t), hunk.T1); t < e; {
 				eout = append(eout, Edit[T]{
 					Op:      diff.Insert,
-					Line:    byteview.UnsafeAs[T](y[t]),
+					Line:    d.yLine(t),
 					LineNoX: -1,
 					LineNoY: t,
 				})
@@ -126,7 +122,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec, cfg co
 			for e := s + min(min(rx.NextSet(s), hunk.S1)-s, min(ry.NextSet(t), hunk.T1)-t); s < e; {
 				eout = append(eout, Edit[T]{
 					Op:      diff.Match,
-					Line:    byteview.UnsafeAs[T](x[s]),
+					Line:    d.xLine(s),
 					LineNoX: s,
 					LineNoY: t,
 				})
@@ -159,17 +155,13 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec, cfg co
 // minor version upgrades. DO NOT rely on the output being stable.
 func Edits[T string | []byte](x, y T, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal|config.Fast|config.IndentHeuristic)
-	xlines, _ := byteview.SplitLines(byteview.From(x))
-	ylines, _ := byteview.SplitLines(byteview.From(y))
-	rx, ry := impl.Diff(xlines, ylines, cfg)
-	defer rvecs.Release(rx, ry)
-	if cfg.IndentHeuristic {
-		indentheuristic.Apply(xlines, ylines, rx, ry)
-	}
-	return edits[T](xlines, ylines, rx, ry)
+	d := diffLines(x, y, cfg)
+	defer d.release()
+	return edits(&d)
 }
 
-func edits[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec) []Edit[T] {
+func edits[T string | []byte](d *lineDiff[T]) []Edit[T] {
+	rx, ry := d.rx, d.ry
 	// Compute the number of edits, this is relatively cheap and allows us to
 	// preallocate the return value.
 	n, m := rx.Len()-1, ry.Len()-1
@@ -198,7 +190,7 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec) []Edit
 		for e := min(rx.NextClear(s), n); s < e; {
 			eout = append(eout, Edit[T]{
 				Op:      diff.Delete,
-				Line:    byteview.UnsafeAs[T](x[s]),
+				Line:    d.xLine(s),
 				LineNoX: s,
 				LineNoY: -1,
 			})
@@ -207,7 +199,7 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec) []Edit
 		for e := min(ry.NextClear(t), m); t < e; {
 			eout = append(eout, Edit[T]{
 				Op:      diff.Insert,
-				Line:    byteview.UnsafeAs[T](y[t]),
+				Line:    d.yLine(t),
 				LineNoX: -1,
 				LineNoY: t,
 			})
@@ -216,7 +208,7 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec) []Edit
 		for e := s + min(min(rx.NextSet(s), n)-s, min(ry.NextSet(t), m)-t); s < e; {
 			eout = append(eout, Edit[T]{
 				Op:      diff.Match,
-				Line:    byteview.UnsafeAs[T](x[s]),
+				Line:    d.xLine(s),
 				LineNoX: s,
 				LineNoY: t,
 			})
@@ -246,15 +238,12 @@ const missingNewline = "\n\\ No newline at end of file\n"
 func Unified[T string | []byte](x, y T, opts ...Option) T {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic|config.TerminalColors)
 
-	xlines, xMissingNewline := byteview.SplitLines(byteview.From(x))
-	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))
-
-	rx, ry := impl.Diff(xlines, ylines, cfg)
-	defer rvecs.Release(rx, ry)
-
-	if cfg.IndentHeuristic {
-		indentheuristic.Apply(xlines, ylines, rx, ry)
-	}
+	d := diffLines(x, y, cfg)
+	defer d.release()
+	xlines, ylines, rx, ry := &d.x, &d.y, d.rx, d.ry
+	// Only the last line of an input can be missing its newline character.
+	xMissingNewline := len(x) > 0 && x[len(x)-1] != '\n'
+	yMissingNewline := len(y) > 0 && y[len(y)-1] != '\n'
 
 	var colors config.ColorConfig
 	if cfg.Colors != nil {
@@ -273,87 +262,89 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 			if s < h.S1 && rx.Get(s) {
 				n += len(colors.Delete) + len(colors.Reset)
 				for e := min(rx.NextClear(s), h.S1); s < e; {
-					n += 1 + xlines[s].Len()
+					n += 1 + len(xlines.Line(s))
 					s++
 				}
 			}
 			if t < h.T1 && ry.Get(t) {
 				n += len(colors.Insert) + len(colors.Reset)
 				for e := min(ry.NextClear(t), h.T1); t < e; {
-					n += 1 + ylines[t].Len()
+					n += 1 + len(ylines.Line(t))
 					t++
 				}
 			}
 			if s < h.S1 && t < h.T1 && !rx.Get(s) && !ry.Get(t) {
 				n += len(colors.Match) + len(colors.Reset)
 				for e := s + min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t); s < e; {
-					n += 1 + xlines[s].Len()
+					n += 1 + len(xlines.Line(s))
 					s++
 					t++
 				}
 			}
 		}
 	}
-	if xMissingNewline >= 0 {
-		n += len(missingNewline)
-	}
-	if yMissingNewline >= 0 {
-		n += len(missingNewline)
+	if len(hs) > 0 {
+		last := hs[len(hs)-1]
+		if xMissingNewline && last.S1 == xlines.Len() {
+			n += len(missingNewline)
+		}
+		if yMissingNewline && last.T1 == ylines.Len() {
+			n += len(missingNewline)
+		}
 	}
 
 	// Format output.
-	var b byteview.Builder[T]
-	b.Grow(n)
+	b := slices.Grow([]byte(nil), n)
 	for _, h := range hs {
-		b.WriteString(colors.HunkHeader)
-		b.WriteString("@@ -")
-		writeRange(&b, h.S0, h.S1)
-		b.WriteString(" +")
-		writeRange(&b, h.T0, h.T1)
-		b.WriteString(" @@")
-		b.WriteString(colors.Reset)
-		b.WriteString("\n")
+		b = append(b, colors.HunkHeader...)
+		b = append(b, "@@ -"...)
+		b = appendRange(b, h.S0, h.S1)
+		b = append(b, " +"...)
+		b = appendRange(b, h.T0, h.T1)
+		b = append(b, " @@"...)
+		b = append(b, colors.Reset...)
+		b = append(b, '\n')
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			if s < h.S1 && rx.Get(s) {
-				b.WriteString(colors.Delete)
+				b = append(b, colors.Delete...)
 				for e := min(rx.NextClear(s), h.S1); s < e; {
-					b.WriteString(prefixDelete)
-					b.WriteByteView(xlines[s])
-					if s == xMissingNewline {
-						b.WriteString(missingNewline)
-					}
+					b = append(b, prefixDelete...)
+					b = append(b, xlines.Line(s)...)
 					s++
 				}
-				b.WriteString(colors.Reset)
+				if xMissingNewline && s == xlines.Len() {
+					b = append(b, missingNewline...)
+				}
+				b = append(b, colors.Reset...)
 			}
 			if t < h.T1 && ry.Get(t) {
-				b.WriteString(colors.Insert)
+				b = append(b, colors.Insert...)
 				for e := min(ry.NextClear(t), h.T1); t < e; {
-					b.WriteString(prefixInsert)
-					b.WriteByteView(ylines[t])
-					if t == yMissingNewline {
-						b.WriteString(missingNewline)
-					}
+					b = append(b, prefixInsert...)
+					b = append(b, ylines.Line(t)...)
 					t++
 				}
-				b.WriteString(colors.Reset)
+				if yMissingNewline && t == ylines.Len() {
+					b = append(b, missingNewline...)
+				}
+				b = append(b, colors.Reset...)
 			}
 			if s < h.S1 && t < h.T1 && !rx.Get(s) && !ry.Get(t) {
-				b.WriteString(colors.Match)
+				b = append(b, colors.Match...)
 				for e := s + min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t); s < e; {
-					b.WriteString(prefixMatch)
-					b.WriteByteView(xlines[s])
-					if s == xMissingNewline {
-						b.WriteString(missingNewline)
-					}
+					b = append(b, prefixMatch...)
+					b = append(b, xlines.Line(s)...)
 					s++
 					t++
 				}
-				b.WriteString(colors.Reset)
+				if xMissingNewline && s == xlines.Len() {
+					b = append(b, missingNewline...)
+				}
+				b = append(b, colors.Reset...)
 			}
 		}
 	}
-	return b.Build()
+	return unsafeFromBytes[T](b)
 }
 
 // rangeStart returns the line number that starts the hunk range [lo, hi) in a
@@ -366,17 +357,17 @@ func rangeStart(lo, hi int) int {
 	return lo + 1
 }
 
-// writeRange writes the hunk range [lo, hi) in a hunk header. Like GNU diff, it
-// leaves out the line count when the count is 1.
-func writeRange(w io.Writer, lo, hi int) {
+// appendRange appends the hunk range [lo, hi) in a hunk header to b and returns
+// the extended buffer. Like GNU diff, it leaves out the line count when the
+// count is 1.
+func appendRange(b []byte, lo, hi int) []byte {
 	if hi-lo == 1 {
-		fmt.Fprintf(w, "%d", lo+1)
-	} else {
-		fmt.Fprintf(w, "%d,%d", rangeStart(lo, hi), hi-lo)
+		return fmt.Appendf(b, "%d", lo+1)
 	}
+	return fmt.Appendf(b, "%d,%d", rangeStart(lo, hi), hi-lo)
 }
 
-// rangeLen returns the number of bytes that [writeRange] writes for [lo, hi).
+// rangeLen returns the number of bytes that [appendRange] appends for [lo, hi).
 func rangeLen(lo, hi int) int {
 	n := numDigits(rangeStart(lo, hi))
 	if hi-lo != 1 {
@@ -403,4 +394,56 @@ func numDigits(v int) (n int) {
 		}
 		return n
 	}
+}
+
+// lineDiff is the diff of the lines of two inputs.
+type lineDiff[T string | []byte] struct {
+	xin, yin T // inputs
+	x, y     lines.Lines
+	rx, ry   rvecs.Vec
+}
+
+// diffLines returns the diff of the lines of x and y. Call [lineDiff.release]
+// when it's no longer needed.
+func diffLines[T string | []byte](x, y T, cfg config.Config) lineDiff[T] {
+	d := lineDiff[T]{xin: x, yin: y}
+	var prefix, suffix int
+	d.x, d.y, prefix, suffix = lines.SplitPair(x, y)
+	d.rx, d.ry = impl.DiffLines(&d.x, &d.y, prefix, suffix, cfg)
+	if cfg.IndentHeuristic {
+		indentheuristic.Apply(&d.x, &d.y, d.rx, d.ry)
+	}
+	return d
+}
+
+// xLine returns line i of x.
+func (d *lineDiff[T]) xLine(i int) T {
+	start, end := d.x.Span(i)
+	return d.xin[start:end]
+}
+
+// yLine returns line i of y.
+func (d *lineDiff[T]) yLine(i int) T {
+	start, end := d.y.Span(i)
+	return d.yin[start:end]
+}
+
+// release returns the memory of d to the pools. d must not be used after
+// release.
+func (d *lineDiff[T]) release() {
+	d.x.Release()
+	d.y.Release()
+	rvecs.Release(d.rx, d.ry)
+}
+
+// unsafeFromBytes returns b as a T without copying. If T is string, b must not
+// be modified afterwards.
+func unsafeFromBytes[T string | []byte](b []byte) T {
+	switch any((*T)(nil)).(type) {
+	case *string:
+		return T(unsafe.String(unsafe.SliceData(b), len(b)))
+	case *[]byte:
+		return T(b)
+	}
+	panic("never reached")
 }

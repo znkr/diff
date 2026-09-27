@@ -17,6 +17,7 @@ package impl
 import (
 	"hash/maphash"
 
+	"znkr.io/diff/internal/lines"
 	"znkr.io/diff/internal/pool"
 	"znkr.io/diff/internal/rvecs"
 )
@@ -82,7 +83,35 @@ func preprocess[T comparable](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y
 	return p
 }
 
-// preprocessed is the result of [preprocess].
+// preprocessLines is [preprocess] for the lines of x and y.
+func preprocessLines(rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y *lines.Lines) preprocessed {
+	p := newPreprocessed(smax-smin, tmax-tmin)
+
+	seed := maphash.MakeSeed()
+	tab := newIDTable(smax - smin)
+	defer tab.release()
+
+	// Lines between the common prefix and suffix are always split, so the loops
+	// read them with At, which inlines.
+	for i := smin; i < smax; i++ {
+		e := x.At(i)
+		id := tab.insertLine(x, i, e, maphash.String(seed, e))
+		p.addX(id)
+	}
+	for i := tmin; i < tmax; i++ {
+		e := y.At(i)
+		id := tab.lookupLine(x, e, maphash.String(seed, e))
+		if id < 0 {
+			ry.Set(i)
+			continue
+		}
+		p.addY(id, i)
+	}
+	p.filterX(rx, smin)
+	return p
+}
+
+// preprocessed is the result of [preprocess] and [preprocessLines].
 type preprocessed struct {
 	// x[smin:smax] as IDs except for elements that appear only in x
 	x0 []int
