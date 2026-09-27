@@ -14,6 +14,10 @@
 
 package impl
 
+import (
+	"znkr.io/diff/internal/rvecs"
+)
+
 // preprocess performs an important optimization that significantly reduces the
 // problem size and time complexity.
 //
@@ -50,7 +54,7 @@ package impl
 // Note: The code below is trading some density of the ID space (and with that
 // memory) for improved runtime. The bottleneck here are map lookups, the code
 // below is structured so that the number of map lookups is minimal.
-func preprocess[T comparable](rx, ry []bool, smin, smax, tmin, tmax int, x, y []T) (x0, y0 []int, xidx, yidx []int, counts []int, nanchors int) {
+func preprocess[T comparable](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y []T) (x0, y0 []int, xidx, yidx []int, counts []int, nanchors int) {
 	idx := make(map[T]int, smax-smin) // temporary map from element to ID
 	buf := make([]int, 2*(smax-smin)+2*(tmax-tmin))
 	x0, buf = buf[:0:smax-smin], buf[smax-smin:]
@@ -80,7 +84,7 @@ func preprocess[T comparable](rx, ry []bool, smin, smax, tmin, tmax int, x, y []
 		id, ok := idx[e]
 		if !ok {
 			// Not in x, this is always an insertion.
-			ry[i+tmin] = true
+			ry.Set(i + tmin)
 			continue
 		}
 		if c := counts[id]; c < 8 {
@@ -101,7 +105,7 @@ func preprocess[T comparable](rx, ry []bool, smin, smax, tmin, tmax int, x, y []
 			}
 			i++
 		} else {
-			rx[j+smin] = true // always an deletion
+			rx.Set(j + smin) // always an deletion
 		}
 	}
 	x0 = x0[:i]

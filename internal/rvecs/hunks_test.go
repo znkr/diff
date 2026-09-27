@@ -15,14 +15,13 @@
 package rvecs
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff/internal/config"
 )
 
-func TestHunks(t *testing.T) {
+func TestAppendHunks(t *testing.T) {
 	tests := []struct {
 		name      string
 		rx, ry    []bool
@@ -75,9 +74,9 @@ func TestHunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := slices.Collect(Hunks(tt.rx, tt.ry, config.Config{Context: tt.context}))
+			got := AppendHunks(nil, fromBools(tt.rx), fromBools(tt.ry), config.Config{Context: tt.context})
 			if diff := cmp.Diff(tt.wantHunks, got); diff != "" {
-				t.Errorf("Hunks(...) result are different [-want,+got]:\n%s", diff)
+				t.Errorf("AppendHunks(...) result are different [-want,+got]:\n%s", diff)
 			}
 		})
 	}

@@ -70,6 +70,7 @@ type Hunk[T any] struct {
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast)
 	rx, ry := impl.Diff(x, y, cfg)
+	defer rvecs.Release(rx, ry)
 	return hunks(x, y, rx, ry, cfg)
 }
 
@@ -94,26 +95,27 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal)
 	rx, ry := impl.DiffFunc(x, y, eq, cfg)
+	defer rvecs.Release(rx, ry)
 	return hunks(x, y, rx, ry, cfg)
 }
 
-func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
-	// Compute the number of hunks and edits, this is relatively cheap and
-	// allows us to preallocate the return values.
-	var nhunks, nedits int
-	for hunk := range rvecs.Hunks(rx, ry, cfg) {
-		nhunks++
-		nedits += hunk.Edits
-	}
-	if nhunks == 0 {
+func hunks[T any](x, y []T, rx, ry rvecs.Vec, cfg config.Config) []Hunk[T] {
+	var buf [16]rvecs.Hunk
+	hs := rvecs.AppendHunks(buf[:0], rx, ry, cfg)
+	if len(hs) == 0 {
 		return nil
+	}
+	// Count the edits to preallocate the return values.
+	nedits := 0
+	for _, hunk := range hs {
+		nedits += hunk.Edits
 	}
 
 	eout := make([]Edit[T], 0, nedits)
-	hout := make([]Hunk[T], 0, nhunks)
-	for hunk := range rvecs.Hunks(rx, ry, cfg) {
+	hout := make([]Hunk[T], 0, len(hs))
+	for _, hunk := range hs {
 		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
-			for s < hunk.S1 && rx[s] {
+			for e := min(rx.NextClear(s), hunk.S1); s < e; {
 				eout = append(eout, Edit[T]{
 					Op:   Delete,
 					X:    x[s],
@@ -122,7 +124,7 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 				})
 				s++
 			}
-			for t < hunk.T1 && ry[t] {
+			for e := min(ry.NextClear(t), hunk.T1); t < e; {
 				eout = append(eout, Edit[T]{
 					Op:   Insert,
 					Y:    y[t],
@@ -131,7 +133,7 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 				})
 				t++
 			}
-			for s < hunk.S1 && t < hunk.T1 && !rx[s] && !ry[t] {
+			for e := s + min(min(rx.NextSet(s), hunk.S1)-s, min(ry.NextSet(t), hunk.T1)-t); s < e; {
 				eout = append(eout, Edit[T]{
 					Op:   Match,
 					X:    x[s],
@@ -168,6 +170,7 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal|config.Fast)
 	rx, ry := impl.Diff(x, y, cfg)
+	defer rvecs.Release(rx, ry)
 	return edits(x, y, rx, ry)
 }
 
@@ -188,24 +191,25 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal)
 	rx, ry := impl.DiffFunc(x, y, eq, cfg)
+	defer rvecs.Release(rx, ry)
 	return edits(x, y, rx, ry)
 }
 
-func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
+func edits[T any](x, y []T, rx, ry rvecs.Vec) []Edit[T] {
 	// Compute the number of edits, this is relatively cheap and allows us to
 	// preallocate the return value.
-	n, m := len(rx)-1, len(ry)-1
+	n, m := rx.Len()-1, ry.Len()-1
 	var nedits int
 	for s, t := 0, 0; s < n || t < m; {
-		for s < n && rx[s] {
+		for e := min(rx.NextClear(s), n); s < e; {
 			nedits++
 			s++
 		}
-		for t < m && ry[t] {
+		for e := min(ry.NextClear(t), m); t < e; {
 			nedits++
 			t++
 		}
-		for s < n && t < m && !rx[s] && !ry[t] {
+		for e := s + min(min(rx.NextSet(s), n)-s, min(ry.NextSet(t), m)-t); s < e; {
 			nedits++
 			s++
 			t++
@@ -217,7 +221,7 @@ func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
 
 	eout := make([]Edit[T], 0, nedits)
 	for s, t := 0, 0; s < n || t < m; {
-		for s < n && rx[s] {
+		for e := min(rx.NextClear(s), n); s < e; {
 			eout = append(eout, Edit[T]{
 				Op:   Delete,
 				X:    x[s],
@@ -226,7 +230,7 @@ func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
 			})
 			s++
 		}
-		for t < m && ry[t] {
+		for e := min(ry.NextClear(t), m); t < e; {
 			eout = append(eout, Edit[T]{
 				Op:   Insert,
 				Y:    y[t],
@@ -235,7 +239,7 @@ func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
 			})
 			t++
 		}
-		for s < n && t < m && !rx[s] && !ry[t] {
+		for e := s + min(min(rx.NextSet(s), n)-s, min(ry.NextSet(t), m)-t); s < e; {
 			eout = append(eout, Edit[T]{
 				Op:   Match,
 				X:    x[s],

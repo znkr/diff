@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff/internal/config"
+	"znkr.io/diff/internal/rvecs"
 )
 
 func TestDiff(t *testing.T) {
@@ -146,13 +147,13 @@ func TestDiff(t *testing.T) {
 	}
 }
 
-func render(rx, ry []bool, n, m int) string {
+func render(rx, ry rvecs.Vec, n, m int) string {
 	var sb strings.Builder
 	for s, t := 0, 0; s < n || t < m; {
-		if rx[s] {
+		if rx.Get(s) {
 			sb.WriteRune('D')
 			s++
-		} else if ry[t] {
+		} else if ry.Get(t) {
 			sb.WriteRune('I')
 			t++
 		} else {

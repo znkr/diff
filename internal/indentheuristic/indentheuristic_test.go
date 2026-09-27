@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/txtar"
 	"znkr.io/diff/internal/byteview"
+	"znkr.io/diff/internal/rvecs"
 )
 
 func TestApply(t *testing.T) {
@@ -61,44 +62,47 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func parse(t *testing.T, diff []byte) (x, y []byteview.ByteView, rx, ry []bool) {
+func parse(t *testing.T, diff []byte) (x, y []byteview.ByteView, rx, ry rvecs.Vec) {
+	var dx, dy []int
 	for line := range bytes.Lines(diff) {
 		switch line[0] {
 		case ' ':
 			x = append(x, byteview.From(line[1:]))
 			y = append(y, byteview.From(line[1:]))
-			rx = append(rx, false)
-			ry = append(ry, false)
 		case '-':
+			dx = append(dx, len(x))
 			x = append(x, byteview.From(line[1:]))
-			rx = append(rx, true)
 		case '+':
+			dy = append(dy, len(y))
 			y = append(y, byteview.From(line[1:]))
-			ry = append(ry, true)
 		default:
 			t.Fatalf("failed to parse diff: unknown prefix %q", line[0])
 		}
 	}
-	// Border
-	rx = append(rx, false)
-	ry = append(ry, false)
+	rx, ry = rvecs.Make(len(x), len(y))
+	for _, i := range dx {
+		rx.Set(i)
+	}
+	for _, i := range dy {
+		ry.Set(i)
+	}
 	return
 }
 
-func render(x, y []byteview.ByteView, rx, ry []bool) []byte {
+func render(x, y []byteview.ByteView, rx, ry rvecs.Vec) []byte {
 	var b byteview.Builder[[]byte]
 	for s, t := 0, 0; s < len(x) || t < len(y); {
-		for s < len(x) && rx[s] {
+		for s < len(x) && rx.Get(s) {
 			b.WriteString("-")
 			b.WriteByteView(x[s])
 			s++
 		}
-		for t < len(y) && ry[t] {
+		for t < len(y) && ry.Get(t) {
 			b.WriteString("+")
 			b.WriteByteView(y[t])
 			t++
 		}
-		for s < len(x) && t < len(y) && !rx[s] && !ry[t] {
+		for s < len(x) && t < len(y) && !rx.Get(s) && !ry.Get(t) {
 			b.WriteString(" ")
 			b.WriteByteView(x[s])
 			s++

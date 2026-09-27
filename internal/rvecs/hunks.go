@@ -15,8 +15,6 @@
 package rvecs
 
 import (
-	"iter"
-
 	"znkr.io/diff/internal/config"
 )
 
@@ -27,52 +25,46 @@ type Hunk struct {
 	Edits  int // Number of edits in this hunk.
 }
 
-func Hunks(rx, ry []bool, cfg config.Config) iter.Seq[Hunk] {
-	return func(yield func(Hunk) bool) {
-		context := cfg.Context
-		s, t := 0, 0     // current index into x, y
-		s0, t0 := -1, -1 // start of the current hunk
-		d := 0           // number of edits in the current hunk
-		run := 0         // number of consecutive matches
-		n, m := len(rx)-1, len(ry)-1
-		for s < n || t < m {
-			if rx[s] || ry[t] {
-				run = 0 // not a match, reset run counter.
+// AppendHunks appends the hunks of the result vectors rx and ry to dst and
+// returns the result.
+func AppendHunks(dst []Hunk, rx, ry Vec, cfg config.Config) []Hunk {
+	context := cfg.Context
+	s, t := 0, 0     // current index into x, y
+	s0, t0 := -1, -1 // start of the current hunk
+	d := 0           // number of edits in the current hunk
+	run := 0         // number of consecutive matches
+	n, m := rx.Len()-1, ry.Len()-1
+	for s < n || t < m {
+		if rx.Get(s) || ry.Get(t) {
+			run = 0 // not a match, reset run counter.
 
-				// If we're not inside a hunk, start a new hunk or, if there's
-				// an overlap due to context, continue with the previous hunk.
-				if s0 < 0 {
-					// start of missing matches (didn't collect matches before
-					// now)
-					s0, t0 = max(0, s-context), max(0, t-context)
-					d = s - s0
-				}
+			// If we're not inside a hunk, start a new hunk or, if there's an
+			// overlap due to context, continue with the previous hunk.
+			if s0 < 0 {
+				// start of missing matches (didn't collect matches before now)
+				s0, t0 = max(0, s-context), max(0, t-context)
+				d = s - s0
+			}
 
-				for s < n && rx[s] {
-					s++
-					d++
-				}
-				for t < m && ry[t] {
-					t++
-					d++
-				}
-			} else {
-				for s < n && t < m && !rx[s] && !ry[t] {
-					s++
-					t++
-					run++
-					d++
-				}
-			}
-			// Active in-progress hunk and we've seen as many matches as we want
-			// in a context, finish the hunk.
-			if s0 >= 0 && (run > 2*context || s == n && t == m) {
-				Δ := min(0, -run+context)
-				if !yield(Hunk{s0, s + Δ, t0, t + Δ, d + Δ}) {
-					break
-				}
-				s0, t0 = -1, -1
-			}
+			// Skip the changes in x and y. The element at n (m) is unchanged.
+			e, f := rx.NextClear(s), ry.NextClear(t)
+			d += (e - s) + (f - t)
+			s, t = e, f
+		} else {
+			// Skip to the next change in x or y, or to the end of either.
+			k := min(min(rx.NextSet(s), n)-s, min(ry.NextSet(t), m)-t)
+			s += k
+			t += k
+			run += k
+			d += k
+		}
+		// Active in-progress hunk and we've seen as many matches as we want in
+		// a context, finish the hunk.
+		if s0 >= 0 && (run > 2*context || s == n && t == m) {
+			Δ := min(0, -run+context)
+			dst = append(dst, Hunk{s0, s + Δ, t0, t + Δ, d + Δ})
+			s0, t0 = -1, -1
 		}
 	}
+	return dst
 }

@@ -5,6 +5,8 @@ package impl
 
 import (
 	"math"
+
+	"znkr.io/diff/internal/rvecs"
 )
 
 type myersInt struct {
@@ -17,7 +19,7 @@ type myersInt struct {
 
 	xidx, yidx []int
 
-	rx, ry []bool
+	rx, ry rvecs.Vec
 }
 
 func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
@@ -62,11 +64,8 @@ func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
 		m.yidx = idx[:len(y)]
 	}
 
-	if m.rx == nil || m.ry == nil {
-
-		r := make([]bool, (len(x) + len(y) + 2))
-		m.rx = r[: len(x)+1 : len(x)+1]
-		m.ry = r[len(x)+1:]
+	if m.rx.Len() == 0 || m.ry.Len() == 0 {
+		m.rx, m.ry = rvecs.Make(len(x), len(y))
 	}
 	return
 }
@@ -74,14 +73,10 @@ func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
 func (m *myersInt) compare(smin, smax, tmin, tmax int, optimal bool) {
 	if smin == smax {
 
-		for t := tmin; t < tmax; t++ {
-			m.ry[m.yidx[t]] = true
-		}
+		m.ry.SetSorted(m.yidx[tmin:tmax])
 	} else if tmin == tmax {
 
-		for s := smin; s < smax; s++ {
-			m.rx[m.xidx[s]] = true
-		}
+		m.rx.SetSorted(m.xidx[smin:smax])
 	} else {
 
 		s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, optimal)
