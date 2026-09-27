@@ -15,6 +15,9 @@
 package impl
 
 import (
+	"hash/maphash"
+
+	"znkr.io/diff/internal/pool"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -44,70 +47,114 @@ import (
 // that, a count > 4 means the element appears in both x and y and a count = 1+4
 // means the element is an anchor.
 //
-// The results are the following slices:
-//   - x0:     x[smin:smax] in as IDs except for elements that appear only in x
-//   - y0:     y[tmin:tmax] in as IDs except for elements that appear only in y
-//   - xidx:   A mapping from x0 to x: x0[s] corresponds to x[xidx[s]]
-//   - yidx:   A mapping from y0 to y: y0[t] corresponds to y[yidx[t]]
-//   - counts: The number of times a ID appears in x and y.
+// The results are in the fields of [preprocessed]. Call [preprocessed.release]
+// when they are no longer needed.
 //
 // Note: The code below is trading some density of the ID space (and with that
-// memory) for improved runtime. The bottleneck here are map lookups, the code
-// below is structured so that the number of map lookups is minimal.
-func preprocess[T comparable](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y []T) (x0, y0 []int, xidx, yidx []int, counts []int, nanchors int) {
-	idx := make(map[T]int, smax-smin) // temporary map from element to ID
-	buf := make([]int, 2*(smax-smin)+2*(tmax-tmin))
-	x0, buf = buf[:0:smax-smin], buf[smax-smin:]
-	xidx, buf = buf[:0:smax-smin], buf[smax-smin:]
-	y0, buf = buf[:0:tmax-tmin], buf[tmax-tmin:]
-	yidx, buf = buf[:0:tmax-tmin], buf[tmax-tmin:]
-	if len(buf) != 0 && cap(buf) != 0 {
-		panic("something went wrong during buffer assignments")
-	}
-	counts = make([]int, smax-smin)
+// memory) for improved runtime. The bottleneck here are hash table lookups, the
+// code below is structured so that the number of lookups is minimal.
+func preprocess[T comparable](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y []T) preprocessed {
+	p := newPreprocessed(smax-smin, tmax-tmin)
+
+	seed := maphash.MakeSeed()
+	tab := newIDTable(smax - smin)
+	defer tab.release()
+
 	// Step 1: Create an ID for every element in x[smin:smax] and count the
 	// number of occurrences.
-	for _, e := range x[smin:smax] {
-		id, ok := idx[e]
-		if !ok {
-			id = len(idx)
-			idx[e] = id
-		}
-		if c := counts[id]; c < 2 {
-			counts[id] = c + 1
-		}
-		x0 = append(x0, id)
+	for i, e := range x[smin:smax] {
+		id := tab.insert(x, smin+i, maphash.Comparable(seed, e))
+		p.addX(id)
 	}
 	// Step 2: Do the same for y, but already ignore everything that's not in x,
 	// except for marking these elements as insertions.
 	for i, e := range y[tmin:tmax] {
-		id, ok := idx[e]
-		if !ok {
+		id := tab.lookup(x, e, maphash.Comparable(seed, e))
+		if id < 0 {
 			// Not in x, this is always an insertion.
 			ry.Set(i + tmin)
 			continue
 		}
-		if c := counts[id]; c < 8 {
-			counts[id] = c + 4
-		}
-		yidx = append(yidx, i+tmin)
-		y0 = append(y0, id)
+		p.addY(id, i+tmin)
 	}
 	// Step 3: Filter out elements from x0 that are not in y.
+	p.filterX(rx, smin)
+	return p
+}
+
+// preprocessed is the result of [preprocess].
+type preprocessed struct {
+	// x[smin:smax] as IDs except for elements that appear only in x
+	x0 []int
+	// y[tmin:tmax] as IDs except for elements that appear only in y
+	y0 []int
+	// x0[s] corresponds to x[xidx[s]]
+	xidx []int
+	// y0[t] corresponds to y[yidx[t]]
+	yidx []int
+	// number of times an ID appears in x and y, see [preprocess]
+	counts []int
+
+	nanchors int // number of elements that appear exactly once in x and in y
+
+	scratch []int // backs x0, y0, xidx, yidx, and counts
+}
+
+// newPreprocessed returns a preprocessed with empty x0 and xidx with capacity
+// n, empty y0 and yidx with capacity m, and counts with n zeros. Call
+// [preprocessed.release] when it's no longer needed.
+func newPreprocessed(n, m int) preprocessed {
+	var p preprocessed
+	p.scratch = pool.Ints.GetUncleared(3*n + 2*m)
+	b := p.scratch
+	p.x0, b = b[:0:n], b[n:]
+	p.xidx, b = b[:0:n], b[n:]
+	p.y0, b = b[:0:m], b[m:]
+	p.yidx, b = b[:0:m], b[m:]
+	p.counts = b[:n:n]
+	clear(p.counts)
+	return p
+}
+
+// release returns the memory of p to [pool.Ints]. p must not be used after
+// release.
+func (p *preprocessed) release() { pool.Ints.Put(p.scratch) }
+
+// addX appends the ID of the next element of x to x0 and counts it.
+func (p *preprocessed) addX(id int) {
+	if c := p.counts[id]; c < 2 {
+		p.counts[id] = c + 1
+	}
+	p.x0 = append(p.x0, id)
+}
+
+// addY appends the ID of y[j], which also appears in x, to y0 and j to yidx,
+// and counts it.
+func (p *preprocessed) addY(id, j int) {
+	if c := p.counts[id]; c < 8 {
+		p.counts[id] = c + 4
+	}
+	p.yidx = append(p.yidx, j)
+	p.y0 = append(p.y0, id)
+}
+
+// filterX removes the elements from x0 that don't appear in y, marks them as
+// deletions in rx, and appends the index in x of each remaining element to
+// xidx. It sets nanchors.
+func (p *preprocessed) filterX(rx rvecs.Vec, smin int) {
 	i := 0
-	for j, e := range x0 {
-		if c := counts[e]; c > 4 {
-			xidx = append(xidx, j+smin)
-			x0[i] = e
+	for j, e := range p.x0 {
+		if c := p.counts[e]; c > 4 {
+			p.xidx = append(p.xidx, j+smin)
+			p.x0[i] = e
 			if c == 1+4 {
 				// Element appears exactly once in x (1) and y (4).
-				nanchors++
+				p.nanchors++
 			}
 			i++
 		} else {
 			rx.Set(j + smin) // always an deletion
 		}
 	}
-	x0 = x0[:i]
-	return
+	p.x0 = p.x0[:i]
 }
