@@ -6,6 +6,7 @@ package impl
 import (
 	"math"
 
+	"znkr.io/diff/internal/pool"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -39,15 +40,14 @@ func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
 	N, M := smax-smin, tmax-tmin
 	diagonals := N + M
 
-	vlen := 2*diagonals + 3
-
-	buf := make([]int, 2*vlen)
+	vlen := diagonals + 3
+	buf := pool.Ints.Get(2 * vlen)
 
 	m.x = x
 	m.y = y
 	m.vf = buf[:vlen]
 	m.vb = buf[vlen:]
-	m.v0 = diagonals + 1
+	m.v0 = M + 1
 
 	costLimit := 1
 	for i := diagonals; i != 0; i >>= 2 {
@@ -70,6 +70,11 @@ func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
 	return
 }
 
+func (m *myersInt) release() {
+
+	pool.Ints.Put(m.vf[:cap(m.vf)])
+}
+
 func (m *myersInt) compare(smin, smax, tmin, tmax int, optimal bool) {
 	if smin == smax {
 
@@ -88,7 +93,6 @@ func (m *myersInt) compare(smin, smax, tmin, tmax int, optimal bool) {
 
 func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, t1 int, opt0, opt1 bool) {
 	N, M := smax-smin, tmax-tmin
-	x, y := m.x, m.y
 	vf, vb := m.vf, m.vb
 	v0 := m.v0
 
@@ -105,8 +109,6 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 
 	for d := 1; ; d++ {
 
-		longestDiag := 0
-
 		if fmin > kmin {
 			fmin--
 			vf[v0+fmin-1] = math.MinInt
@@ -119,33 +121,9 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 		} else {
 			fmax--
 		}
-
-		for k := fmin; k <= fmax; k += 2 {
-			k0 := k + v0
-
-			var s int
-			if vf[k0-1] < vf[k0+1] {
-
-				s = vf[k0+1]
-			} else {
-
-				s = vf[k0-1] + 1
-			}
-			t := s - k
-
-			s0, t0 := s, t
-			for s < smax && t < tmax && x[s] == y[t] {
-				s++
-				t++
-			}
-
-			longestDiag = max(longestDiag, s-s0)
-
-			vf[k0] = s
-
-			if odd && bmin <= k && k <= bmax && s >= vb[k0] {
-				return s0, s, t0, t, true, true
-			}
+		fs0, fs1, ft0, ft1, flongest, found := m.forward(fmin, fmax, bmin, bmax, smax, tmax, odd)
+		if found {
+			return fs0, fs1, ft0, ft1, true, true
 		}
 
 		if bmin > kmin {
@@ -160,30 +138,11 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 		} else {
 			bmax--
 		}
-		for k := bmin; k <= bmax; k += 2 {
-			k0 := k + v0
-			var s int
-			if vb[k0-1] < vb[k0+1] {
-				s = vb[k0-1]
-			} else {
-				s = vb[k0+1] - 1
-			}
-			t := s - k
-
-			s0, t0 := s, t
-			for s > smin && t > tmin && x[s-1] == y[t-1] {
-				s--
-				t--
-			}
-
-			longestDiag = max(longestDiag, s0-s)
-
-			vb[k0] = s
-
-			if !odd && fmin <= k && k <= fmax && s <= vf[v0+k] {
-				return s, s0, t, t0, true, true
-			}
+		bs0, bs1, bt0, bt1, blongest, found := m.backward(bmin, bmax, fmin, fmax, smin, tmin, !odd)
+		if found {
+			return bs0, bs1, bt0, bt1, true, true
 		}
+		longestDiag := max(flongest, blongest)
 
 		if optimal {
 			continue
@@ -327,4 +286,64 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 			}
 		}
 	}
+}
+
+func (m *myersInt) forward(fmin, fmax, bmin, bmax, smax, tmax int, check bool) (s0, s1, t0, t1, longest int, found bool) {
+	x, y := m.x[:smax], m.y[:tmax]
+
+	lo, hi := m.v0+fmin-1, m.v0+fmax+2
+	wf := m.vf[lo:hi]
+	wb := m.vb[lo:hi][:len(wf)]
+
+	for w := 1; w < len(wf)-1; w += 2 {
+		k := fmin - 1 + w
+
+		s := max(wf[w-1]+1, wf[w+1])
+		t := s - k
+
+		s0, t0 := s, t
+		for uint(s) < uint(len(x)) && uint(t) < uint(len(y)) && x[s] == y[t] {
+			s++
+			t++
+		}
+
+		longest = max(longest, s-s0)
+
+		wf[w] = s
+
+		if check && bmin <= k && k <= bmax && s >= wb[w] {
+			return s0, s, t0, t, longest, true
+		}
+	}
+	return 0, 0, 0, 0, longest, false
+}
+
+func (m *myersInt) backward(bmin, bmax, fmin, fmax, smin, tmin int, check bool) (s0, s1, t0, t1, longest int, found bool) {
+	xb, yb := m.x[smin:], m.y[tmin:]
+
+	lo, hi := m.v0+bmin-1, m.v0+bmax+2
+	wb := m.vb[lo:hi]
+	wf := m.vf[lo:hi][:len(wb)]
+	for w := 1; w < len(wb)-1; w += 2 {
+		k := bmin - 1 + w
+		s := min(wb[w-1], wb[w+1]-1)
+		t := s - k
+
+		s0, t0 := s, t
+		i, j := s-smin, t-tmin
+		for uint(i-1) < uint(len(xb)) && uint(j-1) < uint(len(yb)) && xb[i-1] == yb[j-1] {
+			i--
+			j--
+		}
+		s, t = i+smin, j+tmin
+
+		longest = max(longest, s0-s)
+
+		wb[w] = s
+
+		if check && fmin <= k && k <= fmax && s <= wf[w] {
+			return s, s0, t, t0, longest, true
+		}
+	}
+	return 0, 0, 0, 0, longest, false
 }

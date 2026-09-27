@@ -17,6 +17,7 @@ package impl
 import (
 	"math"
 
+	"znkr.io/diff/internal/pool"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -26,8 +27,9 @@ type myers[T any] struct {
 
 	// v-arrays for forwards and backwards iteration respectively. A v-array
 	// stores the furthest reaching endpoint of a d-path in diagonal k in
-	// v[v0+k] where v0 is the offset that translates k in [-d, d] to k0 = v0+k
-	// in [0, 2*d]. The endpoints only store the s-coordinate since t = s - k.
+	// v[v0+k] where v0 is the offset that translates k in [-M-1, N+1] to k0 =
+	// v0+k in [0, N+M+2]. The endpoints only store the s-coordinate since t = s
+	// - k.
 	vf, vb []int
 	v0     int
 
@@ -60,16 +62,17 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 
 	N, M := smax-smin, tmax-tmin
 	diagonals := N + M
-	// +1 for the middle point and +2 for the borders
-	vlen := 2*diagonals + 3
-	// allocate space for vf and vb with a single allocation
-	buf := make([]int, 2*vlen)
+	// init strips the same number of elements from the start of x and y, so
+	// every split has k = s - t in [-M, N]. The two extra elements hold the
+	// borders at k = -M-1 and k = N+1.
+	vlen := diagonals + 3
+	buf := pool.Ints.Get(2 * vlen) // space for vf and vb in a single slice
 
 	m.x = x
 	m.y = y
 	m.vf = buf[:vlen]
 	m.vb = buf[vlen:]
-	m.v0 = diagonals + 1 // +1 for the middle point
+	m.v0 = M + 1
 
 	// Set the costLimit to the approximate square root of the number of
 	// diagonals bounded by minCostLimit.
@@ -92,6 +95,13 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 		m.rx, m.ry = rvecs.Make(len(x), len(y))
 	}
 	return
+}
+
+// release returns the memory of the v-arrays to [pool.Ints]. m must not be used
+// after release.
+func (m *myers[T]) release() {
+	// init allocates vf and vb as one slice with vb directly after vf.
+	pool.Ints.Put(m.vf[:cap(m.vf)])
 }
 
 // compare finds an optimal d-path from (smin, tmin) to (smax, tmax).
@@ -130,7 +140,6 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, 
 // common suffix and they may not both be empty.
 func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y T) bool) (s0, s1, t0, t1 int, opt0, opt1 bool) {
 	N, M := smax-smin, tmax-tmin
-	x, y := m.x, m.y
 	vf, vb := m.vf, m.vb
 	v0 := m.v0
 
@@ -167,8 +176,6 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 		// overlap, we have found a d-path, if not we're going to continue
 		// searching.
 
-		longestDiag := 0 // Longest diagonal we found
-
 		// Forwards iteration.
 		//
 		// First determine which diagonals k to search. Originally, we would
@@ -197,59 +204,9 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 		} else {
 			fmax--
 		}
-		// The k-loop searches for the furthest reaching d-path from (0,0) to
-		// (N,M) in diagonal k.
-		//
-		// The v-array, v[i] = vf[v0+fmid+i] (modulo bounds on k), contains the
-		// endpoints for the furthest reaching (d-1)-path in elements v[-d-1],
-		// v[-d+1], ..., v[d-1], v[d+1]. We know from Lemma 1 that these
-		// elements will be disjoined from where we're going to store the
-		// endpoint for the furthest reaching d-path that we're computing here.
-		for k := fmin; k <= fmax; k += 2 {
-			k0 := k + v0 // k as an index into vf
-
-			// According to Lemma 2 there are two possible furthest reaching
-			// d-paths:
-			//
-			//   1) A furthest reaching d-path on diagonal k-1, followed by a
-			//      horizontal edge, followed by the longest possible sequence
-			//      of diagonals.
-			//   2) A furthest reaching d-path on diagonal k+1, followed by a
-			//      vertical edge, followed by the longest possible sequence of
-			//      diagonals
-			//
-			// First find the endpoint of the furthest reaching d-path followed
-			// by a horizontal or vertical edge.
-			var s int
-			if vf[k0-1] < vf[k0+1] {
-				// Case 2. The vertical edge is implied by t = s - k.
-				s = vf[k0+1]
-			} else {
-				// Case 1 or case 2 when v[k-1] == v[k+1]. Handling the v[k-1]
-				// == v[k+1] case here prioritizes deletions over insertions.
-				s = vf[k0-1] + 1
-			}
-			t := s - k
-
-			// Then follow the diagonals as long as possible.
-			s0, t0 := s, t
-			for s < smax && t < tmax && eq(x[s], y[t]) {
-				s++
-				t++
-			}
-
-			// If we have found a long diagonal, we may be able to apply the
-			// GOOD_DIAGONAL heuristic (see below).
-			longestDiag = max(longestDiag, s-s0)
-
-			// Then store the endpoint of the furthest reaching d-path.
-			vf[k0] = s
-
-			// Potentially, check for an overlap with a backwards d-path. We're
-			// done when we found it.
-			if odd && bmin <= k && k <= bmax && s >= vb[k0] {
-				return s0, s, t0, t, true, true
-			}
+		fs0, fs1, ft0, ft1, flongest, found := m.forward(fmin, fmax, bmin, bmax, smax, tmax, odd, eq)
+		if found {
+			return fs0, fs1, ft0, ft1, true, true
 		}
 
 		// Backwards iteration.
@@ -267,30 +224,11 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 		} else {
 			bmax--
 		}
-		for k := bmin; k <= bmax; k += 2 {
-			k0 := k + v0
-			var s int
-			if vb[k0-1] < vb[k0+1] {
-				s = vb[k0-1]
-			} else {
-				s = vb[k0+1] - 1
-			}
-			t := s - k
-
-			s0, t0 := s, t
-			for s > smin && t > tmin && eq(x[s-1], y[t-1]) {
-				s--
-				t--
-			}
-
-			longestDiag = max(longestDiag, s0-s)
-
-			vb[k0] = s
-
-			if !odd && fmin <= k && k <= fmax && s <= vf[v0+k] {
-				return s, s0, t, t0, true, true
-			}
+		bs0, bs1, bt0, bt1, blongest, found := m.backward(bmin, bmax, fmin, fmax, smin, tmin, !odd, eq)
+		if found {
+			return bs0, bs1, bt0, bt1, true, true
 		}
+		longestDiag := max(flongest, blongest) // Longest diagonal we found
 
 		if optimal {
 			continue
@@ -454,4 +392,112 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 			}
 		}
 	}
+}
+
+// forward extends the furthest reaching forward paths on diagonals fmin,
+// fmin+2, ..., fmax by one edit and the longest possible sequence of diagonals.
+// It returns the start and end of the diagonals (s0, s1, t0, t1) of the first
+// path that overlaps a backward path on a diagonal in [bmin, bmax] and found =
+// true, if check is set and there is one. longest is the length of the longest
+// sequence of diagonals.
+func (m *myers[T]) forward(fmin, fmax, bmin, bmax, smax, tmax int, check bool, eq func(x, y T) bool) (s0, s1, t0, t1, longest int, found bool) {
+	x, y := m.x[:smax], m.y[:tmax]
+	// wf and wb hold the entries of vf and vb for the diagonals fmin-1 to
+	// fmax+1; the entry for diagonal k is at w = k-fmin+1. Looping over w lets
+	// the compiler drop the bounds checks.
+	lo, hi := m.v0+fmin-1, m.v0+fmax+2
+	wf := m.vf[lo:hi]
+	wb := m.vb[lo:hi][:len(wf)]
+	// The k-loop searches for the furthest reaching d-path from (0,0) to (N,M)
+	// in diagonal k.
+	//
+	// The v-array, v[i] = vf[v0+fmid+i] (modulo bounds on k), contains the
+	// endpoints for the furthest reaching (d-1)-path in elements v[-d-1],
+	// v[-d+1], ..., v[d-1], v[d+1]. We know from Lemma 1 that these elements
+	// will be disjoined from where we're going to store the endpoint for the
+	// furthest reaching d-path that we're computing here.
+	for w := 1; w < len(wf)-1; w += 2 {
+		k := fmin - 1 + w
+
+		// According to Lemma 2 there are two possible furthest reaching
+		// d-paths:
+		//
+		//   1) A furthest reaching d-path on diagonal k-1, followed by a
+		//      horizontal edge, followed by the longest possible sequence of
+		//      diagonals.
+		//   2) A furthest reaching d-path on diagonal k+1, followed by a
+		//      vertical edge, followed by the longest possible sequence of
+		//      diagonals
+		//
+		// First find the endpoint of the furthest reaching d-path followed by a
+		// horizontal or vertical edge.
+		//
+		// Case 1 ends at wf[w-1]+1 and case 2 at wf[w+1]. If wf[w-1] ==
+		// wf[w+1], case 1 wins, which prioritizes deletions over insertions.
+		s := max(wf[w-1]+1, wf[w+1])
+		t := s - k
+
+		// Then follow the diagonals as long as possible.
+		//
+		// s and t are never negative. Comparing them as uint lets the compiler
+		// drop the bounds checks for x[s] and y[t].
+		s0, t0 := s, t
+		for uint(s) < uint(len(x)) && uint(t) < uint(len(y)) && eq(x[s], y[t]) {
+			s++
+			t++
+		}
+
+		// If we have found a long diagonal, we may be able to apply the
+		// GOOD_DIAGONAL heuristic (see below).
+		longest = max(longest, s-s0)
+
+		// Then store the endpoint of the furthest reaching d-path.
+		wf[w] = s
+
+		// Potentially, check for an overlap with a backwards d-path. We're done
+		// when we found it.
+		if check && bmin <= k && k <= bmax && s >= wb[w] {
+			return s0, s, t0, t, longest, true
+		}
+	}
+	return 0, 0, 0, 0, longest, false
+}
+
+// backward is the analog of [myers.forward] for the backward paths on diagonals
+// bmin, bmin+2, ..., bmax. It checks for an overlap with a forward path on a
+// diagonal in [fmin, fmax].
+func (m *myers[T]) backward(bmin, bmax, fmin, fmax, smin, tmin int, check bool, eq func(x, y T) bool) (s0, s1, t0, t1, longest int, found bool) {
+	xb, yb := m.x[smin:], m.y[tmin:]
+	// wb and wf hold the entries of vb and vf for the diagonals bmin-1 to
+	// bmax+1; the entry for diagonal k is at w = k-bmin+1. Looping over w lets
+	// the compiler drop the bounds checks.
+	lo, hi := m.v0+bmin-1, m.v0+bmax+2
+	wb := m.vb[lo:hi]
+	wf := m.vf[lo:hi][:len(wb)]
+	for w := 1; w < len(wb)-1; w += 2 {
+		k := bmin - 1 + w
+		s := min(wb[w-1], wb[w+1]-1)
+		t := s - k
+
+		// The snake compares xb[i-1] and yb[j-1] with i = s-smin and j =
+		// t-tmin. s <= len(m.x) and t <= len(m.y), so comparing i-1 and j-1 as
+		// uint checks s > smin and t > tmin and lets the compiler drop the
+		// bounds checks.
+		s0, t0 := s, t
+		i, j := s-smin, t-tmin
+		for uint(i-1) < uint(len(xb)) && uint(j-1) < uint(len(yb)) && eq(xb[i-1], yb[j-1]) {
+			i--
+			j--
+		}
+		s, t = i+smin, j+tmin
+
+		longest = max(longest, s0-s)
+
+		wb[w] = s
+
+		if check && fmin <= k && k <= fmax && s <= wf[w] {
+			return s, s0, t, t0, longest, true
+		}
+	}
+	return 0, 0, 0, 0, longest, false
 }

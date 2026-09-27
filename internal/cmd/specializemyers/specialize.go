@@ -117,9 +117,12 @@ func specialize(filename string) ([]byte, error) {
 }
 
 var methodsOfInterest = map[string]bool{
-	"split":   true,
-	"compare": true,
-	"init":    true,
+	"split":    true,
+	"compare":  true,
+	"init":     true,
+	"release":  true,
+	"forward":  true,
+	"backward": true,
 }
 
 func isMyersT(ts *ast.TypeSpec) bool {
