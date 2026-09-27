@@ -82,29 +82,30 @@ func Hunks[T string | []byte](x, y T, opts ...Option) []Hunk[T] {
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := impl.Diff(xlines, ylines, cfg)
+	defer rvecs.Release(rx, ry)
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
 	}
 	return hunks[T](xlines, ylines, rx, ry, cfg)
 }
 
-func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg config.Config) []Hunk[T] {
-	// Compute the number of hunks and edits, this is relatively cheap and
-	// allows us to preallocate the return values.
-	var nhunks, nedits int
-	for hunk := range rvecs.Hunks(rx, ry, cfg) {
-		nhunks++
-		nedits += hunk.Edits
-	}
-	if nhunks == 0 {
+func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec, cfg config.Config) []Hunk[T] {
+	var buf [16]rvecs.Hunk
+	hs := rvecs.AppendHunks(buf[:0], rx, ry, cfg)
+	if len(hs) == 0 {
 		return nil
+	}
+	// Count the edits to preallocate the return values.
+	nedits := 0
+	for _, hunk := range hs {
+		nedits += hunk.Edits
 	}
 
 	eout := make([]Edit[T], 0, nedits)
-	hout := make([]Hunk[T], 0, nhunks)
-	for hunk := range rvecs.Hunks(rx, ry, cfg) {
+	hout := make([]Hunk[T], 0, len(hs))
+	for _, hunk := range hs {
 		for s, t := hunk.S0, hunk.T0; s < hunk.S1 || t < hunk.T1; {
-			for s < hunk.S1 && rx[s] {
+			for e := min(rx.NextClear(s), hunk.S1); s < e; {
 				eout = append(eout, Edit[T]{
 					Op:      diff.Delete,
 					Line:    byteview.UnsafeAs[T](x[s]),
@@ -113,7 +114,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 				})
 				s++
 			}
-			for t < hunk.T1 && ry[t] {
+			for e := min(ry.NextClear(t), hunk.T1); t < e; {
 				eout = append(eout, Edit[T]{
 					Op:      diff.Insert,
 					Line:    byteview.UnsafeAs[T](y[t]),
@@ -122,7 +123,7 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 				})
 				t++
 			}
-			for s < hunk.S1 && t < hunk.T1 && !rx[s] && !ry[t] {
+			for e := s + min(min(rx.NextSet(s), hunk.S1)-s, min(ry.NextSet(t), hunk.T1)-t); s < e; {
 				eout = append(eout, Edit[T]{
 					Op:      diff.Match,
 					Line:    byteview.UnsafeAs[T](x[s]),
@@ -161,27 +162,28 @@ func Edits[T string | []byte](x, y T, opts ...Option) []Edit[T] {
 	xlines, _ := byteview.SplitLines(byteview.From(x))
 	ylines, _ := byteview.SplitLines(byteview.From(y))
 	rx, ry := impl.Diff(xlines, ylines, cfg)
+	defer rvecs.Release(rx, ry)
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
 	}
 	return edits[T](xlines, ylines, rx, ry)
 }
 
-func edits[T string | []byte](x, y []byteview.ByteView, rx, ry []bool) []Edit[T] {
+func edits[T string | []byte](x, y []byteview.ByteView, rx, ry rvecs.Vec) []Edit[T] {
 	// Compute the number of edits, this is relatively cheap and allows us to
 	// preallocate the return value.
-	n, m := len(rx)-1, len(ry)-1
+	n, m := rx.Len()-1, ry.Len()-1
 	var nedits int
 	for s, t := 0, 0; s < n || t < m; {
-		for s < n && rx[s] {
+		for e := min(rx.NextClear(s), n); s < e; {
 			nedits++
 			s++
 		}
-		for t < m && ry[t] {
+		for e := min(ry.NextClear(t), m); t < e; {
 			nedits++
 			t++
 		}
-		for s < n && t < m && !rx[s] && !ry[t] {
+		for e := s + min(min(rx.NextSet(s), n)-s, min(ry.NextSet(t), m)-t); s < e; {
 			nedits++
 			s++
 			t++
@@ -193,7 +195,7 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry []bool) []Edit[T]
 
 	eout := make([]Edit[T], 0, nedits)
 	for s, t := 0, 0; s < n || t < m; {
-		for s < n && rx[s] {
+		for e := min(rx.NextClear(s), n); s < e; {
 			eout = append(eout, Edit[T]{
 				Op:      diff.Delete,
 				Line:    byteview.UnsafeAs[T](x[s]),
@@ -202,7 +204,7 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry []bool) []Edit[T]
 			})
 			s++
 		}
-		for t < m && ry[t] {
+		for e := min(ry.NextClear(t), m); t < e; {
 			eout = append(eout, Edit[T]{
 				Op:      diff.Insert,
 				Line:    byteview.UnsafeAs[T](y[t]),
@@ -211,7 +213,7 @@ func edits[T string | []byte](x, y []byteview.ByteView, rx, ry []bool) []Edit[T]
 			})
 			t++
 		}
-		for s < n && t < m && !rx[s] && !ry[t] {
+		for e := s + min(min(rx.NextSet(s), n)-s, min(ry.NextSet(t), m)-t); s < e; {
 			eout = append(eout, Edit[T]{
 				Op:      diff.Match,
 				Line:    byteview.UnsafeAs[T](x[s]),
@@ -248,6 +250,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	ylines, yMissingNewline := byteview.SplitLines(byteview.From(y))
 
 	rx, ry := impl.Diff(xlines, ylines, cfg)
+	defer rvecs.Release(rx, ry)
 
 	if cfg.IndentHeuristic {
 		indentheuristic.Apply(xlines, ylines, rx, ry)
@@ -260,28 +263,30 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 
 	// Precompute output buffer size.
 	n := 0
-	for h := range rvecs.Hunks(rx, ry, cfg) {
+	var buf [16]rvecs.Hunk
+	hs := rvecs.AppendHunks(buf[:0], rx, ry, cfg)
+	for _, h := range hs {
 		n += len("@@ - + @@\n")
 		n += rangeLen(h.S0, h.S1) + rangeLen(h.T0, h.T1)
 		n += len(colors.HunkHeader) + len(colors.Reset)
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
-			if s < h.S1 && rx[s] {
+			if s < h.S1 && rx.Get(s) {
 				n += len(colors.Delete) + len(colors.Reset)
-				for s < h.S1 && rx[s] {
+				for e := min(rx.NextClear(s), h.S1); s < e; {
 					n += 1 + xlines[s].Len()
 					s++
 				}
 			}
-			if t < h.T1 && ry[t] {
+			if t < h.T1 && ry.Get(t) {
 				n += len(colors.Insert) + len(colors.Reset)
-				for t < h.T1 && ry[t] {
+				for e := min(ry.NextClear(t), h.T1); t < e; {
 					n += 1 + ylines[t].Len()
 					t++
 				}
 			}
-			if s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+			if s < h.S1 && t < h.T1 && !rx.Get(s) && !ry.Get(t) {
 				n += len(colors.Match) + len(colors.Reset)
-				for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+				for e := s + min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t); s < e; {
 					n += 1 + xlines[s].Len()
 					s++
 					t++
@@ -299,7 +304,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	// Format output.
 	var b byteview.Builder[T]
 	b.Grow(n)
-	for h := range rvecs.Hunks(rx, ry, cfg) {
+	for _, h := range hs {
 		b.WriteString(colors.HunkHeader)
 		b.WriteString("@@ -")
 		writeRange(&b, h.S0, h.S1)
@@ -309,9 +314,9 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 		b.WriteString(colors.Reset)
 		b.WriteString("\n")
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
-			if s < h.S1 && rx[s] {
+			if s < h.S1 && rx.Get(s) {
 				b.WriteString(colors.Delete)
-				for s < h.S1 && rx[s] {
+				for e := min(rx.NextClear(s), h.S1); s < e; {
 					b.WriteString(prefixDelete)
 					b.WriteByteView(xlines[s])
 					if s == xMissingNewline {
@@ -321,9 +326,9 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 				}
 				b.WriteString(colors.Reset)
 			}
-			if t < h.T1 && ry[t] {
+			if t < h.T1 && ry.Get(t) {
 				b.WriteString(colors.Insert)
-				for t < h.T1 && ry[t] {
+				for e := min(ry.NextClear(t), h.T1); t < e; {
 					b.WriteString(prefixInsert)
 					b.WriteByteView(ylines[t])
 					if t == yMissingNewline {
@@ -333,9 +338,9 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 				}
 				b.WriteString(colors.Reset)
 			}
-			if s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+			if s < h.S1 && t < h.T1 && !rx.Get(s) && !ry.Get(t) {
 				b.WriteString(colors.Match)
-				for s < h.S1 && t < h.T1 && !rx[s] && !ry[t] {
+				for e := s + min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t); s < e; {
 					b.WriteString(prefixMatch)
 					b.WriteByteView(xlines[s])
 					if s == xMissingNewline {

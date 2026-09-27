@@ -23,8 +23,8 @@ import (
 
 // Diff compares the contents of x and y and returns the changes necessary to
 // convert from one to the other.
-func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
-	rx, ry = rvecs.Make(x, y)
+func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry rvecs.Vec) {
+	rx, ry = rvecs.Make(len(x), len(y))
 
 	smin, smax, tmin, tmax := findChangeBounds(x, y)
 	if handleTrivialBounds(rx, ry, smin, smax, tmin, tmax) {
@@ -58,8 +58,8 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry []bool) {
 //
 // Note that this function has generally worse performance than [Diff] for diffs
 // with many changes.
-func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry []bool) {
-	rx, ry = rvecs.Make(x, y)
+func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry rvecs.Vec) {
+	rx, ry = rvecs.Make(len(x), len(y))
 
 	smin, smax, tmin, tmax := findChangeBoundsFunc(x, y, eq)
 	if handleTrivialBounds(rx, ry, smin, smax, tmin, tmax) {
@@ -117,17 +117,13 @@ func findChangeBoundsFunc[T any](x, y []T, eq func(a, b T) bool) (smin, smax, tm
 
 // handleTrivialBounds handles trivial bounds. It returns true if the bounds are
 // trivial.
-func handleTrivialBounds(rx, ry []bool, smin, smax, tmin, tmax int) bool {
+func handleTrivialBounds(rx, ry rvecs.Vec, smin, smax, tmin, tmax int) bool {
 	switch {
 	case smin != smax && tmin == tmax:
-		for s := smin; s < smax; s++ {
-			rx[s] = true
-		}
+		rx.SetRange(smin, smax)
 		return true
 	case smin == smax && tmin != tmax:
-		for t := tmin; t < tmax; t++ {
-			ry[t] = true
-		}
+		ry.SetRange(tmin, tmax)
 		return true
 	case smin == smax && tmin == tmax:
 		return true
@@ -136,7 +132,7 @@ func handleTrivialBounds(rx, ry []bool, smin, smax, tmin, tmax int) bool {
 	}
 }
 
-func diffMinimal(rx, ry []bool, x0, y0 []int, xidx, yidx []int) {
+func diffMinimal(rx, ry rvecs.Vec, x0, y0 []int, xidx, yidx []int) {
 	var m myersInt
 	m.xidx, m.yidx = xidx, yidx
 	m.rx, m.ry = rx, ry
@@ -144,7 +140,7 @@ func diffMinimal(rx, ry []bool, x0, y0 []int, xidx, yidx []int) {
 	m.compare(smin0, smax0, tmin0, tmax0, true)
 }
 
-func diffDefault(rx, ry []bool, x0, y0 []int, xidx, yidx []int, counts []int, nanchors int, forceAnchoring bool) {
+func diffDefault(rx, ry rvecs.Vec, x0, y0 []int, xidx, yidx []int, counts []int, nanchors int, forceAnchoring bool) {
 	var m myersInt
 	m.xidx, m.yidx = xidx, yidx
 	m.rx, m.ry = rx, ry
@@ -188,7 +184,7 @@ func diffDefault(rx, ry []bool, x0, y0 []int, xidx, yidx []int, counts []int, na
 	}
 }
 
-func diffFast(rx, ry []bool, x0, y0 []int, xidx, yidx []int, counts []int, nanchors int) {
+func diffFast(rx, ry rvecs.Vec, x0, y0 []int, xidx, yidx []int, counts []int, nanchors int) {
 	// Fast mode uses patience diff.
 	smin0, smax0, tmin0, tmax0 := findChangeBounds(x0, y0)
 	segments := segments(smin0, smax0, tmin0, tmax0, nanchors, counts, x0, y0)
@@ -210,12 +206,8 @@ func diffFast(rx, ry []bool, x0, y0 []int, xidx, yidx []int, counts []int, nanch
 			end.t++
 		}
 
-		for s := done.s; s < start.s; s++ {
-			rx[xidx[s]] = true
-		}
-		for t := done.t; t < start.t; t++ {
-			ry[yidx[t]] = true
-		}
+		rx.SetSorted(xidx[done.s:start.s])
+		ry.SetSorted(yidx[done.t:start.t])
 
 		if end.s >= smax0 && end.t >= tmax0 {
 			break

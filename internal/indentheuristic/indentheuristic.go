@@ -47,6 +47,7 @@ import (
 	"cmp"
 
 	"znkr.io/diff/internal/byteview"
+	"znkr.io/diff/internal/rvecs"
 )
 
 // Never move a group more than this many lines.
@@ -98,13 +99,13 @@ const relativeDedentWithBlankPenalty = 17
 const indentWeight = 60
 
 // Apply applies the indent heuristics to rx and ry.
-func Apply(x, y []byteview.ByteView, rx, ry []bool) {
+func Apply(x, y []byteview.ByteView, rx, ry rvecs.Vec) {
 	apply0(x, y, rx, ry) // for deletions
 	apply0(y, x, ry, rx) // for insertions
 }
 
 // apply0 applies the indentation heuristics to r.
-func apply0(lines, lineso []byteview.ByteView, r, ro []bool) {
+func apply0(lines, lineso []byteview.ByteView, r, ro rvecs.Vec) {
 	s, so := newScanner(lines, r), newScanner(lineso, ro)
 	for s.nextGroup() {
 		if !so.nextGroup() {
@@ -112,6 +113,13 @@ func apply0(lines, lineso []byteview.ByteView, r, ro []bool) {
 		}
 
 		if s.groupLen() == 0 {
+			if so.groupLen() == 0 {
+				// Skip the lines that are unchanged in both inputs. Each of
+				// them is an empty group in both scanners.
+				n := min(s.r.NextSet(s.end+1)-s.end, so.r.NextSet(so.end+1)-so.end) - 1
+				s.start, s.end = s.start+n, s.end+n
+				so.start, so.end = so.start+n, so.end+n
+			}
 			continue
 		}
 
@@ -199,10 +207,10 @@ type scanner struct {
 	// First unchanged line after the group. For an empty group, start == end.
 	end   int
 	lines []byteview.ByteView
-	r     []bool
+	r     rvecs.Vec
 }
 
-func newScanner(lines []byteview.ByteView, r []bool) *scanner {
+func newScanner(lines []byteview.ByteView, r rvecs.Vec) *scanner {
 	return &scanner{
 		start: -1,
 		end:   -1,
@@ -217,13 +225,12 @@ func (s *scanner) groupLen() int { return s.end - s.start }
 // nextGroup moves s to the nextGroup (possibly empty) group and returns true.
 // Returns false if the end is reached.
 func (s *scanner) nextGroup() bool {
-	if s.end == len(s.r)-1 {
+	if s.end == s.r.Len()-1 {
 		return false
 	}
 	s.start, s.end = s.end+1, s.end+1
-	for s.end < len(s.r)-1 && s.r[s.end] {
-		s.end++
-	}
+	// The last element is unchanged, so NextClear stops at or before it.
+	s.end = s.r.NextClear(s.end)
 	return true
 }
 
@@ -233,10 +240,8 @@ func (s *scanner) prevGroup() bool {
 	if s.start == 0 {
 		return false
 	}
-	s.start, s.end = s.start-1, s.start-1
-	for s.start > 0 && s.r[s.start-1] {
-		s.start--
-	}
+	s.end = s.start - 1
+	s.start = s.r.PrevClear(s.end-1) + 1
 	return true
 }
 
@@ -244,13 +249,12 @@ func (s *scanner) prevGroup() bool {
 // another group at below it, it merges the two groups. Returns true if sliding
 // up was possible and false if the group could not be slid up.
 func (s *scanner) slideGroupDown() bool {
-	if s.end < len(s.r)-1 && s.lines[s.start] == s.lines[s.end] {
-		s.r[s.start], s.r[s.end] = false, true
+	if s.end < s.r.Len()-1 && s.lines[s.start] == s.lines[s.end] {
+		s.r.Clear(s.start)
+		s.r.Set(s.end)
 		s.start++
 		s.end++
-		for s.end < len(s.r)-1 && s.r[s.end] {
-			s.end++
-		}
+		s.end = s.r.NextClear(s.end)
 		return true
 	} else {
 		return false
@@ -262,12 +266,10 @@ func (s *scanner) slideGroupDown() bool {
 // was possible and false if the group could not be slid up.
 func (s *scanner) slideGroupUp() bool {
 	if s.start > 0 && s.lines[s.start-1] == s.lines[s.end-1] {
-		s.r[s.start-1], s.r[s.end-1] = true, false
-		s.start--
+		s.r.Set(s.start - 1)
+		s.r.Clear(s.end - 1)
 		s.end--
-		for s.start > 0 && s.r[s.start-1] {
-			s.start--
-		}
+		s.start = s.r.PrevClear(s.start-2) + 1
 		return true
 	} else {
 		return false

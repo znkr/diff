@@ -16,6 +16,8 @@ package impl
 
 import (
 	"math"
+
+	"znkr.io/diff/internal/rvecs"
 )
 
 type myers[T any] struct {
@@ -37,7 +39,7 @@ type myers[T any] struct {
 	xidx, yidx []int
 
 	// Result vectors.
-	rx, ry []bool
+	rx, ry rvecs.Vec
 }
 
 func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax int) {
@@ -86,12 +88,8 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 		m.yidx = idx[:len(y)]
 	}
 
-	if m.rx == nil || m.ry == nil {
-		// For the result we add a simple border of one element that makes it
-		// easier to iterate over the results.
-		r := make([]bool, (len(x) + len(y) + 2))
-		m.rx = r[: len(x)+1 : len(x)+1]
-		m.ry = r[len(x)+1:]
+	if m.rx.Len() == 0 || m.ry.Len() == 0 {
+		m.rx, m.ry = rvecs.Make(len(x), len(y))
 	}
 	return
 }
@@ -103,14 +101,10 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, y T) bool) {
 	if smin == smax {
 		// s is empty, therefore everything in tmin to tmax is an insertion.
-		for t := tmin; t < tmax; t++ {
-			m.ry[m.yidx[t]] = true
-		}
+		m.ry.SetSorted(m.yidx[tmin:tmax])
 	} else if tmin == tmax {
 		// t is empty, therefore everything in smin to smax is a deletion.
-		for s := smin; s < smax; s++ {
-			m.rx[m.xidx[s]] = true
-		}
+		m.rx.SetSorted(m.xidx[smin:smax])
 	} else {
 		// Use split to divide the input into three pieces:
 		//
