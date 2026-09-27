@@ -2,6 +2,7 @@ package textdiff_test
 
 import (
 	"fmt"
+	"os"
 
 	"znkr.io/diff/textdiff"
 )
@@ -94,4 +95,18 @@ end
 	// +["foo", "bar", "baz"].map do |i|
 	//    i.upcase
 	//  end
+}
+
+func ExampleWriteUnified() {
+	x := "one\ntwo\nthree\n"
+	y := "one\n2\nthree\n"
+	if err := textdiff.WriteUnified(os.Stdout, x, y); err != nil {
+		panic(err)
+	}
+	// Output:
+	// @@ -1,3 +1,3 @@
+	//  one
+	// -two
+	// +2
+	//  three
 }
