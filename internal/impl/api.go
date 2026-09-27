@@ -70,6 +70,7 @@ func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry 
 	m.rx, m.ry = rx, ry
 	smin, smax, tmin, tmax = m.init(x, y, eq)
 	m.compare(smin, smax, tmin, tmax, cfg.Mode == config.ModeMinimal, eq)
+	m.release()
 	return m.rx, m.ry
 }
 
@@ -138,6 +139,7 @@ func diffMinimal(rx, ry rvecs.Vec, x0, y0 []int, xidx, yidx []int) {
 	m.rx, m.ry = rx, ry
 	smin0, smax0, tmin0, tmax0 := m.init(x0, y0)
 	m.compare(smin0, smax0, tmin0, tmax0, true)
+	m.release()
 }
 
 func diffDefault(rx, ry rvecs.Vec, x0, y0 []int, xidx, yidx []int, counts []int, nanchors int, forceAnchoring bool) {
@@ -145,6 +147,7 @@ func diffDefault(rx, ry rvecs.Vec, x0, y0 []int, xidx, yidx []int, counts []int,
 	m.xidx, m.yidx = xidx, yidx
 	m.rx, m.ry = rx, ry
 	smin0, smax0, tmin0, tmax0 := m.init(x0, y0)
+	defer m.release()
 
 	// Heuristic (ANCHORING): If the input is too large and we have found
 	// anchors, use the anchoring heuristic. This provides a significant

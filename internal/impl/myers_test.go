@@ -245,3 +245,36 @@ func renderSplitResult(in string, min0, max0, min1, max1 int) string {
 	}
 	return sb.String()
 }
+
+// TestMyersCompare_vArrayBounds runs compare on random inputs, including
+// heavily skewed ones. The v-arrays are sized for k in [-M-1, N+1], so a split
+// that leaves that range fails a bounds check.
+func TestMyersCompare_vArrayBounds(t *testing.T) {
+	eq := func(x, y int32) bool { return x == y }
+	rng := rand.New(rand.NewPCG(1, 2))
+	for i := range 200 {
+		n := rng.IntN([]int{10, 100, 1000, 5000}[i%4])
+		m := rng.IntN([]int{10, 100, 1000, 5000}[(i/4)%4])
+		alpha := []int{2, 5, 50}[i%3]
+		x := make([]int32, n)
+		for s := range x {
+			x[s] = int32(rng.IntN(alpha))
+		}
+		y := make([]int32, m)
+		for t := range y {
+			if t < n && rng.IntN(4) != 0 {
+				y[t] = x[t]
+			} else {
+				y[t] = int32(rng.IntN(alpha))
+			}
+		}
+		for _, optimal := range []bool{true, false} {
+			var my myers[int32]
+			smin, smax, tmin, tmax := my.init(x, y, eq)
+			if got, want := len(my.vf), (smax-smin)+(tmax-tmin)+3; got != want {
+				t.Fatalf("len(vf) = %d, want %d", got, want)
+			}
+			my.compare(smin, smax, tmin, tmax, optimal, eq)
+		}
+	}
+}
