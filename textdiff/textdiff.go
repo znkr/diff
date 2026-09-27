@@ -25,8 +25,8 @@
 package textdiff
 
 import (
-	"fmt"
 	"slices"
+	"strconv"
 	"unsafe"
 
 	"znkr.io/diff"
@@ -261,25 +261,22 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 		for s, t := h.S0, h.T0; s < h.S1 || t < h.T1; {
 			if s < h.S1 && rx.Get(s) {
 				n += len(colors.Delete) + len(colors.Reset)
-				for e := min(rx.NextClear(s), h.S1); s < e; {
-					n += 1 + len(xlines.Line(s))
-					s++
-				}
+				e := min(rx.NextClear(s), h.S1)
+				n += (e - s) + xlines.Size(s, e)
+				s = e
 			}
 			if t < h.T1 && ry.Get(t) {
 				n += len(colors.Insert) + len(colors.Reset)
-				for e := min(ry.NextClear(t), h.T1); t < e; {
-					n += 1 + len(ylines.Line(t))
-					t++
-				}
+				e := min(ry.NextClear(t), h.T1)
+				n += (e - t) + ylines.Size(t, e)
+				t = e
 			}
 			if s < h.S1 && t < h.T1 && !rx.Get(s) && !ry.Get(t) {
 				n += len(colors.Match) + len(colors.Reset)
-				for e := s + min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t); s < e; {
-					n += 1 + len(xlines.Line(s))
-					s++
-					t++
-				}
+				k := min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t)
+				n += k + xlines.Size(s, s+k)
+				s += k
+				t += k
 			}
 		}
 	}
@@ -362,9 +359,11 @@ func rangeStart(lo, hi int) int {
 // count is 1.
 func appendRange(b []byte, lo, hi int) []byte {
 	if hi-lo == 1 {
-		return fmt.Appendf(b, "%d", lo+1)
+		return strconv.AppendInt(b, int64(lo+1), 10)
 	}
-	return fmt.Appendf(b, "%d,%d", rangeStart(lo, hi), hi-lo)
+	b = strconv.AppendInt(b, int64(rangeStart(lo, hi)), 10)
+	b = append(b, ',')
+	return strconv.AppendInt(b, int64(hi-lo), 10)
 }
 
 // rangeLen returns the number of bytes that [appendRange] appends for [lo, hi).
