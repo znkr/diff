@@ -17,11 +17,13 @@ package impl
 import (
 	"math/bits"
 
+	"znkr.io/diff/internal/lines"
 	"znkr.io/diff/internal/pool"
 )
 
 // idTable maps elements to dense IDs in the order they are inserted. The table
-// doesn't hold the elements; insert and lookup compare the elements of a slice.
+// doesn't hold the elements; insert and lookup compare the elements of a slice,
+// insertLine and lookupLine compare lines of an input.
 type idTable struct {
 	// slots is an open addressing hash table with linear probing. A slot holds
 	// the upper 16 bits of the element's hash and ID+1 in the lower 48 bits. An
@@ -97,6 +99,42 @@ func (tab *idTable) lookup[T comparable](x []T, e T, h uint64) int {
 		if slot&^idMask == tag {
 			id := int(slot&idMask) - 1
 			if x[tab.reps[id]] == e {
+				return id
+			}
+		}
+	}
+}
+
+// insertLine returns the ID of line i of x, adding it to tab if it's not
+// present. e is the line and h is its hash.
+func (tab *idTable) insertLine(x *lines.Lines, i int, e string, h uint64) int {
+	tag := h &^ idMask
+	for j := h & tab.mask; ; j = (j + 1) & tab.mask {
+		slot := tab.slots[j]
+		if slot == 0 {
+			return tab.add(j, tag, i)
+		}
+		if slot&^idMask == tag {
+			id := int(slot&idMask) - 1
+			if x.At(tab.reps[id]) == e {
+				return id
+			}
+		}
+	}
+}
+
+// lookupLine returns the ID of line e or -1 if it's not in tab. x holds the
+// lines tab was built from. h is the hash of e.
+func (tab *idTable) lookupLine(x *lines.Lines, e string, h uint64) int {
+	tag := h &^ idMask
+	for j := h & tab.mask; ; j = (j + 1) & tab.mask {
+		slot := tab.slots[j]
+		if slot == 0 {
+			return -1
+		}
+		if slot&^idMask == tag {
+			id := int(slot&idMask) - 1
+			if x.At(tab.reps[id]) == e {
 				return id
 			}
 		}

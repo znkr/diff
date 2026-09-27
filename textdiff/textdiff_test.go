@@ -158,6 +158,12 @@ func TestUnifiedEdgeCases(t *testing.T) {
 			want: "@@ -1,2 +1,2 @@\n-a\n+b\n second line\n\\ No newline at end of file\n",
 		},
 		{
+			name: "missing-newline-outside-hunk",
+			x:    "a\n1\n2\n3\n4\nlast line",
+			y:    "b\n1\n2\n3\n4\nlast line",
+			want: "@@ -1,4 +1,4 @@\n-a\n+b\n 1\n 2\n 3\n",
+		},
+		{
 			name: "missing-newline-empty-x",
 			x:    "",
 			y:    "\n",

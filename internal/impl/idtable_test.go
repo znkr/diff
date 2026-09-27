@@ -21,21 +21,23 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"znkr.io/diff/internal/byteview"
+	"znkr.io/diff/internal/lines"
 )
 
 func TestIDTableCollisions(t *testing.T) {
 	// All lines get the same hash, which forces every lookup through probing
 	// and line comparison.
 	const h = 0xdeadbeef_00000007
-	x := lines("a\nb\nc\na\nd\nb\n")
-	tab := newIDTable(len(x))
+	x := lines.Split("a\nb\nc\na\nd\nb\n")
+	defer x.Release()
+	tab := newIDTable(x.Len())
+	defer tab.release()
 	var got []int
-	for i := range x {
-		got = append(got, tab.insert(x, i, h))
+	for i := range x.Len() {
+		got = append(got, tab.insertLine(&x, i, x.Line(i), h))
 	}
 	if want := []int{0, 1, 2, 0, 3, 1}; !cmp.Equal(got, want) {
-		t.Errorf("insert IDs = %v, want %v", got, want)
+		t.Errorf("insertLine IDs = %v, want %v", got, want)
 	}
 	for _, tt := range []struct {
 		line string
@@ -45,8 +47,8 @@ func TestIDTableCollisions(t *testing.T) {
 		{"d\n", 3},
 		{"e\n", -1},
 	} {
-		if got := tab.lookup(x, byteview.From(tt.line), h); got != tt.want {
-			t.Errorf("lookup(%q) = %v, want %v", tt.line, got, tt.want)
+		if got := tab.lookupLine(&x, tt.line, h); got != tt.want {
+			t.Errorf("lookupLine(%q) = %v, want %v", tt.line, got, tt.want)
 		}
 	}
 }
@@ -139,9 +141,4 @@ func checkIDTable[T comparable](t *testing.T, x, extra []T) {
 			t.Fatalf("lookup(%v) = %v, want %v", e, got, want)
 		}
 	}
-}
-
-func lines(s string) []byteview.ByteView {
-	l, _ := byteview.SplitLines(byteview.From(s))
-	return l
 }

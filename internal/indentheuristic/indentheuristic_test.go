@@ -22,7 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/txtar"
-	"znkr.io/diff/internal/byteview"
+	"znkr.io/diff/internal/lines"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -52,7 +52,8 @@ func TestApply(t *testing.T) {
 			}
 
 			x, y, rx, ry := parse(t, input)
-			Apply(x, y, rx, ry)
+			xl, yl := lines.Split(strings.Join(x, "")), lines.Split(strings.Join(y, ""))
+			Apply(&xl, &yl, rx, ry)
 			got := render(x, y, rx, ry)
 
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -62,19 +63,19 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func parse(t *testing.T, diff []byte) (x, y []byteview.ByteView, rx, ry rvecs.Vec) {
+func parse(t *testing.T, diff []byte) (x, y []string, rx, ry rvecs.Vec) {
 	var dx, dy []int
 	for line := range bytes.Lines(diff) {
 		switch line[0] {
 		case ' ':
-			x = append(x, byteview.From(line[1:]))
-			y = append(y, byteview.From(line[1:]))
+			x = append(x, string(line[1:]))
+			y = append(y, string(line[1:]))
 		case '-':
 			dx = append(dx, len(x))
-			x = append(x, byteview.From(line[1:]))
+			x = append(x, string(line[1:]))
 		case '+':
 			dy = append(dy, len(y))
-			y = append(y, byteview.From(line[1:]))
+			y = append(y, string(line[1:]))
 		default:
 			t.Fatalf("failed to parse diff: unknown prefix %q", line[0])
 		}
@@ -89,25 +90,25 @@ func parse(t *testing.T, diff []byte) (x, y []byteview.ByteView, rx, ry rvecs.Ve
 	return
 }
 
-func render(x, y []byteview.ByteView, rx, ry rvecs.Vec) []byte {
-	var b byteview.Builder[[]byte]
+func render(x, y []string, rx, ry rvecs.Vec) []byte {
+	var b []byte
 	for s, t := 0, 0; s < len(x) || t < len(y); {
 		for s < len(x) && rx.Get(s) {
-			b.WriteString("-")
-			b.WriteByteView(x[s])
+			b = append(b, '-')
+			b = append(b, x[s]...)
 			s++
 		}
 		for t < len(y) && ry.Get(t) {
-			b.WriteString("+")
-			b.WriteByteView(y[t])
+			b = append(b, '+')
+			b = append(b, y[t]...)
 			t++
 		}
 		for s < len(x) && t < len(y) && !rx.Get(s) && !ry.Get(t) {
-			b.WriteString(" ")
-			b.WriteByteView(x[s])
+			b = append(b, ' ')
+			b = append(b, x[s]...)
 			s++
 			t++
 		}
 	}
-	return b.Build()
+	return b
 }
