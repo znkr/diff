@@ -32,25 +32,30 @@ func Diff[T comparable](x, y []T, cfg config.Config) (rx, ry rvecs.Vec) {
 	}
 
 	// Preprocess x and y to reduce the problem size and to work with integer
-	// IDs instead of Ts. This is (for now) only possible for comparable types,
-	// because mapping from T to a unique ID requires a map.
-	x0, y0, xidx, yidx, counts, nanchors := preprocess(rx, ry, smin, smax, tmin, tmax, x, y)
+	// IDs instead of Ts. This is only possible for comparable types, because
+	// assigning IDs hashes and compares Ts.
+	p := preprocess(rx, ry, smin, smax, tmin, tmax, x, y)
+	run(rx, ry, &p, cfg)
+	p.release()
+	return rx, ry
+}
 
+// run computes the diff of the preprocessed inputs in p in the mode given by
+// cfg and records the result in rx and ry.
+func run(rx, ry rvecs.Vec, p *preprocessed, cfg config.Config) {
 	switch cfg.Mode {
 	case config.ModeMinimal:
-		diffMinimal(rx, ry, x0, y0, xidx, yidx)
+		diffMinimal(rx, ry, p.x0, p.y0, p.xidx, p.yidx)
 
 	case config.ModeDefault:
-		diffDefault(rx, ry, x0, y0, xidx, yidx, counts, nanchors, cfg.ForceAnchoringHeuristic)
+		diffDefault(rx, ry, p.x0, p.y0, p.xidx, p.yidx, p.counts, p.nanchors, cfg.ForceAnchoringHeuristic)
 
 	case config.ModeFast:
-		diffFast(rx, ry, x0, y0, xidx, yidx, counts, nanchors)
+		diffFast(rx, ry, p.x0, p.y0, p.xidx, p.yidx, p.counts, p.nanchors)
 
 	default:
 		panic(fmt.Sprintf("unknown mode: %v", cfg.Mode))
 	}
-
-	return rx, ry
 }
 
 // DiffFunc compares the contents of x and y and returns the changes necessary

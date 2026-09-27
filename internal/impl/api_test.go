@@ -15,6 +15,8 @@
 package impl
 
 import (
+	"math"
+	"math/rand/v2"
 	"strings"
 	"testing"
 
@@ -145,6 +147,84 @@ func TestDiff(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestDiffMatchesDiffFunc(t *testing.T) {
+	// Diff assigns IDs with ==, DiffFunc compares with ==. For types where ==
+	// is unusual, both must produce valid edit scripts, and in minimal mode
+	// both must produce the same number of edits.
+	type withPtr struct {
+		p *int
+		n int
+	}
+	rng := rand.New(rand.NewPCG(7, 8))
+	nan := math.NaN()
+	floats := []float64{0, math.Copysign(0, -1), 1, nan, math.Inf(1), 2.5}
+	anys := []any{1, "1", 1.0, int64(1), nil, [2]int{1, 2}, struct{}{}, nan}
+	ptrs := []*int{new(int), new(int), nil}
+	for range 300 {
+		n, m := rng.IntN(30), rng.IntN(30)
+		fx, fy := make([]float64, n), make([]float64, m)
+		ax, ay := make([]any, n), make([]any, m)
+		px, py := make([]withPtr, n), make([]withPtr, m)
+		for i := range n {
+			fx[i] = floats[rng.IntN(len(floats))]
+			ax[i] = anys[rng.IntN(len(anys))]
+			px[i] = withPtr{ptrs[rng.IntN(len(ptrs))], rng.IntN(2)}
+		}
+		for i := range m {
+			fy[i] = floats[rng.IntN(len(floats))]
+			ay[i] = anys[rng.IntN(len(anys))]
+			py[i] = withPtr{ptrs[rng.IntN(len(ptrs))], rng.IntN(2)}
+		}
+		checkDiffMatchesDiffFunc(t, fx, fy)
+		checkDiffMatchesDiffFunc(t, ax, ay)
+		checkDiffMatchesDiffFunc(t, px, py)
+	}
+}
+
+func checkDiffMatchesDiffFunc[T comparable](t *testing.T, x, y []T) {
+	t.Helper()
+	eq := func(a, b T) bool { return a == b }
+	for _, cfg := range []config.Config{
+		{Mode: config.ModeMinimal},
+		{Mode: config.ModeDefault},
+		{Mode: config.ModeDefault, ForceAnchoringHeuristic: true},
+		{Mode: config.ModeFast},
+	} {
+		rx, ry := Diff(x, y, cfg)
+		got := countEdits(t, x, y, rx, ry)
+		rx, ry = DiffFunc(x, y, eq, cfg)
+		want := countEdits(t, x, y, rx, ry)
+		if cfg.Mode == config.ModeMinimal && got != want {
+			t.Fatalf("Diff(%v, %v) has %d edits, DiffFunc has %d", x, y, got, want)
+		}
+	}
+}
+
+// countEdits returns the number of edits in rx and ry. It fails the test if rx
+// and ry are not an edit script from x to y.
+func countEdits[T comparable](t *testing.T, x, y []T, rx, ry rvecs.Vec) int {
+	t.Helper()
+	edits := 0
+	for i, j := 0, 0; i < len(x) || j < len(y); {
+		switch {
+		case i < len(x) && rx.Get(i):
+			edits++
+			i++
+		case j < len(y) && ry.Get(j):
+			edits++
+			j++
+		case i == len(x) || j == len(y):
+			t.Fatalf("edit script from %v to %v has unmatched elements", x, y)
+		case x[i] != y[j]:
+			t.Fatalf("edit script from %v to %v matches x[%d] = %v with y[%d] = %v", x, y, i, x[i], j, y[j])
+		default:
+			i++
+			j++
+		}
+	}
+	return edits
 }
 
 func render(rx, ry rvecs.Vec, n, m int) string {

@@ -1,6 +1,6 @@
 module znkr.io/diff/internal/benchmarks
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/aymanbagabas/go-udiff v0.4.1
