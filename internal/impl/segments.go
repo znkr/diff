@@ -46,7 +46,9 @@
 package impl
 
 import (
-	"sort"
+	"slices"
+
+	"znkr.io/diff/internal/pool"
 )
 
 type pair struct{ s, t int }
@@ -59,15 +61,18 @@ type pair struct{ s, t int }
 // Princeton TR #170 (January 1975), available at
 // https://research.swtch.com/tgs170.pdf.
 func segments(smin, smax, tmin, tmax int, nanchors int, counts []int, x, y []int) []pair {
-	idx := make(map[int]int, nanchors)
-	buf := make([]int, 3*nanchors)
-	var xi, yi, inv []int
+	scratch := pool.Ints.GetUncleared(5*nanchors + len(counts))
+	defer pool.Ints.Put(scratch)
+	buf := scratch
+	var xi, yi, inv, T, L, idx []int
 	xi, buf = buf[:0:nanchors], buf[nanchors:]
 	yi, buf = buf[:0:nanchors], buf[nanchors:]
 	inv, buf = buf[:0:nanchors], buf[nanchors:]
-	if len(buf) != 0 && cap(buf) != 0 {
-		panic("something went wrong during buffer assignments")
-	}
+	T, buf = buf[:nanchors], buf[nanchors:]
+	L, buf = buf[:nanchors], buf[nanchors:]
+	// idx maps an anchor's ID to its index in yi. IDs are dense, so a slice
+	// works.
+	idx = buf[:len(counts)]
 
 	// Gather the indices of anchors in x and y:
 	//	xi[i] = increasing indexes of unique strings in x.
@@ -94,15 +99,12 @@ func segments(smin, smax, tmin, tmax int, nanchors int, counts []int, x, y []int
 	// to the returned sequence, to help the processing loop.
 	J := inv
 	n := len(xi)
-	T := make([]int, n)
-	L := make([]int, n)
+	T, L = T[:n], L[:n]
 	for i := range T {
 		T[i] = n + 1
 	}
 	for i := range n {
-		k := sort.Search(n, func(k int) bool {
-			return T[k] >= J[i]
-		})
+		k, _ := slices.BinarySearch(T, J[i])
 		T[k] = J[i]
 		L[i] = k + 1
 	}
