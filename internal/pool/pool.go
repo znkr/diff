@@ -53,4 +53,5 @@ func (s *Slice[T]) Put(v []T) {
 var (
 	Ints    Slice[int]    // Pool for []int.
 	Uint64s Slice[uint64] // Pool for []uint64.
+	Bytes   Slice[byte]   // Pool for []byte.
 )

@@ -16,9 +16,13 @@ package textdiff
 
 import (
 	"bytes"
+	"errors"
 	"flag"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -100,6 +104,134 @@ func TestUnified(t *testing.T) {
 				}
 			})
 		})
+	}
+}
+
+func TestAppendUnified(t *testing.T) {
+	prefix := []byte("prefix\n")
+	for _, tt := range parseTests(t) {
+		for _, st := range tt.subtests {
+			dst := slices.Clone(prefix)
+			got := AppendUnified(dst, tt.x, tt.y, st.opts...)
+			want := append(slices.Clone(prefix), st.want...)
+			if !bytes.Equal(got, want) {
+				t.Errorf("%s/%s: AppendUnified(...) differs from prefix + Unified(...)", tt.name, st.name)
+			}
+		}
+	}
+}
+
+func TestWriteUnified(t *testing.T) {
+	colors := TerminalColors(color.HunkHeaders(33), color.Matches(1), color.Deletes(34), color.Inserts(35))
+	for _, tt := range parseTests(t) {
+		for _, st := range tt.subtests {
+			var buf bytes.Buffer
+			// No write fails; failingWriter only rejects empty writes.
+			w := io.MultiWriter(&buf, &failingWriter{failAt: -1})
+			if err := WriteUnified(w, tt.x, tt.y, st.opts...); err != nil {
+				t.Fatalf("%s/%s: WriteUnified(...) = %v", tt.name, st.name, err)
+			}
+			if !bytes.Equal(buf.Bytes(), st.want) {
+				t.Errorf("%s/%s: WriteUnified(...) differs from Unified(...)", tt.name, st.name)
+			}
+
+			// With colors, every piece of the output is non-empty.
+			opts := append(slices.Clone(st.opts), colors)
+			buf.Reset()
+			if err := WriteUnified(w, tt.x, tt.y, opts...); err != nil {
+				t.Fatalf("%s/%s: WriteUnified(..., TerminalColors(...)) = %v", tt.name, st.name, err)
+			}
+			if want := Unified(tt.x, tt.y, opts...); !bytes.Equal(buf.Bytes(), want) {
+				t.Errorf("%s/%s: WriteUnified(..., TerminalColors(...)) differs from Unified", tt.name, st.name)
+			}
+		}
+	}
+}
+
+type errWriter struct{ err error }
+
+func (w errWriter) Write([]byte) (int, error) { return 0, w.err }
+
+// failingWriter fails on write number failAt (zero-based) and counts the writes
+// it receives.
+type failingWriter struct {
+	n, failAt int
+	err       error
+}
+
+func (w *failingWriter) Write(p []byte) (int, error) {
+	w.n++
+	if len(p) == 0 {
+		return 0, errors.New("empty write")
+	}
+	if w.n-1 == w.failAt {
+		return 0, w.err
+	}
+	return len(p), nil
+}
+
+func TestWriteUnifiedStopsAtError(t *testing.T) {
+	// Every line changes, so the output is about 30 * flushSize bytes and
+	// WriteUnified writes it in several chunks.
+	var x, y strings.Builder
+	for i := range 20 * flushSize / 16 {
+		fmt.Fprintf(&x, "line %d\n", i)
+		fmt.Fprintf(&y, "LINE %d\n", i)
+	}
+	wantErr := errors.New("write failed")
+	for failAt := range 5 {
+		w := &failingWriter{failAt: failAt, err: wantErr}
+		if err := WriteUnified(w, x.String(), y.String()); err != wantErr {
+			t.Fatalf("failAt=%d: WriteUnified(...) = %v, want %v", failAt, err, wantErr)
+		}
+		if w.n != failAt+1 {
+			t.Errorf("failAt=%d: WriteUnified(...) made %d writes, want %d", failAt, w.n, failAt+1)
+		}
+	}
+}
+
+// chunkWriter records the size of every write.
+type chunkWriter struct {
+	buf    bytes.Buffer
+	chunks []int
+}
+
+func (w *chunkWriter) Write(p []byte) (int, error) {
+	w.chunks = append(w.chunks, len(p))
+	return w.buf.Write(p)
+}
+
+func TestWriteUnifiedChunks(t *testing.T) {
+	var x, y strings.Builder
+	for i := range 20 * flushSize / 16 {
+		fmt.Fprintf(&x, "line %d\n", i)
+		fmt.Fprintf(&y, "LINE %d\n", i)
+	}
+	var w chunkWriter
+	if err := WriteUnified(&w, x.String(), y.String()); err != nil {
+		t.Fatalf("WriteUnified(...) = %v", err)
+	}
+	if got, want := w.buf.String(), Unified(x.String(), y.String()); got != want {
+		t.Fatalf("WriteUnified(...) differs from Unified(...)")
+	}
+	if len(w.chunks) < 2 {
+		t.Fatalf("WriteUnified(...) made %d writes, want several", len(w.chunks))
+	}
+	for i, n := range w.chunks {
+		// A chunk holds at most flushSize bytes plus the line that crossed it.
+		if n == 0 || n > flushSize+64 {
+			t.Errorf("write %d has %d bytes, want 1 to %d", i, n, flushSize+64)
+		}
+	}
+}
+
+func TestWriteUnifiedError(t *testing.T) {
+	wantErr := errors.New("write failed")
+	if err := WriteUnified(errWriter{wantErr}, "a\n", "b\n"); err != wantErr {
+		t.Errorf("WriteUnified(...) = %v, want %v", err, wantErr)
+	}
+	if err := WriteUnified(errWriter{wantErr}, "a\n", "a\n"); err != nil {
+		t.Errorf("WriteUnified(...) for identical inputs = %v, want nil", err)
 	}
 }
 
@@ -357,6 +489,43 @@ func BenchmarkUnifiedSmallFiles(b *testing.B) {
 	for b.Loop() {
 		for _, tt := range tests {
 			_ = Unified(tt.x, tt.y, IndentHeuristic())
+		}
+	}
+}
+
+// BenchmarkAppendUnifiedSmallFiles is BenchmarkUnifiedSmallFiles, but it
+// appends to a reused buffer.
+func BenchmarkAppendUnifiedSmallFiles(b *testing.B) {
+	var tests []test
+	for _, tt := range parseTests(b) {
+		if len(tt.x)+len(tt.y) < 64<<10 {
+			tests = append(tests, tt)
+		}
+	}
+	b.ReportAllocs()
+	var buf []byte
+	for b.Loop() {
+		for _, tt := range tests {
+			buf = AppendUnified(buf[:0], tt.x, tt.y, IndentHeuristic())
+		}
+	}
+}
+
+// BenchmarkWriteUnifiedSmallFiles is BenchmarkUnifiedSmallFiles, but it writes
+// to io.Discard.
+func BenchmarkWriteUnifiedSmallFiles(b *testing.B) {
+	var tests []test
+	for _, tt := range parseTests(b) {
+		if len(tt.x)+len(tt.y) < 64<<10 {
+			tests = append(tests, tt)
+		}
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		for _, tt := range tests {
+			if err := WriteUnified(io.Discard, tt.x, tt.y, IndentHeuristic()); err != nil {
+				b.Fatal(err)
+			}
 		}
 	}
 }

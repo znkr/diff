@@ -17,7 +17,8 @@
 // This package is specialized for text comparison and provides unified diff
 // output like the Unix diff command. The main functions are [Hunks] for grouped
 // changes, [Edits] for individual changes, and [Unified] for standard diff
-// format output.
+// format output. [AppendUnified] and [WriteUnified] write the same output to a
+// buffer or an [io.Writer].
 //
 // Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With
 // [diff.Minimal], time complexity becomes O(ND) where N = len(x) + len(y) and D
@@ -25,6 +26,8 @@
 package textdiff
 
 import (
+	"io"
+	"math"
 	"slices"
 	"strconv"
 	"unsafe"
@@ -34,6 +37,7 @@ import (
 	"znkr.io/diff/internal/impl"
 	"znkr.io/diff/internal/indentheuristic"
 	"znkr.io/diff/internal/lines"
+	"znkr.io/diff/internal/pool"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -236,6 +240,52 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
 func Unified[T string | []byte](x, y T, opts ...Option) T {
+	out, _ := formatUnified(nil, nil, x, y, opts)
+	return unsafeFromBytes[T](out)
+}
+
+// AppendUnified is [Unified], but it appends the output to dst and returns the
+// extended buffer. If x and y are identical, it returns dst.
+//
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
+func AppendUnified[T string | []byte](dst []byte, x, y T, opts ...Option) []byte {
+	out, _ := formatUnified(dst, nil, x, y, opts)
+	return out
+}
+
+// WriteUnified is [Unified], but it writes the output to w. It buffers the
+// output and writes it in chunks of about 32 KiB, so w doesn't need to be
+// buffered. If x and y are identical, it doesn't write anything. It stops at
+// the first error from w and returns it.
+//
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
+func WriteUnified[T string | []byte](w io.Writer, x, y T, opts ...Option) error {
+	out, err := formatUnified(pool.Bytes.GetUncleared(0), w, x, y, opts)
+	if err == nil && len(out) > 0 {
+		_, err = w.Write(out)
+	}
+	// An io.Writer must not retain the slice it's given, so the buffer can go
+	// back to the pool.
+	pool.Bytes.Put(out)
+	return err
+}
+
+// flushSize is the number of buffered bytes at which WriteUnified writes to its
+// writer.
+const flushSize = 32 << 10
+
+// formatUnified appends the changes necessary to convert x into y in unified
+// format to dst and returns the extended buffer. If w is not nil, it writes the
+// buffer to w and empties it whenever it holds at least flushSize bytes, and
+// returns the first error from w.
+func formatUnified[T string | []byte](dst []byte, w io.Writer, x, y T, opts []Option) ([]byte, error) {
+	flushAt := math.MaxInt
+	if w != nil {
+		flushAt = flushSize
+	}
+
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic|config.TerminalColors)
 
 	d := diffLines(x, y, cfg)
@@ -250,10 +300,11 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 		colors = *cfg.Colors
 	}
 
+	var hbuf [16]rvecs.Hunk
+	hs := rvecs.AppendHunks(hbuf[:0], rx, ry, cfg)
+
 	// Precompute output buffer size.
 	n := 0
-	var buf [16]rvecs.Hunk
-	hs := rvecs.AppendHunks(buf[:0], rx, ry, cfg)
 	for _, h := range hs {
 		n += len("@@ - + @@\n")
 		n += rangeLen(h.S0, h.S1) + rangeLen(h.T0, h.T1)
@@ -291,7 +342,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	}
 
 	// Format output.
-	b := slices.Grow([]byte(nil), n)
+	b := slices.Grow(dst, min(n, flushAt))
 	for _, h := range hs {
 		b = append(b, colors.HunkHeader...)
 		b = append(b, "@@ -"...)
@@ -307,6 +358,12 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 				for e := min(rx.NextClear(s), h.S1); s < e; {
 					b = append(b, prefixDelete...)
 					b = append(b, xlines.Line(s)...)
+					if len(b) >= flushAt {
+						var err error
+						if b, err = flush(w, b); err != nil {
+							return b, err
+						}
+					}
 					s++
 				}
 				if xMissingNewline && s == xlines.Len() {
@@ -319,6 +376,12 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 				for e := min(ry.NextClear(t), h.T1); t < e; {
 					b = append(b, prefixInsert...)
 					b = append(b, ylines.Line(t)...)
+					if len(b) >= flushAt {
+						var err error
+						if b, err = flush(w, b); err != nil {
+							return b, err
+						}
+					}
 					t++
 				}
 				if yMissingNewline && t == ylines.Len() {
@@ -331,6 +394,12 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 				for e := s + min(min(rx.NextSet(s), h.S1)-s, min(ry.NextSet(t), h.T1)-t); s < e; {
 					b = append(b, prefixMatch...)
 					b = append(b, xlines.Line(s)...)
+					if len(b) >= flushAt {
+						var err error
+						if b, err = flush(w, b); err != nil {
+							return b, err
+						}
+					}
 					s++
 					t++
 				}
@@ -341,7 +410,13 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 			}
 		}
 	}
-	return unsafeFromBytes[T](b)
+	return b, nil
+}
+
+// flush writes buf to w and returns buf emptied and the error from w.
+func flush(w io.Writer, buf []byte) ([]byte, error) {
+	_, err := w.Write(buf)
+	return buf[:0], err
 }
 
 // rangeStart returns the line number that starts the hunk range [lo, hi) in a
