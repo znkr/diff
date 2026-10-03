@@ -17,6 +17,7 @@
 package lines
 
 import (
+	"math/bits"
 	"strings"
 	"unsafe"
 
@@ -77,16 +78,77 @@ func SplitPair[T string | []byte](x, y T) (xl, yl Lines, prefix, suffix int) {
 // nsuf lines start q bytes before the end of s. Only the boundaries of the
 // lines between them are computed.
 func split(s string, npre, nsuf, p, q int) Lines {
-	n := npre + countLines(s[p:len(s)-q]) + nsuf
-	b := pool.Ints.GetUncleared(n + 1)
+	mid := s[p : len(s)-q]
+	n := npre + countLines(mid) + nsuf
+	// b[npre] is the start of mid and b[n-nsuf] is its end. lineStarts writes
+	// the boundaries between them, plus one element after the last newline in
+	// mid, so b has one element of slack. That element and a newline at the end
+	// of mid both land at or after b[n-nsuf], which is set after lineStarts.
+	b := pool.Ints.GetUncleared(n + 2)
 	b[npre] = p
-	off := p
-	for i := npre + 1; i < n-nsuf; i++ {
-		off += strings.IndexByte(s[off:], '\n') + 1
-		b[i] = off
-	}
+	lineStarts(mid, p, b[npre+1:])
 	b[n-nsuf] = len(s) - q
-	return Lines{s: s, b: b, lo: npre, hi: n - nsuf}
+	return Lines{s: s, b: b[:n+1], lo: npre, hi: n - nsuf}
+}
+
+// lineStarts stores off plus the offset after each newline in s in starts, and
+// then one more value. starts must have room for the number of newlines in s
+// plus one.
+func lineStarts(s string, off int, starts []int) {
+	k, i := 0, 0
+	// Two words per iteration halve the loop overhead. More don't help.
+	for ; i+16 <= len(s); i += 16 {
+		w := s[i : i+16]
+		m0, m1 := newlineMask(w[:8]), newlineMask(w[8:])
+		k = storeStarts(starts, k, off+i, m0)
+		k = storeStarts(starts, k, off+i+8, m1)
+	}
+	for ; i+8 <= len(s); i += 8 {
+		k = storeStarts(starts, k, off+i, newlineMask(s[i:i+8]))
+	}
+	for ; i < len(s); i++ {
+		if s[i] == '\n' {
+			starts[k] = off + i + 1
+			k++
+		}
+	}
+}
+
+// newlineMask reads the 8 bytes of w as a little-endian word and returns a
+// mask with the high bit set in each byte that is a newline.
+func newlineMask(w string) uint64 {
+	const lo7 = 0x7f7f7f7f7f7f7f7f
+	const newlines = 0x0a0a0a0a0a0a0a0a
+	_ = w[7]
+	v := uint64(w[0]) | uint64(w[1])<<8 | uint64(w[2])<<16 | uint64(w[3])<<24 |
+		uint64(w[4])<<32 | uint64(w[5])<<40 | uint64(w[6])<<48 | uint64(w[7])<<56
+
+	// After the xor, newline bytes are zero. For each byte, (v&lo7 + lo7) sets
+	// the high bit if any of the low 7 bits is set, without carrying into the
+	// next byte; or-ing v adds the byte's own high bit, and or-ing lo7 sets the
+	// low bits. The complement has the high bit set exactly in the bytes that
+	// are newlines, and no other bits.
+	v ^= newlines
+	return ^((v&lo7 + lo7) | v | lo7)
+}
+
+// storeStarts stores pos plus the offset after each newline in the word that
+// m is the [newlineMask] of in starts, starting at starts[k], and returns the
+// index after the last one. It may also write starts[k] if m is zero.
+func storeStarts(starts []int, k, pos int, m uint64) int {
+	// Most words contain no newline or one. storeStarts stores the position of
+	// the first newline even if there is none, and advances k only if there is
+	// one: (m | -m) >> 63 is 1 for any nonzero m. If m is zero, the stored
+	// value is junk that the next store overwrites. A branch on whether m is
+	// zero is mispredicted about once per line, which costs more than the
+	// store. Only words with more than one newline take the loop.
+	starts[k] = pos + bits.TrailingZeros64(m)/8 + 1
+	k += int((m | -m) >> 63)
+	for m &= m - 1; m != 0; m &= m - 1 {
+		starts[k] = pos + bits.TrailingZeros64(m)/8 + 1
+		k++
+	}
+	return k
 }
 
 // Release returns the memory of l to a pool. The caller must not use l after
