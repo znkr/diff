@@ -74,6 +74,31 @@ func TestSplit(t *testing.T) {
 	}
 }
 
+func TestSplitLong(t *testing.T) {
+	// Lines of up to 40 bytes, so that the 8-byte scan in split finds 0, 1, or
+	// several newlines per word.
+	rng := rand.New(rand.NewPCG(3, 4))
+	for range 1000 {
+		var b strings.Builder
+		for range rng.IntN(20) {
+			b.WriteString(strings.Repeat("x", rng.IntN(40)))
+			if rng.IntN(10) > 0 {
+				b.WriteByte('\n')
+			}
+		}
+		s := b.String()
+		l := Split(s)
+		want := strings.SplitAfter(s, "\n")
+		if len(want) > 0 && want[len(want)-1] == "" {
+			want = want[:len(want)-1]
+		}
+		if diff := cmp.Diff(want, all(&l)); diff != "" {
+			t.Fatalf("Split(%q) lines differ [-want, +got]:\n%s", s, diff)
+		}
+		l.Release()
+	}
+}
+
 func TestSplitPair(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 	gen := func(n int) string {
