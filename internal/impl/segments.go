@@ -54,7 +54,9 @@ import (
 type pair struct{ s, t int }
 
 // segments returns the pairs of indexes of the longest common subsequence of
-// anchors in x and y.
+// anchors in x[smin:smax] and y[tmin:tmax], between the sentinels {smin, tmin}
+// and {smax, tmax}. An anchor is an element e with counts[e] == 1+4, which
+// occurs once in x and once in y; both occurrences must be in the ranges.
 //
 // The longest common subsequence algorithm is as described in Thomas G.
 // Szymanski, “A Special Case of the Maximal Common Subsequence Problem,”
@@ -75,33 +77,41 @@ func segments(smin, smax, tmin, tmax int, nanchors int, counts []int, x, y []int
 	idx = buf[:len(counts)]
 
 	// Gather the indices of anchors in x and y:
-	//	xi[i] = increasing indexes of unique strings in x.
-	//	yi[i] = increasing indexes of unique strings in y.
+	//	xi[i] = increasing indexes of anchors in x with a match in y.
+	//	yi[i] = increasing indexes of anchors in y.
 	//	inv[i] = index j such that x[xi[i]] = y[yi[j]].
+	// The match of an anchor in x[smin:smax] can be outside y[tmin:tmax], so
+	// idx holds -1 for those anchors unless y[tmin:tmax] has their match.
+	for i, e := range x[smin:smax] {
+		if counts[e] == 1+4 {
+			idx[e] = -1
+			xi = append(xi, smin+i)
+		}
+	}
 	for i, e := range y[tmin:tmax] {
-		t := tmin + i
 		if counts[e] == 1+4 {
 			idx[e] = len(yi)
-			yi = append(yi, t)
+			yi = append(yi, tmin+i)
 		}
 	}
-	for i, e := range x[smin:smax] {
-		s := smin + i
-		if counts[e] == 1+4 {
-			xi = append(xi, s)
-			inv = append(inv, idx[e])
+	n := 0
+	for _, s := range xi {
+		if j := idx[x[s]]; j >= 0 {
+			xi[n] = s
+			inv = append(inv, j)
+			n++
 		}
 	}
+	xi = xi[:n]
 
 	// Apply Algorithm A from Szymanski's paper.
-	// In those terms, A = J = inv and B = [0, n).
+	// In those terms, A = J = inv and B = [0, len(yi)).
 	// We add sentinel pairs {0,0}, and {len(x),len(y)}
 	// to the returned sequence, to help the processing loop.
 	J := inv
-	n := len(xi)
 	T, L = T[:n], L[:n]
 	for i := range T {
-		T[i] = n + 1
+		T[i] = len(yi) // larger than every J[i]
 	}
 	for i := range n {
 		k, _ := slices.BinarySearch(T, J[i])
@@ -116,9 +126,11 @@ func segments(smin, smax, tmin, tmax int, nanchors int, counts []int, x, y []int
 	}
 	anchors := make([]pair, 2+k)
 	anchors[1+k] = pair{smax, tmax} // sentinel at end
-	lastj := n
+	// Taking the last i with L[i] == k for each k gives an increasing
+	// sequence: an earlier i' with L[i'] == k-1 and J[i'] > J[i] would extend
+	// the predecessor of i to length k.
 	for i := n - 1; i >= 0; i-- {
-		if L[i] == k && J[i] < lastj {
+		if L[i] == k {
 			anchors[k] = pair{xi[i], yi[J[i]]}
 			k--
 		}
