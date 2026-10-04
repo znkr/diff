@@ -55,15 +55,6 @@ func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
 	}
 	m.costLimit = max(minCostLimit, costLimit)
 
-	if m.xidx == nil || m.yidx == nil {
-		idx := make([]int, max(len(x), len(y)))
-		for i := range idx {
-			idx[i] = i
-		}
-		m.xidx = idx[:len(x)]
-		m.yidx = idx[:len(y)]
-	}
-
 	if m.rx.Len() == 0 || m.ry.Len() == 0 {
 		m.rx, m.ry = rvecs.Make(len(x), len(y))
 	}
@@ -78,10 +69,18 @@ func (m *myersInt) release() {
 func (m *myersInt) compare(smin, smax, tmin, tmax int, optimal bool) {
 	if smin == smax {
 
-		m.ry.SetSorted(m.yidx[tmin:tmax])
+		if m.yidx == nil {
+			m.ry.SetRange(tmin, tmax)
+		} else {
+			m.ry.SetSorted(m.yidx[tmin:tmax])
+		}
 	} else if tmin == tmax {
 
-		m.rx.SetSorted(m.xidx[smin:smax])
+		if m.xidx == nil {
+			m.rx.SetRange(smin, smax)
+		} else {
+			m.rx.SetSorted(m.xidx[smin:smax])
+		}
 	} else {
 
 		s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, optimal)

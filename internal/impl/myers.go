@@ -37,7 +37,8 @@ type myers[T any] struct {
 	// the runtime of the algorithm for large inputs.
 	costLimit int
 
-	// Mapping of s, t indices the location in the result vectors.
+	// Mapping of s, t indices the location in the result vectors. If they
+	// are nil, s and t are the locations.
 	xidx, yidx []int
 
 	// Result vectors.
@@ -82,15 +83,6 @@ func (m *myers[T]) init(x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax 
 	}
 	m.costLimit = max(minCostLimit, costLimit)
 
-	if m.xidx == nil || m.yidx == nil {
-		idx := make([]int, max(len(x), len(y)))
-		for i := range idx {
-			idx[i] = i
-		}
-		m.xidx = idx[:len(x)]
-		m.yidx = idx[:len(y)]
-	}
-
 	if m.rx.Len() == 0 || m.ry.Len() == 0 {
 		m.rx, m.ry = rvecs.Make(len(x), len(y))
 	}
@@ -111,10 +103,18 @@ func (m *myers[T]) release() {
 func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, y T) bool) {
 	if smin == smax {
 		// s is empty, therefore everything in tmin to tmax is an insertion.
-		m.ry.SetSorted(m.yidx[tmin:tmax])
+		if m.yidx == nil {
+			m.ry.SetRange(tmin, tmax)
+		} else {
+			m.ry.SetSorted(m.yidx[tmin:tmax])
+		}
 	} else if tmin == tmax {
 		// t is empty, therefore everything in smin to smax is a deletion.
-		m.rx.SetSorted(m.xidx[smin:smax])
+		if m.xidx == nil {
+			m.rx.SetRange(smin, smax)
+		} else {
+			m.rx.SetSorted(m.xidx[smin:smax])
+		}
 	} else {
 		// Use split to divide the input into three pieces:
 		//
