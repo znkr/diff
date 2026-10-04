@@ -31860,1067 +31860,1067 @@ func main() {
 +
 +//go:noinline
 +func add_4294967296_uint64(a uint64) uint64 { return 4294967296 + a }
++
++//go:noinline
++func add_uint64_9223372036854775808(a uint64) uint64 { return a + 9223372036854775808 }
++
++//go:noinline
++func add_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 + a }
  
  //go:noinline
 -func add_0_uint64_ssa(a uint64) uint64 {
 -	return 0 + a
 -}
-+func add_uint64_9223372036854775808(a uint64) uint64 { return a + 9223372036854775808 }
++func add_uint64_18446744073709551615(a uint64) uint64 { return a + 18446744073709551615 }
  
  //go:noinline
 -func add_uint64_1_ssa(a uint64) uint64 {
 -	return a + 1
 -}
-+func add_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 + a }
++func add_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 + a }
  
  //go:noinline
 -func add_1_uint64_ssa(a uint64) uint64 {
 -	return 1 + a
 -}
-+func add_uint64_18446744073709551615(a uint64) uint64 { return a + 18446744073709551615 }
++func sub_uint64_0(a uint64) uint64 { return a - 0 }
  
  //go:noinline
 -func add_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a + 4294967296
 -}
-+func add_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 + a }
++func sub_0_uint64(a uint64) uint64 { return 0 - a }
  
  //go:noinline
 -func add_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 + a
 -}
-+func sub_uint64_0(a uint64) uint64 { return a - 0 }
++func sub_uint64_1(a uint64) uint64 { return a - 1 }
  
  //go:noinline
 -func add_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a + 9223372036854775808
 -}
-+func sub_0_uint64(a uint64) uint64 { return 0 - a }
++func sub_1_uint64(a uint64) uint64 { return 1 - a }
  
  //go:noinline
 -func add_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 + a
 -}
-+func sub_uint64_1(a uint64) uint64 { return a - 1 }
++func sub_uint64_4294967296(a uint64) uint64 { return a - 4294967296 }
  
  //go:noinline
 -func add_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a + 18446744073709551615
 -}
-+func sub_1_uint64(a uint64) uint64 { return 1 - a }
++func sub_4294967296_uint64(a uint64) uint64 { return 4294967296 - a }
  
  //go:noinline
 -func add_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 + a
 -}
-+func sub_uint64_4294967296(a uint64) uint64 { return a - 4294967296 }
++func sub_uint64_9223372036854775808(a uint64) uint64 { return a - 9223372036854775808 }
  
  //go:noinline
 -func sub_uint64_0_ssa(a uint64) uint64 {
 -	return a - 0
 -}
-+func sub_4294967296_uint64(a uint64) uint64 { return 4294967296 - a }
++func sub_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 - a }
  
  //go:noinline
 -func sub_0_uint64_ssa(a uint64) uint64 {
 -	return 0 - a
 -}
-+func sub_uint64_9223372036854775808(a uint64) uint64 { return a - 9223372036854775808 }
++func sub_uint64_18446744073709551615(a uint64) uint64 { return a - 18446744073709551615 }
  
  //go:noinline
 -func sub_uint64_1_ssa(a uint64) uint64 {
 -	return a - 1
 -}
-+func sub_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 - a }
++func sub_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 - a }
  
  //go:noinline
 -func sub_1_uint64_ssa(a uint64) uint64 {
 -	return 1 - a
 -}
-+func sub_uint64_18446744073709551615(a uint64) uint64 { return a - 18446744073709551615 }
++func div_0_uint64(a uint64) uint64 { return 0 / a }
  
  //go:noinline
 -func sub_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a - 4294967296
 -}
-+func sub_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 - a }
++func div_uint64_1(a uint64) uint64 { return a / 1 }
  
  //go:noinline
 -func sub_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 - a
 -}
-+func div_0_uint64(a uint64) uint64 { return 0 / a }
++func div_1_uint64(a uint64) uint64 { return 1 / a }
  
  //go:noinline
 -func sub_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a - 9223372036854775808
 -}
-+func div_uint64_1(a uint64) uint64 { return a / 1 }
++func div_uint64_4294967296(a uint64) uint64 { return a / 4294967296 }
  
  //go:noinline
 -func sub_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 - a
 -}
-+func div_1_uint64(a uint64) uint64 { return 1 / a }
++func div_4294967296_uint64(a uint64) uint64 { return 4294967296 / a }
  
  //go:noinline
 -func sub_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a - 18446744073709551615
 -}
-+func div_uint64_4294967296(a uint64) uint64 { return a / 4294967296 }
++func div_uint64_9223372036854775808(a uint64) uint64 { return a / 9223372036854775808 }
  
  //go:noinline
 -func sub_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 - a
 -}
-+func div_4294967296_uint64(a uint64) uint64 { return 4294967296 / a }
++func div_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 / a }
  
  //go:noinline
 -func div_0_uint64_ssa(a uint64) uint64 {
 -	return 0 / a
 -}
-+func div_uint64_9223372036854775808(a uint64) uint64 { return a / 9223372036854775808 }
++func div_uint64_18446744073709551615(a uint64) uint64 { return a / 18446744073709551615 }
  
  //go:noinline
 -func div_uint64_1_ssa(a uint64) uint64 {
 -	return a / 1
 -}
-+func div_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 / a }
++func div_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 / a }
  
  //go:noinline
 -func div_1_uint64_ssa(a uint64) uint64 {
 -	return 1 / a
 -}
-+func div_uint64_18446744073709551615(a uint64) uint64 { return a / 18446744073709551615 }
++func mul_uint64_0(a uint64) uint64 { return a * 0 }
  
  //go:noinline
 -func div_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a / 4294967296
 -}
-+func div_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 / a }
++func mul_0_uint64(a uint64) uint64 { return 0 * a }
  
  //go:noinline
 -func div_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 / a
 -}
-+func mul_uint64_0(a uint64) uint64 { return a * 0 }
++func mul_uint64_1(a uint64) uint64 { return a * 1 }
  
  //go:noinline
 -func div_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a / 9223372036854775808
 -}
-+func mul_0_uint64(a uint64) uint64 { return 0 * a }
++func mul_1_uint64(a uint64) uint64 { return 1 * a }
  
  //go:noinline
 -func div_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 / a
 -}
-+func mul_uint64_1(a uint64) uint64 { return a * 1 }
++func mul_uint64_4294967296(a uint64) uint64 { return a * 4294967296 }
  
  //go:noinline
 -func div_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a / 18446744073709551615
 -}
-+func mul_1_uint64(a uint64) uint64 { return 1 * a }
++func mul_4294967296_uint64(a uint64) uint64 { return 4294967296 * a }
  
  //go:noinline
 -func div_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 / a
 -}
-+func mul_uint64_4294967296(a uint64) uint64 { return a * 4294967296 }
++func mul_uint64_9223372036854775808(a uint64) uint64 { return a * 9223372036854775808 }
  
  //go:noinline
 -func mul_uint64_0_ssa(a uint64) uint64 {
 -	return a * 0
 -}
-+func mul_4294967296_uint64(a uint64) uint64 { return 4294967296 * a }
++func mul_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 * a }
  
  //go:noinline
 -func mul_0_uint64_ssa(a uint64) uint64 {
 -	return 0 * a
 -}
-+func mul_uint64_9223372036854775808(a uint64) uint64 { return a * 9223372036854775808 }
++func mul_uint64_18446744073709551615(a uint64) uint64 { return a * 18446744073709551615 }
  
  //go:noinline
 -func mul_uint64_1_ssa(a uint64) uint64 {
 -	return a * 1
 -}
-+func mul_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 * a }
++func mul_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 * a }
  
  //go:noinline
 -func mul_1_uint64_ssa(a uint64) uint64 {
 -	return 1 * a
 -}
-+func mul_uint64_18446744073709551615(a uint64) uint64 { return a * 18446744073709551615 }
++func lsh_uint64_0(a uint64) uint64 { return a << 0 }
  
  //go:noinline
 -func mul_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a * 4294967296
 -}
-+func mul_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 * a }
++func lsh_0_uint64(a uint64) uint64 { return 0 << a }
  
  //go:noinline
 -func mul_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 * a
 -}
-+func lsh_uint64_0(a uint64) uint64 { return a << 0 }
++func lsh_uint64_1(a uint64) uint64 { return a << 1 }
  
  //go:noinline
 -func mul_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a * 9223372036854775808
 -}
-+func lsh_0_uint64(a uint64) uint64 { return 0 << a }
++func lsh_1_uint64(a uint64) uint64 { return 1 << a }
  
  //go:noinline
 -func mul_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 * a
 -}
-+func lsh_uint64_1(a uint64) uint64 { return a << 1 }
-+
-+//go:noinline
-+func lsh_1_uint64(a uint64) uint64 { return 1 << a }
++func lsh_uint64_4294967296(a uint64) uint64 { return a << uint64(4294967296) }
  
  //go:noinline
 -func mul_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a * 18446744073709551615
 -}
-+func lsh_uint64_4294967296(a uint64) uint64 { return a << uint64(4294967296) }
++func lsh_4294967296_uint64(a uint64) uint64 { return 4294967296 << a }
  
  //go:noinline
 -func mul_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 * a
 -}
-+func lsh_4294967296_uint64(a uint64) uint64 { return 4294967296 << a }
++func lsh_uint64_9223372036854775808(a uint64) uint64 { return a << uint64(9223372036854775808) }
  
  //go:noinline
 -func lsh_uint64_0_ssa(a uint64) uint64 {
 -	return a << 0
 -}
-+func lsh_uint64_9223372036854775808(a uint64) uint64 { return a << uint64(9223372036854775808) }
++func lsh_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 << a }
  
  //go:noinline
 -func lsh_0_uint64_ssa(a uint64) uint64 {
 -	return 0 << a
 -}
-+func lsh_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 << a }
++func lsh_uint64_18446744073709551615(a uint64) uint64 { return a << uint64(18446744073709551615) }
  
  //go:noinline
 -func lsh_uint64_1_ssa(a uint64) uint64 {
 -	return a << 1
 -}
-+func lsh_uint64_18446744073709551615(a uint64) uint64 { return a << uint64(18446744073709551615) }
++func lsh_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 << a }
  
  //go:noinline
 -func lsh_1_uint64_ssa(a uint64) uint64 {
 -	return 1 << a
 -}
-+func lsh_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 << a }
++func rsh_uint64_0(a uint64) uint64 { return a >> 0 }
  
  //go:noinline
 -func lsh_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a << uint64(4294967296)
 -}
-+func rsh_uint64_0(a uint64) uint64 { return a >> 0 }
++func rsh_0_uint64(a uint64) uint64 { return 0 >> a }
  
  //go:noinline
 -func lsh_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 << a
 -}
-+func rsh_0_uint64(a uint64) uint64 { return 0 >> a }
++func rsh_uint64_1(a uint64) uint64 { return a >> 1 }
  
  //go:noinline
 -func lsh_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a << uint64(9223372036854775808)
 -}
-+func rsh_uint64_1(a uint64) uint64 { return a >> 1 }
++func rsh_1_uint64(a uint64) uint64 { return 1 >> a }
  
  //go:noinline
 -func lsh_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 << a
 -}
-+func rsh_1_uint64(a uint64) uint64 { return 1 >> a }
++func rsh_uint64_4294967296(a uint64) uint64 { return a >> uint64(4294967296) }
  
  //go:noinline
 -func lsh_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a << uint64(18446744073709551615)
 -}
-+func rsh_uint64_4294967296(a uint64) uint64 { return a >> uint64(4294967296) }
++func rsh_4294967296_uint64(a uint64) uint64 { return 4294967296 >> a }
  
  //go:noinline
 -func lsh_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 << a
 -}
-+func rsh_4294967296_uint64(a uint64) uint64 { return 4294967296 >> a }
++func rsh_uint64_9223372036854775808(a uint64) uint64 { return a >> uint64(9223372036854775808) }
  
  //go:noinline
 -func rsh_uint64_0_ssa(a uint64) uint64 {
 -	return a >> 0
 -}
-+func rsh_uint64_9223372036854775808(a uint64) uint64 { return a >> uint64(9223372036854775808) }
++func rsh_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 >> a }
  
  //go:noinline
 -func rsh_0_uint64_ssa(a uint64) uint64 {
 -	return 0 >> a
 -}
-+func rsh_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 >> a }
++func rsh_uint64_18446744073709551615(a uint64) uint64 { return a >> uint64(18446744073709551615) }
  
  //go:noinline
 -func rsh_uint64_1_ssa(a uint64) uint64 {
 -	return a >> 1
 -}
-+func rsh_uint64_18446744073709551615(a uint64) uint64 { return a >> uint64(18446744073709551615) }
++func rsh_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 >> a }
  
  //go:noinline
 -func rsh_1_uint64_ssa(a uint64) uint64 {
 -	return 1 >> a
 -}
-+func rsh_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 >> a }
++func mod_0_uint64(a uint64) uint64 { return 0 % a }
  
  //go:noinline
 -func rsh_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a >> uint64(4294967296)
 -}
-+func mod_0_uint64(a uint64) uint64 { return 0 % a }
++func mod_uint64_1(a uint64) uint64 { return a % 1 }
  
  //go:noinline
 -func rsh_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 >> a
 -}
-+func mod_uint64_1(a uint64) uint64 { return a % 1 }
++func mod_1_uint64(a uint64) uint64 { return 1 % a }
  
  //go:noinline
 -func rsh_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a >> uint64(9223372036854775808)
 -}
-+func mod_1_uint64(a uint64) uint64 { return 1 % a }
++func mod_uint64_4294967296(a uint64) uint64 { return a % 4294967296 }
  
  //go:noinline
 -func rsh_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 >> a
 -}
-+func mod_uint64_4294967296(a uint64) uint64 { return a % 4294967296 }
++func mod_4294967296_uint64(a uint64) uint64 { return 4294967296 % a }
  
  //go:noinline
 -func rsh_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a >> uint64(18446744073709551615)
 -}
-+func mod_4294967296_uint64(a uint64) uint64 { return 4294967296 % a }
++func mod_uint64_9223372036854775808(a uint64) uint64 { return a % 9223372036854775808 }
  
  //go:noinline
 -func rsh_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 >> a
 -}
-+func mod_uint64_9223372036854775808(a uint64) uint64 { return a % 9223372036854775808 }
++func mod_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 % a }
  
  //go:noinline
 -func mod_0_uint64_ssa(a uint64) uint64 {
 -	return 0 % a
 -}
-+func mod_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 % a }
++func mod_uint64_18446744073709551615(a uint64) uint64 { return a % 18446744073709551615 }
  
  //go:noinline
 -func mod_uint64_1_ssa(a uint64) uint64 {
 -	return a % 1
 -}
-+func mod_uint64_18446744073709551615(a uint64) uint64 { return a % 18446744073709551615 }
++func mod_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 % a }
  
  //go:noinline
 -func mod_1_uint64_ssa(a uint64) uint64 {
 -	return 1 % a
 -}
-+func mod_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 % a }
++func and_uint64_0(a uint64) uint64 { return a & 0 }
  
  //go:noinline
 -func mod_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a % 4294967296
 -}
-+func and_uint64_0(a uint64) uint64 { return a & 0 }
++func and_0_uint64(a uint64) uint64 { return 0 & a }
  
  //go:noinline
 -func mod_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 % a
 -}
-+func and_0_uint64(a uint64) uint64 { return 0 & a }
++func and_uint64_1(a uint64) uint64 { return a & 1 }
  
  //go:noinline
 -func mod_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a % 9223372036854775808
 -}
-+func and_uint64_1(a uint64) uint64 { return a & 1 }
++func and_1_uint64(a uint64) uint64 { return 1 & a }
  
  //go:noinline
 -func mod_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 % a
 -}
-+func and_1_uint64(a uint64) uint64 { return 1 & a }
++func and_uint64_4294967296(a uint64) uint64 { return a & 4294967296 }
  
  //go:noinline
 -func mod_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a % 18446744073709551615
 -}
-+func and_uint64_4294967296(a uint64) uint64 { return a & 4294967296 }
++func and_4294967296_uint64(a uint64) uint64 { return 4294967296 & a }
  
  //go:noinline
 -func mod_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 % a
 -}
-+func and_4294967296_uint64(a uint64) uint64 { return 4294967296 & a }
++func and_uint64_9223372036854775808(a uint64) uint64 { return a & 9223372036854775808 }
  
  //go:noinline
 -func and_uint64_0_ssa(a uint64) uint64 {
 -	return a & 0
 -}
-+func and_uint64_9223372036854775808(a uint64) uint64 { return a & 9223372036854775808 }
++func and_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 & a }
  
  //go:noinline
 -func and_0_uint64_ssa(a uint64) uint64 {
 -	return 0 & a
 -}
-+func and_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 & a }
++func and_uint64_18446744073709551615(a uint64) uint64 { return a & 18446744073709551615 }
  
  //go:noinline
 -func and_uint64_1_ssa(a uint64) uint64 {
 -	return a & 1
 -}
-+func and_uint64_18446744073709551615(a uint64) uint64 { return a & 18446744073709551615 }
++func and_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 & a }
  
  //go:noinline
 -func and_1_uint64_ssa(a uint64) uint64 {
 -	return 1 & a
 -}
-+func and_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 & a }
++func or_uint64_0(a uint64) uint64 { return a | 0 }
  
  //go:noinline
 -func and_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a & 4294967296
 -}
-+func or_uint64_0(a uint64) uint64 { return a | 0 }
++func or_0_uint64(a uint64) uint64 { return 0 | a }
  
  //go:noinline
 -func and_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 & a
 -}
-+func or_0_uint64(a uint64) uint64 { return 0 | a }
++func or_uint64_1(a uint64) uint64 { return a | 1 }
  
  //go:noinline
 -func and_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a & 9223372036854775808
 -}
-+func or_uint64_1(a uint64) uint64 { return a | 1 }
++func or_1_uint64(a uint64) uint64 { return 1 | a }
  
  //go:noinline
 -func and_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 & a
 -}
-+func or_1_uint64(a uint64) uint64 { return 1 | a }
++func or_uint64_4294967296(a uint64) uint64 { return a | 4294967296 }
  
  //go:noinline
 -func and_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a & 18446744073709551615
 -}
-+func or_uint64_4294967296(a uint64) uint64 { return a | 4294967296 }
++func or_4294967296_uint64(a uint64) uint64 { return 4294967296 | a }
  
  //go:noinline
 -func and_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 & a
 -}
-+func or_4294967296_uint64(a uint64) uint64 { return 4294967296 | a }
++func or_uint64_9223372036854775808(a uint64) uint64 { return a | 9223372036854775808 }
  
  //go:noinline
 -func or_uint64_0_ssa(a uint64) uint64 {
 -	return a | 0
 -}
-+func or_uint64_9223372036854775808(a uint64) uint64 { return a | 9223372036854775808 }
++func or_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 | a }
  
  //go:noinline
 -func or_0_uint64_ssa(a uint64) uint64 {
 -	return 0 | a
 -}
-+func or_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 | a }
++func or_uint64_18446744073709551615(a uint64) uint64 { return a | 18446744073709551615 }
  
  //go:noinline
 -func or_uint64_1_ssa(a uint64) uint64 {
 -	return a | 1
 -}
-+func or_uint64_18446744073709551615(a uint64) uint64 { return a | 18446744073709551615 }
++func or_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 | a }
  
  //go:noinline
 -func or_1_uint64_ssa(a uint64) uint64 {
 -	return 1 | a
 -}
-+func or_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 | a }
++func xor_uint64_0(a uint64) uint64 { return a ^ 0 }
  
  //go:noinline
 -func or_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a | 4294967296
 -}
-+func xor_uint64_0(a uint64) uint64 { return a ^ 0 }
++func xor_0_uint64(a uint64) uint64 { return 0 ^ a }
  
  //go:noinline
 -func or_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 | a
 -}
-+func xor_0_uint64(a uint64) uint64 { return 0 ^ a }
++func xor_uint64_1(a uint64) uint64 { return a ^ 1 }
  
  //go:noinline
 -func or_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a | 9223372036854775808
 -}
-+func xor_uint64_1(a uint64) uint64 { return a ^ 1 }
++func xor_1_uint64(a uint64) uint64 { return 1 ^ a }
  
  //go:noinline
 -func or_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 | a
 -}
-+func xor_1_uint64(a uint64) uint64 { return 1 ^ a }
++func xor_uint64_4294967296(a uint64) uint64 { return a ^ 4294967296 }
  
  //go:noinline
 -func or_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a | 18446744073709551615
 -}
-+func xor_uint64_4294967296(a uint64) uint64 { return a ^ 4294967296 }
++func xor_4294967296_uint64(a uint64) uint64 { return 4294967296 ^ a }
  
  //go:noinline
 -func or_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 | a
 -}
-+func xor_4294967296_uint64(a uint64) uint64 { return 4294967296 ^ a }
++func xor_uint64_9223372036854775808(a uint64) uint64 { return a ^ 9223372036854775808 }
  
  //go:noinline
 -func xor_uint64_0_ssa(a uint64) uint64 {
 -	return a ^ 0
 -}
-+func xor_uint64_9223372036854775808(a uint64) uint64 { return a ^ 9223372036854775808 }
++func xor_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 ^ a }
  
  //go:noinline
 -func xor_0_uint64_ssa(a uint64) uint64 {
 -	return 0 ^ a
 -}
-+func xor_9223372036854775808_uint64(a uint64) uint64 { return 9223372036854775808 ^ a }
++func xor_uint64_18446744073709551615(a uint64) uint64 { return a ^ 18446744073709551615 }
  
  //go:noinline
 -func xor_uint64_1_ssa(a uint64) uint64 {
 -	return a ^ 1
 -}
-+func xor_uint64_18446744073709551615(a uint64) uint64 { return a ^ 18446744073709551615 }
++func xor_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 ^ a }
  
  //go:noinline
 -func xor_1_uint64_ssa(a uint64) uint64 {
 -	return 1 ^ a
 -}
-+func xor_18446744073709551615_uint64(a uint64) uint64 { return 18446744073709551615 ^ a }
++func add_int64_Neg9223372036854775808(a int64) int64 { return a + -9223372036854775808 }
  
  //go:noinline
 -func xor_uint64_4294967296_ssa(a uint64) uint64 {
 -	return a ^ 4294967296
 -}
-+func add_int64_Neg9223372036854775808(a int64) int64 { return a + -9223372036854775808 }
++func add_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 + a }
  
  //go:noinline
 -func xor_4294967296_uint64_ssa(a uint64) uint64 {
 -	return 4294967296 ^ a
 -}
-+func add_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 + a }
++func add_int64_Neg9223372036854775807(a int64) int64 { return a + -9223372036854775807 }
  
  //go:noinline
 -func xor_uint64_9223372036854775808_ssa(a uint64) uint64 {
 -	return a ^ 9223372036854775808
 -}
-+func add_int64_Neg9223372036854775807(a int64) int64 { return a + -9223372036854775807 }
++func add_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 + a }
  
  //go:noinline
 -func xor_9223372036854775808_uint64_ssa(a uint64) uint64 {
 -	return 9223372036854775808 ^ a
 -}
-+func add_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 + a }
++func add_int64_Neg4294967296(a int64) int64 { return a + -4294967296 }
  
  //go:noinline
 -func xor_uint64_18446744073709551615_ssa(a uint64) uint64 {
 -	return a ^ 18446744073709551615
 -}
-+func add_int64_Neg4294967296(a int64) int64 { return a + -4294967296 }
++func add_Neg4294967296_int64(a int64) int64 { return -4294967296 + a }
  
  //go:noinline
 -func xor_18446744073709551615_uint64_ssa(a uint64) uint64 {
 -	return 18446744073709551615 ^ a
 -}
-+func add_Neg4294967296_int64(a int64) int64 { return -4294967296 + a }
++func add_int64_Neg1(a int64) int64 { return a + -1 }
  
  //go:noinline
 -func add_int64_Neg9223372036854775808_ssa(a int64) int64 {
 -	return a + -9223372036854775808
 -}
-+func add_int64_Neg1(a int64) int64 { return a + -1 }
++func add_Neg1_int64(a int64) int64 { return -1 + a }
  
  //go:noinline
 -func add_Neg9223372036854775808_int64_ssa(a int64) int64 {
 -	return -9223372036854775808 + a
 -}
-+func add_Neg1_int64(a int64) int64 { return -1 + a }
++func add_int64_0(a int64) int64 { return a + 0 }
  
  //go:noinline
 -func add_int64_Neg9223372036854775807_ssa(a int64) int64 {
 -	return a + -9223372036854775807
 -}
-+func add_int64_0(a int64) int64 { return a + 0 }
++func add_0_int64(a int64) int64 { return 0 + a }
  
  //go:noinline
 -func add_Neg9223372036854775807_int64_ssa(a int64) int64 {
 -	return -9223372036854775807 + a
 -}
-+func add_0_int64(a int64) int64 { return 0 + a }
++func add_int64_1(a int64) int64 { return a + 1 }
  
  //go:noinline
 -func add_int64_Neg4294967296_ssa(a int64) int64 {
 -	return a + -4294967296
 -}
-+func add_int64_1(a int64) int64 { return a + 1 }
++func add_1_int64(a int64) int64 { return 1 + a }
  
  //go:noinline
 -func add_Neg4294967296_int64_ssa(a int64) int64 {
 -	return -4294967296 + a
 -}
-+func add_1_int64(a int64) int64 { return 1 + a }
++func add_int64_4294967296(a int64) int64 { return a + 4294967296 }
  
  //go:noinline
 -func add_int64_Neg1_ssa(a int64) int64 {
 -	return a + -1
 -}
-+func add_int64_4294967296(a int64) int64 { return a + 4294967296 }
++func add_4294967296_int64(a int64) int64 { return 4294967296 + a }
  
  //go:noinline
 -func add_Neg1_int64_ssa(a int64) int64 {
 -	return -1 + a
 -}
-+func add_4294967296_int64(a int64) int64 { return 4294967296 + a }
++func add_int64_9223372036854775806(a int64) int64 { return a + 9223372036854775806 }
  
  //go:noinline
 -func add_int64_0_ssa(a int64) int64 {
 -	return a + 0
 -}
-+func add_int64_9223372036854775806(a int64) int64 { return a + 9223372036854775806 }
++func add_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 + a }
  
  //go:noinline
 -func add_0_int64_ssa(a int64) int64 {
 -	return 0 + a
 -}
-+func add_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 + a }
++func add_int64_9223372036854775807(a int64) int64 { return a + 9223372036854775807 }
  
  //go:noinline
 -func add_int64_1_ssa(a int64) int64 {
 -	return a + 1
 -}
-+func add_int64_9223372036854775807(a int64) int64 { return a + 9223372036854775807 }
++func add_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 + a }
  
  //go:noinline
 -func add_1_int64_ssa(a int64) int64 {
 -	return 1 + a
 -}
-+func add_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 + a }
++func sub_int64_Neg9223372036854775808(a int64) int64 { return a - -9223372036854775808 }
  
  //go:noinline
 -func add_int64_4294967296_ssa(a int64) int64 {
 -	return a + 4294967296
 -}
-+func sub_int64_Neg9223372036854775808(a int64) int64 { return a - -9223372036854775808 }
++func sub_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 - a }
  
  //go:noinline
 -func add_4294967296_int64_ssa(a int64) int64 {
 -	return 4294967296 + a
 -}
-+func sub_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 - a }
++func sub_int64_Neg9223372036854775807(a int64) int64 { return a - -9223372036854775807 }
  
  //go:noinline
 -func add_int64_9223372036854775806_ssa(a int64) int64 {
 -	return a + 9223372036854775806
 -}
-+func sub_int64_Neg9223372036854775807(a int64) int64 { return a - -9223372036854775807 }
++func sub_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 - a }
  
  //go:noinline
 -func add_9223372036854775806_int64_ssa(a int64) int64 {
 -	return 9223372036854775806 + a
 -}
-+func sub_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 - a }
++func sub_int64_Neg4294967296(a int64) int64 { return a - -4294967296 }
  
  //go:noinline
 -func add_int64_9223372036854775807_ssa(a int64) int64 {
 -	return a + 9223372036854775807
 -}
-+func sub_int64_Neg4294967296(a int64) int64 { return a - -4294967296 }
++func sub_Neg4294967296_int64(a int64) int64 { return -4294967296 - a }
  
  //go:noinline
 -func add_9223372036854775807_int64_ssa(a int64) int64 {
 -	return 9223372036854775807 + a
 -}
-+func sub_Neg4294967296_int64(a int64) int64 { return -4294967296 - a }
++func sub_int64_Neg1(a int64) int64 { return a - -1 }
  
  //go:noinline
 -func sub_int64_Neg9223372036854775808_ssa(a int64) int64 {
 -	return a - -9223372036854775808
 -}
-+func sub_int64_Neg1(a int64) int64 { return a - -1 }
++func sub_Neg1_int64(a int64) int64 { return -1 - a }
  
  //go:noinline
 -func sub_Neg9223372036854775808_int64_ssa(a int64) int64 {
 -	return -9223372036854775808 - a
 -}
-+func sub_Neg1_int64(a int64) int64 { return -1 - a }
++func sub_int64_0(a int64) int64 { return a - 0 }
  
  //go:noinline
 -func sub_int64_Neg9223372036854775807_ssa(a int64) int64 {
 -	return a - -9223372036854775807
 -}
-+func sub_int64_0(a int64) int64 { return a - 0 }
++func sub_0_int64(a int64) int64 { return 0 - a }
  
  //go:noinline
 -func sub_Neg9223372036854775807_int64_ssa(a int64) int64 {
 -	return -9223372036854775807 - a
 -}
-+func sub_0_int64(a int64) int64 { return 0 - a }
++func sub_int64_1(a int64) int64 { return a - 1 }
  
  //go:noinline
 -func sub_int64_Neg4294967296_ssa(a int64) int64 {
 -	return a - -4294967296
 -}
-+func sub_int64_1(a int64) int64 { return a - 1 }
++func sub_1_int64(a int64) int64 { return 1 - a }
  
  //go:noinline
 -func sub_Neg4294967296_int64_ssa(a int64) int64 {
 -	return -4294967296 - a
 -}
-+func sub_1_int64(a int64) int64 { return 1 - a }
++func sub_int64_4294967296(a int64) int64 { return a - 4294967296 }
  
  //go:noinline
 -func sub_int64_Neg1_ssa(a int64) int64 {
 -	return a - -1
 -}
-+func sub_int64_4294967296(a int64) int64 { return a - 4294967296 }
++func sub_4294967296_int64(a int64) int64 { return 4294967296 - a }
  
  //go:noinline
 -func sub_Neg1_int64_ssa(a int64) int64 {
 -	return -1 - a
 -}
-+func sub_4294967296_int64(a int64) int64 { return 4294967296 - a }
++func sub_int64_9223372036854775806(a int64) int64 { return a - 9223372036854775806 }
  
  //go:noinline
 -func sub_int64_0_ssa(a int64) int64 {
 -	return a - 0
 -}
-+func sub_int64_9223372036854775806(a int64) int64 { return a - 9223372036854775806 }
++func sub_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 - a }
  
  //go:noinline
 -func sub_0_int64_ssa(a int64) int64 {
 -	return 0 - a
 -}
-+func sub_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 - a }
++func sub_int64_9223372036854775807(a int64) int64 { return a - 9223372036854775807 }
  
  //go:noinline
 -func sub_int64_1_ssa(a int64) int64 {
 -	return a - 1
 -}
-+func sub_int64_9223372036854775807(a int64) int64 { return a - 9223372036854775807 }
++func sub_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 - a }
  
  //go:noinline
 -func sub_1_int64_ssa(a int64) int64 {
 -	return 1 - a
 -}
-+func sub_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 - a }
++func div_int64_Neg9223372036854775808(a int64) int64 { return a / -9223372036854775808 }
  
  //go:noinline
 -func sub_int64_4294967296_ssa(a int64) int64 {
 -	return a - 4294967296
 -}
-+func div_int64_Neg9223372036854775808(a int64) int64 { return a / -9223372036854775808 }
++func div_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 / a }
  
  //go:noinline
 -func sub_4294967296_int64_ssa(a int64) int64 {
 -	return 4294967296 - a
 -}
-+func div_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 / a }
++func div_int64_Neg9223372036854775807(a int64) int64 { return a / -9223372036854775807 }
  
  //go:noinline
 -func sub_int64_9223372036854775806_ssa(a int64) int64 {
 -	return a - 9223372036854775806
 -}
-+func div_int64_Neg9223372036854775807(a int64) int64 { return a / -9223372036854775807 }
++func div_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 / a }
  
  //go:noinline
 -func sub_9223372036854775806_int64_ssa(a int64) int64 {
 -	return 9223372036854775806 - a
 -}
-+func div_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 / a }
++func div_int64_Neg4294967296(a int64) int64 { return a / -4294967296 }
  
  //go:noinline
 -func sub_int64_9223372036854775807_ssa(a int64) int64 {
 -	return a - 9223372036854775807
 -}
-+func div_int64_Neg4294967296(a int64) int64 { return a / -4294967296 }
++func div_Neg4294967296_int64(a int64) int64 { return -4294967296 / a }
  
  //go:noinline
 -func sub_9223372036854775807_int64_ssa(a int64) int64 {
 -	return 9223372036854775807 - a
 -}
-+func div_Neg4294967296_int64(a int64) int64 { return -4294967296 / a }
++func div_int64_Neg1(a int64) int64 { return a / -1 }
  
  //go:noinline
 -func div_int64_Neg9223372036854775808_ssa(a int64) int64 {
 -	return a / -9223372036854775808
 -}
-+func div_int64_Neg1(a int64) int64 { return a / -1 }
++func div_Neg1_int64(a int64) int64 { return -1 / a }
  
  //go:noinline
 -func div_Neg9223372036854775808_int64_ssa(a int64) int64 {
 -	return -9223372036854775808 / a
 -}
-+func div_Neg1_int64(a int64) int64 { return -1 / a }
++func div_0_int64(a int64) int64 { return 0 / a }
  
  //go:noinline
 -func div_int64_Neg9223372036854775807_ssa(a int64) int64 {
 -	return a / -9223372036854775807
 -}
-+func div_0_int64(a int64) int64 { return 0 / a }
++func div_int64_1(a int64) int64 { return a / 1 }
  
  //go:noinline
 -func div_Neg9223372036854775807_int64_ssa(a int64) int64 {
 -	return -9223372036854775807 / a
 -}
-+func div_int64_1(a int64) int64 { return a / 1 }
++func div_1_int64(a int64) int64 { return 1 / a }
  
  //go:noinline
 -func div_int64_Neg4294967296_ssa(a int64) int64 {
 -	return a / -4294967296
 -}
-+func div_1_int64(a int64) int64 { return 1 / a }
++func div_int64_4294967296(a int64) int64 { return a / 4294967296 }
  
  //go:noinline
 -func div_Neg4294967296_int64_ssa(a int64) int64 {
 -	return -4294967296 / a
 -}
-+func div_int64_4294967296(a int64) int64 { return a / 4294967296 }
++func div_4294967296_int64(a int64) int64 { return 4294967296 / a }
  
  //go:noinline
 -func div_int64_Neg1_ssa(a int64) int64 {
 -	return a / -1
 -}
-+func div_4294967296_int64(a int64) int64 { return 4294967296 / a }
++func div_int64_9223372036854775806(a int64) int64 { return a / 9223372036854775806 }
  
  //go:noinline
 -func div_Neg1_int64_ssa(a int64) int64 {
 -	return -1 / a
 -}
-+func div_int64_9223372036854775806(a int64) int64 { return a / 9223372036854775806 }
++func div_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 / a }
  
  //go:noinline
 -func div_0_int64_ssa(a int64) int64 {
 -	return 0 / a
 -}
-+func div_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 / a }
++func div_int64_9223372036854775807(a int64) int64 { return a / 9223372036854775807 }
  
  //go:noinline
 -func div_int64_1_ssa(a int64) int64 {
 -	return a / 1
 -}
-+func div_int64_9223372036854775807(a int64) int64 { return a / 9223372036854775807 }
++func div_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 / a }
  
  //go:noinline
 -func div_1_int64_ssa(a int64) int64 {
 -	return 1 / a
 -}
-+func div_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 / a }
++func mul_int64_Neg9223372036854775808(a int64) int64 { return a * -9223372036854775808 }
  
  //go:noinline
 -func div_int64_4294967296_ssa(a int64) int64 {
 -	return a / 4294967296
 -}
-+func mul_int64_Neg9223372036854775808(a int64) int64 { return a * -9223372036854775808 }
++func mul_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 * a }
  
  //go:noinline
 -func div_4294967296_int64_ssa(a int64) int64 {
 -	return 4294967296 / a
 -}
-+func mul_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 * a }
++func mul_int64_Neg9223372036854775807(a int64) int64 { return a * -9223372036854775807 }
  
  //go:noinline
 -func div_int64_9223372036854775806_ssa(a int64) int64 {
 -	return a / 9223372036854775806
 -}
-+func mul_int64_Neg9223372036854775807(a int64) int64 { return a * -9223372036854775807 }
++func mul_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 * a }
  
  //go:noinline
 -func div_9223372036854775806_int64_ssa(a int64) int64 {
 -	return 9223372036854775806 / a
 -}
-+func mul_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 * a }
++func mul_int64_Neg4294967296(a int64) int64 { return a * -4294967296 }
  
  //go:noinline
 -func div_int64_9223372036854775807_ssa(a int64) int64 {
 -	return a / 9223372036854775807
 -}
-+func mul_int64_Neg4294967296(a int64) int64 { return a * -4294967296 }
++func mul_Neg4294967296_int64(a int64) int64 { return -4294967296 * a }
  
  //go:noinline
 -func div_9223372036854775807_int64_ssa(a int64) int64 {
 -	return 9223372036854775807 / a
 -}
-+func mul_Neg4294967296_int64(a int64) int64 { return -4294967296 * a }
++func mul_int64_Neg1(a int64) int64 { return a * -1 }
  
  //go:noinline
 -func mul_int64_Neg9223372036854775808_ssa(a int64) int64 {
 -	return a * -9223372036854775808
 -}
-+func mul_int64_Neg1(a int64) int64 { return a * -1 }
++func mul_Neg1_int64(a int64) int64 { return -1 * a }
  
  //go:noinline
 -func mul_Neg9223372036854775808_int64_ssa(a int64) int64 {
 -	return -9223372036854775808 * a
 -}
-+func mul_Neg1_int64(a int64) int64 { return -1 * a }
++func mul_int64_0(a int64) int64 { return a * 0 }
  
  //go:noinline
 -func mul_int64_Neg9223372036854775807_ssa(a int64) int64 {
 -	return a * -9223372036854775807
 -}
-+func mul_int64_0(a int64) int64 { return a * 0 }
++func mul_0_int64(a int64) int64 { return 0 * a }
  
  //go:noinline
 -func mul_Neg9223372036854775807_int64_ssa(a int64) int64 {
 -	return -9223372036854775807 * a
 -}
-+func mul_0_int64(a int64) int64 { return 0 * a }
++func mul_int64_1(a int64) int64 { return a * 1 }
  
  //go:noinline
 -func mul_int64_Neg4294967296_ssa(a int64) int64 {
 -	return a * -4294967296
 -}
-+func mul_int64_1(a int64) int64 { return a * 1 }
++func mul_1_int64(a int64) int64 { return 1 * a }
  
  //go:noinline
 -func mul_Neg4294967296_int64_ssa(a int64) int64 {
 -	return -4294967296 * a
 -}
-+func mul_1_int64(a int64) int64 { return 1 * a }
++func mul_int64_4294967296(a int64) int64 { return a * 4294967296 }
  
  //go:noinline
 -func mul_int64_Neg1_ssa(a int64) int64 {
 -	return a * -1
 -}
-+func mul_int64_4294967296(a int64) int64 { return a * 4294967296 }
++func mul_4294967296_int64(a int64) int64 { return 4294967296 * a }
  
  //go:noinline
 -func mul_Neg1_int64_ssa(a int64) int64 {
 -	return -1 * a
 -}
-+func mul_4294967296_int64(a int64) int64 { return 4294967296 * a }
++func mul_int64_9223372036854775806(a int64) int64 { return a * 9223372036854775806 }
  
  //go:noinline
 -func mul_int64_0_ssa(a int64) int64 {
 -	return a * 0
 -}
-+func mul_int64_9223372036854775806(a int64) int64 { return a * 9223372036854775806 }
++func mul_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 * a }
  
  //go:noinline
 -func mul_0_int64_ssa(a int64) int64 {
 -	return 0 * a
 -}
-+func mul_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 * a }
++func mul_int64_9223372036854775807(a int64) int64 { return a * 9223372036854775807 }
  
  //go:noinline
 -func mul_int64_1_ssa(a int64) int64 {
 -	return a * 1
 -}
-+func mul_int64_9223372036854775807(a int64) int64 { return a * 9223372036854775807 }
++func mul_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 * a }
  
  //go:noinline
 -func mul_1_int64_ssa(a int64) int64 {
 -	return 1 * a
 -}
-+func mul_9223372036854775807_int64(a int64) int64 { return 9223372036854775807 * a }
++func mod_int64_Neg9223372036854775808(a int64) int64 { return a % -9223372036854775808 }
  
  //go:noinline
 -func mul_int64_4294967296_ssa(a int64) int64 {
 -	return a * 4294967296
 -}
-+func mod_int64_Neg9223372036854775808(a int64) int64 { return a % -9223372036854775808 }
++func mod_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 % a }
  
  //go:noinline
 -func mul_4294967296_int64_ssa(a int64) int64 {
 -	return 4294967296 * a
 -}
-+func mod_Neg9223372036854775808_int64(a int64) int64 { return -9223372036854775808 % a }
++func mod_int64_Neg9223372036854775807(a int64) int64 { return a % -9223372036854775807 }
  
  //go:noinline
 -func mul_int64_9223372036854775806_ssa(a int64) int64 {
 -	return a * 9223372036854775806
 -}
-+func mod_int64_Neg9223372036854775807(a int64) int64 { return a % -9223372036854775807 }
++func mod_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 % a }
  
  //go:noinline
 -func mul_9223372036854775806_int64_ssa(a int64) int64 {
 -	return 9223372036854775806 * a
 -}
-+func mod_Neg9223372036854775807_int64(a int64) int64 { return -9223372036854775807 % a }
++func mod_int64_Neg4294967296(a int64) int64 { return a % -4294967296 }
  
  //go:noinline
 -func mul_int64_9223372036854775807_ssa(a int64) int64 {
 -	return a * 9223372036854775807
 -}
-+func mod_int64_Neg4294967296(a int64) int64 { return a % -4294967296 }
++func mod_Neg4294967296_int64(a int64) int64 { return -4294967296 % a }
  
  //go:noinline
 -func mul_9223372036854775807_int64_ssa(a int64) int64 {
 -	return 9223372036854775807 * a
 -}
-+func mod_Neg4294967296_int64(a int64) int64 { return -4294967296 % a }
++func mod_int64_Neg1(a int64) int64 { return a % -1 }
  
  //go:noinline
 -func mod_int64_Neg9223372036854775808_ssa(a int64) int64 {
 -	return a % -9223372036854775808
 -}
-+func mod_int64_Neg1(a int64) int64 { return a % -1 }
++func mod_Neg1_int64(a int64) int64 { return -1 % a }
  
  //go:noinline
 -func mod_Neg9223372036854775808_int64_ssa(a int64) int64 {
 -	return -9223372036854775808 % a
 -}
-+func mod_Neg1_int64(a int64) int64 { return -1 % a }
++func mod_0_int64(a int64) int64 { return 0 % a }
  
  //go:noinline
 -func mod_int64_Neg9223372036854775807_ssa(a int64) int64 {
 -	return a % -9223372036854775807
 -}
-+func mod_0_int64(a int64) int64 { return 0 % a }
++func mod_int64_1(a int64) int64 { return a % 1 }
  
  //go:noinline
 -func mod_Neg9223372036854775807_int64_ssa(a int64) int64 {
 -	return -9223372036854775807 % a
 -}
-+func mod_int64_1(a int64) int64 { return a % 1 }
++func mod_1_int64(a int64) int64 { return 1 % a }
  
  //go:noinline
 -func mod_int64_Neg4294967296_ssa(a int64) int64 {
 -	return a % -4294967296
 -}
-+func mod_1_int64(a int64) int64 { return 1 % a }
++func mod_int64_4294967296(a int64) int64 { return a % 4294967296 }
  
  //go:noinline
 -func mod_Neg4294967296_int64_ssa(a int64) int64 {
 -	return -4294967296 % a
 -}
-+func mod_int64_4294967296(a int64) int64 { return a % 4294967296 }
++func mod_4294967296_int64(a int64) int64 { return 4294967296 % a }
  
  //go:noinline
 -func mod_int64_Neg1_ssa(a int64) int64 {
 -	return a % -1
 -}
-+func mod_4294967296_int64(a int64) int64 { return 4294967296 % a }
++func mod_int64_9223372036854775806(a int64) int64 { return a % 9223372036854775806 }
  
  //go:noinline
 -func mod_Neg1_int64_ssa(a int64) int64 {
 -	return -1 % a
 -}
-+func mod_int64_9223372036854775806(a int64) int64 { return a % 9223372036854775806 }
-+
-+//go:noinline
 +func mod_9223372036854775806_int64(a int64) int64 { return 9223372036854775806 % a }
  
  //go:noinline
@@ -36685,12 +36685,12 @@ func main() {
 +	in     int64
 +	want   int64
  }
-+
-+var tests_int64 = []test_int64{
  
 -//go:noinline
 -func xor_int8_1_ssa(a int8) int8 {
 -	return a ^ 1
++var tests_int64 = []test_int64{
++
 +	test_int64{fn: add_Neg9223372036854775808_int64, fnname: "add_Neg9223372036854775808_int64", in: -9223372036854775808, want: 0},
 +	test_int64{fn: add_int64_Neg9223372036854775808, fnname: "add_int64_Neg9223372036854775808", in: -9223372036854775808, want: 0},
 +	test_int64{fn: add_Neg9223372036854775808_int64, fnname: "add_Neg9223372036854775808_int64", in: -9223372036854775807, want: 1},
@@ -37958,12 +37958,12 @@ func main() {
 +	in     uint32
 +	want   uint32
  }
-+
-+var tests_uint32 = []test_uint32{
  
 -//go:noinline
 -func xor_1_int8_ssa(a int8) int8 {
 -	return 1 ^ a
++var tests_uint32 = []test_uint32{
++
 +	test_uint32{fn: add_0_uint32, fnname: "add_0_uint32", in: 0, want: 0},
 +	test_uint32{fn: add_uint32_0, fnname: "add_uint32_0", in: 0, want: 0},
 +	test_uint32{fn: add_0_uint32, fnname: "add_0_uint32", in: 1, want: 1},
@@ -38139,12 +38139,12 @@ func main() {
 +	in     int32
 +	want   int32
  }
-+
-+var tests_int32 = []test_int32{
  
 -//go:noinline
 -func xor_int8_126_ssa(a int8) int8 {
 -	return a ^ 126
++var tests_int32 = []test_int32{
++
 +	test_int32{fn: add_Neg2147483648_int32, fnname: "add_Neg2147483648_int32", in: -2147483648, want: 0},
 +	test_int32{fn: add_int32_Neg2147483648, fnname: "add_int32_Neg2147483648", in: -2147483648, want: 0},
 +	test_int32{fn: add_Neg2147483648_int32, fnname: "add_Neg2147483648_int32", in: -2147483647, want: 1},
@@ -38885,12 +38885,12 @@ func main() {
 +	in     int16
 +	want   int16
  }
-+
-+var tests_int16 = []test_int16{
  
 -//go:noinline
 -func xor_int8_127_ssa(a int8) int8 {
 -	return a ^ 127
++var tests_int16 = []test_int16{
++
 +	test_int16{fn: add_Neg32768_int16, fnname: "add_Neg32768_int16", in: -32768, want: 0},
 +	test_int16{fn: add_int16_Neg32768, fnname: "add_int16_Neg32768", in: -32768, want: 0},
 +	test_int16{fn: add_Neg32768_int16, fnname: "add_Neg32768_int16", in: -32767, want: 1},
@@ -51877,7 +51877,12 @@ func main() {
 -	if got := and_int32_Neg2147483648_ssa(2147483647); got != 0 {
 -		fmt.Printf("and_int32 2147483647%s-2147483648 = %d, wanted 0\n", `&`, got)
 -		failed = true
--	}
++	for _, test := range tests_uint64 {
++		if got := test.fn(test.in); got != test.want {
++			fmt.Printf("%s(%d) = %d, want %d\n", test.fnname, test.in, got, test.want)
++			failed = true
++		}
+ 	}
 -
 -	if got := and_Neg2147483647_int32_ssa(-2147483648); got != -2147483648 {
 -		fmt.Printf("and_int32 -2147483647%s-2147483648 = %d, wanted -2147483648\n", `&`, got)
@@ -62097,12 +62102,7 @@ func main() {
 -	if got := xor_int8_127_ssa(-1); got != -128 {
 -		fmt.Printf("xor_int8 -1%s127 = %d, wanted -128\n", `^`, got)
 -		failed = true
-+	for _, test := range tests_uint64 {
-+		if got := test.fn(test.in); got != test.want {
-+			fmt.Printf("%s(%d) = %d, want %d\n", test.fnname, test.in, got, test.want)
-+			failed = true
-+		}
- 	}
+-	}
 -
 -	if got := xor_127_int8_ssa(0); got != 127 {
 -		fmt.Printf("xor_int8 127%s0 = %d, wanted 127\n", `^`, got)

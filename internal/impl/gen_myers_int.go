@@ -67,6 +67,16 @@ func (m *myersInt) release() {
 }
 
 func (m *myersInt) compare(smin, smax, tmin, tmax int, optimal bool) {
+
+	for smin < smax && tmin < tmax && m.x[smin] == m.y[tmin] {
+		smin++
+		tmin++
+	}
+	for smax > smin && tmax > tmin && m.x[smax-1] == m.y[tmax-1] {
+		smax--
+		tmax--
+	}
+
 	if smin == smax {
 
 		if m.yidx == nil {

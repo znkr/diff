@@ -12688,12 +12688,6 @@ sealAVX2Tail512LoopB:
 -#else
 -#define ROL8(R, T) ROL(8, R, T)
 -#endif
--
--#define chachaQR(A, B, C, D, T) \
--	PADDD B, A; PXOR A, D; ROL16(D, T) \
--	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $12, T; PSRLL $20, B; PXOR T, B \
--	PADDD B, A; PXOR A, D; ROL8(D, T) \
--	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $7, T; PSRLL $25, B; PXOR T, B
 +// func polyHashADInternal<>()
 +TEXT polyHashADInternal<>(SB), NOSPLIT, $0
 +	// Hack: Must declare #define macros inside of a function due to Avo constraints
@@ -12704,11 +12698,11 @@ sealAVX2Tail512LoopB:
 +		PSRLL $(32-(N)), R; \
 +		PXOR T, R
  
--#define chachaQR_AVX2(A, B, C, D, T) \
--	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol16<>(SB), D, D                         \
--	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $12, B, T; VPSRLD $20, B, B; VPXOR T, B, B \
--	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol8<>(SB), D, D                          \
--	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $7, B, T; VPSRLD $25, B, B; VPXOR T, B, B
+-#define chachaQR(A, B, C, D, T) \
+-	PADDD B, A; PXOR A, D; ROL16(D, T) \
+-	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $12, T; PSRLL $20, B; PXOR T, B \
+-	PADDD B, A; PXOR A, D; ROL8(D, T) \
+-	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $7, T; PSRLL $25, B; PXOR T, B
 +	// ROL8 rotates the uint32s in register R left by 8, using temporary T if needed.
 +	#ifdef GOAMD64_v2
 +		#define ROL8(R, T) PSHUFB ·rol8<>(SB), R
@@ -12716,6 +12710,12 @@ sealAVX2Tail512LoopB:
 +		#define ROL8(R, T) ROL(8, R, T)
 +	#endif
  
+-#define chachaQR_AVX2(A, B, C, D, T) \
+-	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol16<>(SB), D, D                         \
+-	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $12, B, T; VPSRLD $20, B, B; VPXOR T, B, B \
+-	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol8<>(SB), D, D                          \
+-	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $7, B, T; VPSRLD $25, B, B; VPXOR T, B, B
+-
 -#define polyAdd(S) ADDQ S, acc0; ADCQ 8+S, acc1; ADCQ $1, acc2
 -#define polyMulStage1 MOVQ (0*8)(BP), AX; MOVQ AX, t2; MULQ acc0; MOVQ AX, t0; MOVQ DX, t1; MOVQ (0*8)(BP), AX; MULQ acc1; IMULQ acc2, t2; ADDQ AX, t1; ADCQ DX, t2
 -#define polyMulStage2 MOVQ (1*8)(BP), AX; MOVQ AX, t3; MULQ acc0; ADDQ AX, t1; ADCQ $0, DX; MOVQ DX, acc0; MOVQ (1*8)(BP), AX; MULQ acc1; ADDQ AX, t2; ADCQ $0, DX
@@ -13169,9 +13169,6 @@ sealAVX2Tail512LoopB:
 -	polyAdd(0(itr2))
 -	polyMul
 -	LEAQ (2*8)(itr2), itr2
--
--	CMPQ itr1, $-6
--	JG   openSSEInternalLoop
 +	MOVO  X14, 64(BP)
 +	PADDD X3, X0
 +	PXOR  X0, X9
@@ -13571,6 +13568,9 @@ sealAVX2Tail512LoopB:
 +	CMPQ  CX, $-6
 +	JG    openSSEInternalLoop
  
+-	CMPQ itr1, $-6
+-	JG   openSSEInternalLoop
+-
  	// Add in the state
 -	PADDD ·chacha20Constants<>(SB), A0; PADDD ·chacha20Constants<>(SB), A1; PADDD ·chacha20Constants<>(SB), A2; PADDD ·chacha20Constants<>(SB), A3
 -	PADDD state1Store, B0; PADDD state1Store, B1; PADDD state1Store, B2; PADDD state1Store, B3
@@ -14305,6 +14305,9 @@ sealAVX2Tail512LoopB:
 -	shiftB0Left;  shiftC0Left; shiftD0Left
 -	chachaQR(A0, B0, C0, D0, T0)
 -	shiftB0Right; shiftC0Right; shiftD0Right
+-
+-	CMPQ itr1, $16
+-	JAE  openSSETail64LoopA
 +	ADDQ  $0x10, R9
 +	PADDD X3, X0
 +	PXOR  X0, X9
@@ -14389,9 +14392,6 @@ sealAVX2Tail512LoopB:
 +	PADDL 48(BP), X6
 +	PADDL 80(BP), X9
  
--	CMPQ itr1, $16
--	JAE  openSSETail64LoopA
--
 -	CMPQ itr2, $160
 -	JNE  openSSETail64LoopB
 -
@@ -14505,6 +14505,26 @@ sealAVX2Tail512LoopB:
 -	chachaQR(A0, B0, C0, D0, T0); chachaQR(A1, B1, C1, D1, T0)
 -	shiftB0Right; shiftC0Right; shiftD0Right
 -	shiftB1Right; shiftC1Right; shiftD1Right
+-
+-	CMPQ itr2, itr1
+-	JB   openSSETail128LoopA
+-
+-	CMPQ itr2, $160
+-	JNE  openSSETail128LoopB
+-
+-	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1
+-	PADDL state1Store, B0; PADDL state1Store, B1
+-	PADDL state2Store, C0; PADDL state2Store, C1
+-	PADDL ctr1Store, D0; PADDL ctr0Store, D1
+-
+-	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
+-	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
+-	MOVOU A1, (0*16)(oup); MOVOU B1, (1*16)(oup); MOVOU C1, (2*16)(oup); MOVOU D1, (3*16)(oup)
+-
+-	SUBQ $64, inl
+-	LEAQ 64(inp), inp
+-	LEAQ 64(oup), oup
+-	JMP  openSSETail64DecLoop
 +	ADDQ  $0x10, R9
 +	PADDD X3, X0
 +	PXOR  X0, X9
@@ -14683,26 +14703,6 @@ sealAVX2Tail512LoopB:
 +	LEAQ  64(DI), DI
 +	JMP   openSSETail64DecLoop
  
--	CMPQ itr2, itr1
--	JB   openSSETail128LoopA
--
--	CMPQ itr2, $160
--	JNE  openSSETail128LoopB
--
--	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1
--	PADDL state1Store, B0; PADDL state1Store, B1
--	PADDL state2Store, C0; PADDL state2Store, C1
--	PADDL ctr1Store, D0; PADDL ctr0Store, D1
--
--	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
--	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
--	MOVOU A1, (0*16)(oup); MOVOU B1, (1*16)(oup); MOVOU C1, (2*16)(oup); MOVOU D1, (3*16)(oup)
--
--	SUBQ $64, inl
--	LEAQ 64(inp), inp
--	LEAQ 64(oup), oup
--	JMP  openSSETail64DecLoop
--
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 192 bytes of ciphertext
  openSSETail192:
@@ -14814,6 +14814,9 @@ sealAVX2Tail512LoopB:
 -
 -	CMPQ inl, $192
 -	JB   openSSLTail192Store
+-
+-	polyAdd(176(inp))
+-	polyMul
 +	ADDQ  $0x10, R9
 +	PADDD X3, X0
 +	PXOR  X0, X9
@@ -15130,14 +15133,19 @@ sealAVX2Tail512LoopB:
 +	ADCQ  R8, R11
 +	ADCQ  $0x00, R12
  
--	polyAdd(176(inp))
--	polyMul
--
  openSSLTail192Store:
 -	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1; PADDL ·chacha20Constants<>(SB), A2
 -	PADDL state1Store, B0; PADDL state1Store, B1; PADDL state1Store, B2
 -	PADDL state2Store, C0; PADDL state2Store, C1; PADDL state2Store, C2
 -	PADDL ctr2Store, D0; PADDL ctr1Store, D1; PADDL ctr0Store, D2
+-
+-	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
+-	PXOR  T0, A2; PXOR T1, B2; PXOR T2, C2; PXOR T3, D2
+-	MOVOU A2, (0*16)(oup); MOVOU B2, (1*16)(oup); MOVOU C2, (2*16)(oup); MOVOU D2, (3*16)(oup)
+-
+-	MOVOU (4*16)(inp), T0; MOVOU (5*16)(inp), T1; MOVOU (6*16)(inp), T2; MOVOU (7*16)(inp), T3
+-	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
+-	MOVOU A1, (4*16)(oup); MOVOU B1, (5*16)(oup); MOVOU C1, (6*16)(oup); MOVOU D1, (7*16)(oup)
 +	PADDL ·chacha20Constants<>+0(SB), X0
 +	PADDL ·chacha20Constants<>+0(SB), X1
 +	PADDL ·chacha20Constants<>+0(SB), X2
@@ -15179,14 +15187,6 @@ sealAVX2Tail512LoopB:
 +	LEAQ  128(DI), DI
 +	JMP   openSSETail64DecLoop
  
--	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
--	PXOR  T0, A2; PXOR T1, B2; PXOR T2, C2; PXOR T3, D2
--	MOVOU A2, (0*16)(oup); MOVOU B2, (1*16)(oup); MOVOU C2, (2*16)(oup); MOVOU D2, (3*16)(oup)
--
--	MOVOU (4*16)(inp), T0; MOVOU (5*16)(inp), T1; MOVOU (6*16)(inp), T2; MOVOU (7*16)(inp), T3
--	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
--	MOVOU A1, (4*16)(oup); MOVOU B1, (5*16)(oup); MOVOU C1, (6*16)(oup); MOVOU D1, (7*16)(oup)
--
 -	SUBQ $128, inl
 -	LEAQ 128(inp), inp
 -	LEAQ 128(oup), oup
@@ -15821,8 +15821,6 @@ sealAVX2Tail512LoopB:
 -	VPADDD state1StoreAVX2, BB0, BB0
 -	VPADDD state2StoreAVX2, CC0, CC0
 -	VPADDD ctr3StoreAVX2, DD0, DD0
--
--	VPERM2I128 $0x02, AA0, BB0, TT0
 +	VPADDD     Y14, Y0, Y0
 +	VPXOR      Y0, Y4, Y4
 +	VPSHUFB    ·rol16<>+0(SB), Y4, Y4
@@ -15869,6 +15867,8 @@ sealAVX2Tail512LoopB:
 +	VPADDD     192(BP), Y4, Y4
 +	VPERM2I128 $0x02, Y0, Y14, Y3
  
+-	VPERM2I128 $0x02, AA0, BB0, TT0
+-
  	// Clamp and store poly key
 -	VPAND   ·polyClampMask<>(SB), TT0, TT0
 -	VMOVDQA TT0, rsStoreAVX2
@@ -16318,6 +16318,12 @@ sealAVX2Tail512LoopB:
 +	VPALIGNR $0x04, Y3, Y3, Y3
 +	CMPQ     CX, $0x000001e0
  	JNE      openAVX2InternalLoop
+-
+-	VPADDD  ·chacha20Constants<>(SB), AA0, AA0; VPADDD ·chacha20Constants<>(SB), AA1, AA1; VPADDD ·chacha20Constants<>(SB), AA2, AA2; VPADDD ·chacha20Constants<>(SB), AA3, AA3
+-	VPADDD  state1StoreAVX2, BB0, BB0; VPADDD state1StoreAVX2, BB1, BB1; VPADDD state1StoreAVX2, BB2, BB2; VPADDD state1StoreAVX2, BB3, BB3
+-	VPADDD  state2StoreAVX2, CC0, CC0; VPADDD state2StoreAVX2, CC1, CC1; VPADDD state2StoreAVX2, CC2, CC2; VPADDD state2StoreAVX2, CC3, CC3
+-	VPADDD  ctr0StoreAVX2, DD0, DD0; VPADDD ctr1StoreAVX2, DD1, DD1; VPADDD ctr2StoreAVX2, DD2, DD2; VPADDD ctr3StoreAVX2, DD3, DD3
+-	VMOVDQA CC3, tmpStoreAVX2
 +	VPADDD   ·chacha20Constants<>+0(SB), Y0, Y0
 +	VPADDD   ·chacha20Constants<>+0(SB), Y5, Y5
 +	VPADDD   ·chacha20Constants<>+0(SB), Y6, Y6
@@ -16336,12 +16342,6 @@ sealAVX2Tail512LoopB:
 +	VPADDD   192(BP), Y3, Y3
 +	VMOVDQA  Y15, 224(BP)
  
--	VPADDD  ·chacha20Constants<>(SB), AA0, AA0; VPADDD ·chacha20Constants<>(SB), AA1, AA1; VPADDD ·chacha20Constants<>(SB), AA2, AA2; VPADDD ·chacha20Constants<>(SB), AA3, AA3
--	VPADDD  state1StoreAVX2, BB0, BB0; VPADDD state1StoreAVX2, BB1, BB1; VPADDD state1StoreAVX2, BB2, BB2; VPADDD state1StoreAVX2, BB3, BB3
--	VPADDD  state2StoreAVX2, CC0, CC0; VPADDD state2StoreAVX2, CC1, CC1; VPADDD state2StoreAVX2, CC2, CC2; VPADDD state2StoreAVX2, CC3, CC3
--	VPADDD  ctr0StoreAVX2, DD0, DD0; VPADDD ctr1StoreAVX2, DD1, DD1; VPADDD ctr2StoreAVX2, DD2, DD2; VPADDD ctr3StoreAVX2, DD3, DD3
--	VMOVDQA CC3, tmpStoreAVX2
--
  	// We only hashed 480 of the 512 bytes available - hash the remaining 32 here
 -	polyAdd(480(inp))
 -	polyMulAVX2
@@ -17047,12 +17047,6 @@ sealAVX2Tail512LoopB:
 -	VMOVDQA ctr3StoreAVX2, DD1
 -	VPADDD  ·avx2IncMask<>(SB), DD1, DD1
 -	VMOVDQA DD1, DD0
--
--	XORQ  itr2, itr2
--	MOVQ  inl, itr1
--	ANDQ  $-16, itr1
--	TESTQ itr1, itr1
--	JE    openAVX2Tail128LoopB
 +	VMOVDQA ·chacha20Constants<>+0(SB), Y5
 +	VMOVDQA 32(BP), Y9
 +	VMOVDQA 64(BP), Y13
@@ -17065,6 +17059,12 @@ sealAVX2Tail512LoopB:
 +	TESTQ   CX, CX
 +	JE      openAVX2Tail128LoopB
  
+-	XORQ  itr2, itr2
+-	MOVQ  inl, itr1
+-	ANDQ  $-16, itr1
+-	TESTQ itr1, itr1
+-	JE    openAVX2Tail128LoopB
+-
  openAVX2Tail128LoopA:
 -	// Perform ChaCha rounds, while hashing the remaining input
 -	polyAdd(0(inp)(itr2*1))
@@ -17402,14 +17402,6 @@ sealAVX2Tail512LoopB:
 +	VPALIGNR $0x04, Y1, Y1, Y1
 +	CMPQ     R9, CX
  	JB       openAVX2Tail256LoopA
--
--	CMPQ itr2, $10
--	JNE  openAVX2Tail256LoopB
--
--	MOVQ inl, itr2
--	SUBQ inp, inl
--	MOVQ inl, itr1
--	MOVQ tmpStoreAVX2, inl
 +	CMPQ     R9, $0x0a
 +	JNE      openAVX2Tail256LoopB
 +	MOVQ     BX, R9
@@ -17417,6 +17409,14 @@ sealAVX2Tail512LoopB:
 +	MOVQ     BX, CX
 +	MOVQ     224(BP), BX
  
+-	CMPQ itr2, $10
+-	JNE  openAVX2Tail256LoopB
+-
+-	MOVQ inl, itr2
+-	SUBQ inp, inl
+-	MOVQ inl, itr1
+-	MOVQ tmpStoreAVX2, inl
+-
 -	// Hash the remainder of data (if any)
  openAVX2Tail256Hash:
 -	ADDQ $16, itr1
@@ -17480,8 +17480,6 @@ sealAVX2Tail512LoopB:
 -	LEAQ    (4*32)(inp), inp
 -	LEAQ    (4*32)(oup), oup
 -	SUBQ    $4*32, inl
--
--	JMP openAVX2TailLoop
 +	VPADDD     ·chacha20Constants<>+0(SB), Y0, Y0
 +	VPADDD     ·chacha20Constants<>+0(SB), Y5, Y5
 +	VPADDD     32(BP), Y14, Y14
@@ -17511,6 +17509,8 @@ sealAVX2Tail512LoopB:
 +	SUBQ       $0x80, BX
 +	JMP        openAVX2TailLoop
  
+-	JMP openAVX2TailLoop
+-
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 384 bytes of ciphertext
  openAVX2Tail384:
@@ -17618,6 +17618,12 @@ sealAVX2Tail512LoopB:
 -	VPALIGNR $12, BB0, BB0, BB0; VPALIGNR $12, BB1, BB1, BB1; VPALIGNR $12, BB2, BB2, BB2
 -	VPALIGNR $8, CC0, CC0, CC0; VPALIGNR $8, CC1, CC1, CC1; VPALIGNR $8, CC2, CC2, CC2
 -	VPALIGNR $4, DD0, DD0, DD0; VPALIGNR $4, DD1, DD1, DD1; VPALIGNR $4, DD2, DD2, DD2
+-
+-	CMPQ itr2, itr1
+-	JB   openAVX2Tail384LoopB
+-
+-	CMPQ itr2, $10
+-	JNE  openAVX2Tail384LoopA
 +	VPADDD   Y14, Y0, Y0
 +	VPXOR    Y0, Y4, Y4
 +	VPSHUFB  ·rol16<>+0(SB), Y4, Y4
@@ -17777,12 +17783,6 @@ sealAVX2Tail512LoopB:
 +	MOVQ     BX, CX
 +	MOVQ     224(BP), BX
  
--	CMPQ itr2, itr1
--	JB   openAVX2Tail384LoopB
--
--	CMPQ itr2, $10
--	JNE  openAVX2Tail384LoopA
--
 -	MOVQ inl, itr2
 -	SUBQ inp, inl
 -	MOVQ inl, itr1
@@ -18261,15 +18261,15 @@ sealAVX2Tail512LoopB:
 +	INCQ     CX
 +	CMPQ     CX, $0x04
  	JLT      openAVX2Tail512LoopB
+-
+-	CMPQ itr1, $10
+-	JNE  openAVX2Tail512LoopA
 +	CMPQ     CX, $0x0a
 +	JNE      openAVX2Tail512LoopA
 +	MOVQ     BX, CX
 +	SUBQ     $0x00000180, CX
 +	ANDQ     $-16, CX
  
--	CMPQ itr1, $10
--	JNE  openAVX2Tail512LoopA
--
 -	MOVQ inl, itr1
 -	SUBQ $384, itr1
 -	ANDQ $-16, itr1
@@ -18407,26 +18407,21 @@ sealAVX2Tail512LoopB:
 +DATA ·chacha20Constants<>+24(SB)/4, $0x79622d32
 +DATA ·chacha20Constants<>+28(SB)/4, $0x6b206574
 +GLOBL ·chacha20Constants<>(SB), RODATA|NOPTR, $32
- 
--	LEAQ (12*32)(inp), inp
--	LEAQ (12*32)(oup), oup
--	SUBQ $12*32, inl
++
 +DATA ·polyClampMask<>+0(SB)/8, $0x0ffffffc0fffffff
 +DATA ·polyClampMask<>+8(SB)/8, $0x0ffffffc0ffffffc
 +DATA ·polyClampMask<>+16(SB)/8, $0xffffffffffffffff
 +DATA ·polyClampMask<>+24(SB)/8, $0xffffffffffffffff
 +GLOBL ·polyClampMask<>(SB), RODATA|NOPTR, $32
  
--	JMP openAVX2TailLoop
+-	LEAQ (12*32)(inp), inp
+-	LEAQ (12*32)(oup), oup
+-	SUBQ $12*32, inl
 +DATA ·sseIncMask<>+0(SB)/8, $0x0000000000000001
 +DATA ·sseIncMask<>+8(SB)/8, $0x0000000000000000
 +GLOBL ·sseIncMask<>(SB), RODATA|NOPTR, $16
  
--// ----------------------------------------------------------------------------
--// ----------------------------------------------------------------------------
--// func chacha20Poly1305Seal(dst, key, src, ad []byte)
--TEXT ·chacha20Poly1305Seal(SB), 0, $288-96
--	// For aligned stack access
+-	JMP openAVX2TailLoop
 +DATA ·andMask<>+0(SB)/8, $0x00000000000000ff
 +DATA ·andMask<>+8(SB)/8, $0x0000000000000000
 +DATA ·andMask<>+16(SB)/8, $0x000000000000ffff
@@ -18458,7 +18453,12 @@ sealAVX2Tail512LoopB:
 +DATA ·andMask<>+224(SB)/8, $0xffffffffffffffff
 +DATA ·andMask<>+232(SB)/8, $0x00ffffffffffffff
 +GLOBL ·andMask<>(SB), RODATA|NOPTR, $240
-+
+ 
+-// ----------------------------------------------------------------------------
+-// ----------------------------------------------------------------------------
+-// func chacha20Poly1305Seal(dst, key, src, ad []byte)
+-TEXT ·chacha20Poly1305Seal(SB), 0, $288-96
+-	// For aligned stack access
 +DATA ·avx2InitMask<>+0(SB)/8, $0x0000000000000000
 +DATA ·avx2InitMask<>+8(SB)/8, $0x0000000000000000
 +DATA ·avx2InitMask<>+16(SB)/8, $0x0000000000000001
@@ -18566,18 +18566,6 @@ sealAVX2Tail512LoopB:
 -	shiftB0Left; shiftB1Left; shiftB2Left; shiftB3Left
 -	shiftC0Left; shiftC1Left; shiftC2Left; shiftC3Left
 -	shiftD0Left; shiftD1Left; shiftD2Left; shiftD3Left
--
--	MOVO          C3, tmpStore
--	chachaQR(A0, B0, C0, D0, C3); chachaQR(A1, B1, C1, D1, C3); chachaQR(A2, B2, C2, D2, C3)
--	MOVO          tmpStore, C3
--	MOVO          C1, tmpStore
--	chachaQR(A3, B3, C3, D3, C1)
--	MOVO          tmpStore, C1
--	shiftB0Right; shiftB1Right; shiftB2Right; shiftB3Right
--	shiftC0Right; shiftC1Right; shiftC2Right; shiftC3Right
--	shiftD0Right; shiftD1Right; shiftD2Right; shiftD3Right
--	DECQ          itr2
--	JNE           sealSSEIntroLoop
 +	MOVO  X14, 64(BP)
 +	PADDD X3, X0
 +	PXOR  X0, X9
@@ -18891,6 +18879,18 @@ sealAVX2Tail512LoopB:
 +	DECQ  R9
 +	JNE   sealSSEIntroLoop
  
+-	MOVO          C3, tmpStore
+-	chachaQR(A0, B0, C0, D0, C3); chachaQR(A1, B1, C1, D1, C3); chachaQR(A2, B2, C2, D2, C3)
+-	MOVO          tmpStore, C3
+-	MOVO          C1, tmpStore
+-	chachaQR(A3, B3, C3, D3, C1)
+-	MOVO          tmpStore, C1
+-	shiftB0Right; shiftB1Right; shiftB2Right; shiftB3Right
+-	shiftC0Right; shiftC1Right; shiftC2Right; shiftC3Right
+-	shiftD0Right; shiftD1Right; shiftD2Right; shiftD3Right
+-	DECQ          itr2
+-	JNE           sealSSEIntroLoop
+-
  	// Add in the state
 -	PADDD ·chacha20Constants<>(SB), A0; PADDD ·chacha20Constants<>(SB), A1; PADDD ·chacha20Constants<>(SB), A2; PADDD ·chacha20Constants<>(SB), A3
 -	PADDD state1Store, B0; PADDD state1Store, B1; PADDD state1Store, B2; PADDD state1Store, B3
@@ -18922,6 +18922,30 @@ sealAVX2Tail512LoopB:
  	// Hash AAD
 -	MOVQ ad_len+80(FP), itr2
 -	CALL polyHashADInternal<>(SB)
+-
+-	MOVOU (0*16)(inp), A0; MOVOU (1*16)(inp), B0; MOVOU (2*16)(inp), C0; MOVOU (3*16)(inp), D0
+-	PXOR  A0, A1; PXOR B0, B1; PXOR C0, C1; PXOR D0, D1
+-	MOVOU A1, (0*16)(oup); MOVOU B1, (1*16)(oup); MOVOU C1, (2*16)(oup); MOVOU D1, (3*16)(oup)
+-	MOVOU (4*16)(inp), A0; MOVOU (5*16)(inp), B0; MOVOU (6*16)(inp), C0; MOVOU (7*16)(inp), D0
+-	PXOR  A0, A2; PXOR B0, B2; PXOR C0, C2; PXOR D0, D2
+-	MOVOU A2, (4*16)(oup); MOVOU B2, (5*16)(oup); MOVOU C2, (6*16)(oup); MOVOU D2, (7*16)(oup)
+-
+-	MOVQ $128, itr1
+-	SUBQ $128, inl
+-	LEAQ 128(inp), inp
+-
+-	MOVO A3, A1; MOVO B3, B1; MOVO C3, C1; MOVO D3, D1
+-
+-	CMPQ inl, $64
+-	JBE  sealSSE128SealHash
+-
+-	MOVOU (0*16)(inp), A0; MOVOU (1*16)(inp), B0; MOVOU (2*16)(inp), C0; MOVOU (3*16)(inp), D0
+-	PXOR  A0, A3; PXOR B0, B3; PXOR C0, C3; PXOR D0, D3
+-	MOVOU A3, (8*16)(oup); MOVOU B3, (9*16)(oup); MOVOU C3, (10*16)(oup); MOVOU D3, (11*16)(oup)
+-
+-	ADDQ $64, itr1
+-	SUBQ $64, inl
+-	LEAQ 64(inp), inp
 +	MOVQ  ad_len+80(FP), R9
 +	CALL  polyHashADInternal<>(SB)
 +	MOVOU (SI), X0
@@ -18981,30 +19005,6 @@ sealAVX2Tail512LoopB:
 +	CMPQ  BX, $0xc0
 +	JBE   sealSSETail192
  
--	MOVOU (0*16)(inp), A0; MOVOU (1*16)(inp), B0; MOVOU (2*16)(inp), C0; MOVOU (3*16)(inp), D0
--	PXOR  A0, A1; PXOR B0, B1; PXOR C0, C1; PXOR D0, D1
--	MOVOU A1, (0*16)(oup); MOVOU B1, (1*16)(oup); MOVOU C1, (2*16)(oup); MOVOU D1, (3*16)(oup)
--	MOVOU (4*16)(inp), A0; MOVOU (5*16)(inp), B0; MOVOU (6*16)(inp), C0; MOVOU (7*16)(inp), D0
--	PXOR  A0, A2; PXOR B0, B2; PXOR C0, C2; PXOR D0, D2
--	MOVOU A2, (4*16)(oup); MOVOU B2, (5*16)(oup); MOVOU C2, (6*16)(oup); MOVOU D2, (7*16)(oup)
--
--	MOVQ $128, itr1
--	SUBQ $128, inl
--	LEAQ 128(inp), inp
--
--	MOVO A3, A1; MOVO B3, B1; MOVO C3, C1; MOVO D3, D1
--
--	CMPQ inl, $64
--	JBE  sealSSE128SealHash
--
--	MOVOU (0*16)(inp), A0; MOVOU (1*16)(inp), B0; MOVOU (2*16)(inp), C0; MOVOU (3*16)(inp), D0
--	PXOR  A0, A3; PXOR B0, B3; PXOR C0, C3; PXOR D0, D3
--	MOVOU A3, (8*16)(oup); MOVOU B3, (9*16)(oup); MOVOU C3, (10*16)(oup); MOVOU D3, (11*16)(oup)
--
--	ADDQ $64, itr1
--	SUBQ $64, inl
--	LEAQ 64(inp), inp
--
 -	MOVQ $2, itr1
 -	MOVQ $8, itr2
 -
@@ -19819,14 +19819,14 @@ sealAVX2Tail512LoopB:
 -	PADDL state1Store, B1
 -	PADDL state2Store, C1
 -	PADDL ctr0Store, D1
--
--	JMP sealSSE128Seal
 +	PADDL ·chacha20Constants<>+0(SB), X1
 +	PADDL 32(BP), X4
 +	PADDL 48(BP), X7
 +	PADDL 80(BP), X10
 +	JMP   sealSSE128Seal
  
+-	JMP sealSSE128Seal
+-
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 128 bytes of plaintext
  sealSSETail128:
@@ -19907,9 +19907,6 @@ sealAVX2Tail512LoopB:
 -
 -	DECQ itr1
 -	JG   sealSSETail128LoopA
--
--	DECQ itr2
--	JGE  sealSSETail128LoopB
 +	PADDD X3, X0
 +	PXOR  X0, X9
 +	ROL16(X9, X12)
@@ -20129,6 +20126,9 @@ sealAVX2Tail512LoopB:
 +	SUBQ  $0x40, BX
 +	JMP   sealSSE128SealHash
  
+-	DECQ itr2
+-	JGE  sealSSETail128LoopB
+-
 -	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1
 -	PADDL state1Store, B0; PADDL state1Store, B1
 -	PADDL state2Store, C0; PADDL state2Store, C1
@@ -20223,6 +20223,21 @@ sealAVX2Tail512LoopB:
 -	shiftB0Left; shiftC0Left; shiftD0Left
 -	shiftB1Left; shiftC1Left; shiftD1Left
 -	shiftB2Left; shiftC2Left; shiftD2Left
+-
+-	polyAdd(0(oup))
+-	polyMul
+-	LEAQ 16(oup), oup
+-
+-	chachaQR(A0, B0, C0, D0, T0); chachaQR(A1, B1, C1, D1, T0); chachaQR(A2, B2, C2, D2, T0)
+-	shiftB0Right; shiftC0Right; shiftD0Right
+-	shiftB1Right; shiftC1Right; shiftD1Right
+-	shiftB2Right; shiftC2Right; shiftD2Right
+-
+-	DECQ itr1
+-	JG   sealSSETail192LoopA
+-
+-	DECQ itr2
+-	JGE  sealSSETail192LoopB
 +	PADDD X3, X0
 +	PXOR  X0, X9
 +	ROL16(X9, X12)
@@ -20538,21 +20553,6 @@ sealAVX2Tail512LoopB:
 +	SUBQ  $0x80, BX
 +	JMP   sealSSE128SealHash
  
--	polyAdd(0(oup))
--	polyMul
--	LEAQ 16(oup), oup
--
--	chachaQR(A0, B0, C0, D0, T0); chachaQR(A1, B1, C1, D1, T0); chachaQR(A2, B2, C2, D2, T0)
--	shiftB0Right; shiftC0Right; shiftD0Right
--	shiftB1Right; shiftC1Right; shiftD1Right
--	shiftB2Right; shiftC2Right; shiftD2Right
--
--	DECQ itr1
--	JG   sealSSETail192LoopA
--
--	DECQ itr2
--	JGE  sealSSETail192LoopB
--
 -	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1; PADDL ·chacha20Constants<>(SB), A2
 -	PADDL state1Store, B0; PADDL state1Store, B1; PADDL state1Store, B2
 -	PADDL state2Store, C0; PADDL state2Store, C1; PADDL state2Store, C2
@@ -20880,8 +20880,6 @@ sealAVX2Tail512LoopB:
 -
 -	SUBQ $16, itr1
 -	ADDQ $16, oup
--
--	JMP sealSSE128SealHash
 +	CMPQ  CX, $0x10
 +	JB    sealSSE128Seal
 +	ADDQ  (DI), R10
@@ -20929,6 +20927,8 @@ sealAVX2Tail512LoopB:
 +	ADDQ  $0x10, DI
 +	JMP   sealSSE128SealHash
  
+-	JMP sealSSE128SealHash
+-
  sealSSE128Seal:
 -	CMPQ inl, $16
 +	CMPQ BX, $0x10
@@ -21274,11 +21274,6 @@ sealAVX2Tail512LoopB:
 -	VMOVDQA CC1, tmpStoreAVX2
 -	chachaQR_AVX2(AA3, BB3, CC3, DD3, CC1)
 -	VMOVDQA tmpStoreAVX2, CC1
--
--	VPALIGNR $4, BB0, BB0, BB0; VPALIGNR $8, CC0, CC0, CC0; VPALIGNR $12, DD0, DD0, DD0
--	VPALIGNR $4, BB1, BB1, BB1; VPALIGNR $8, CC1, CC1, CC1; VPALIGNR $12, DD1, DD1, DD1
--	VPALIGNR $4, BB2, BB2, BB2; VPALIGNR $8, CC2, CC2, CC2; VPALIGNR $12, DD2, DD2, DD2
--	VPALIGNR $4, BB3, BB3, BB3; VPALIGNR $8, CC3, CC3, CC3; VPALIGNR $12, DD3, DD3, DD3
 +	VMOVDQA    Y15, 224(BP)
 +	VPADDD     Y14, Y0, Y0
 +	VPXOR      Y0, Y4, Y4
@@ -21461,6 +21456,11 @@ sealAVX2Tail512LoopB:
 +	VPERM2I128 $0x02, Y0, Y14, Y4
 +	VPERM2I128 $0x13, Y0, Y14, Y0
  
+-	VPALIGNR $4, BB0, BB0, BB0; VPALIGNR $8, CC0, CC0, CC0; VPALIGNR $12, DD0, DD0, DD0
+-	VPALIGNR $4, BB1, BB1, BB1; VPALIGNR $8, CC1, CC1, CC1; VPALIGNR $12, DD1, DD1, DD1
+-	VPALIGNR $4, BB2, BB2, BB2; VPALIGNR $8, CC2, CC2, CC2; VPALIGNR $12, DD2, DD2, DD2
+-	VPALIGNR $4, BB3, BB3, BB3; VPALIGNR $8, CC3, CC3, CC3; VPALIGNR $12, DD3, DD3, DD3
+-
 -	VMOVDQA CC3, tmpStoreAVX2
 -	chachaQR_AVX2(AA0, BB0, CC0, DD0, CC3); chachaQR_AVX2(AA1, BB1, CC1, DD1, CC3); chachaQR_AVX2(AA2, BB2, CC2, DD2, CC3)
 -	VMOVDQA tmpStoreAVX2, CC3
@@ -21551,6 +21551,11 @@ sealAVX2Tail512LoopB:
 +	VPERM2I128 $0x13, Y15, Y3, Y4
 +	CMPQ       BX, $0x80
  	JBE        sealAVX2SealHash
+-
+-	VPXOR   (0*32)(inp), AA0, AA0; VPXOR (1*32)(inp), BB0, BB0; VPXOR (2*32)(inp), CC0, CC0; VPXOR (3*32)(inp), DD0, DD0
+-	VMOVDQU AA0, (10*32)(oup); VMOVDQU BB0, (11*32)(oup); VMOVDQU CC0, (12*32)(oup); VMOVDQU DD0, (13*32)(oup)
+-	SUBQ    $128, inl
+-	LEAQ    128(inp), inp
 +	VPXOR      (SI), Y0, Y0
 +	VPXOR      32(SI), Y14, Y14
 +	VPXOR      64(SI), Y12, Y12
@@ -21572,11 +21577,6 @@ sealAVX2Tail512LoopB:
 +	CMPQ       BX, $0x00000200
 +	JBE        sealAVX2Tail512
  
--	VPXOR   (0*32)(inp), AA0, AA0; VPXOR (1*32)(inp), BB0, BB0; VPXOR (2*32)(inp), CC0, CC0; VPXOR (3*32)(inp), DD0, DD0
--	VMOVDQU AA0, (10*32)(oup); VMOVDQU BB0, (11*32)(oup); VMOVDQU CC0, (12*32)(oup); VMOVDQU DD0, (13*32)(oup)
--	SUBQ    $128, inl
--	LEAQ    128(inp), inp
--
 -	MOVQ $8, itr1
 -	MOVQ $2, itr2
 -
@@ -21608,33 +21608,6 @@ sealAVX2Tail512LoopB:
 -	VPALIGNR $4, BB1, BB1, BB1; VPALIGNR $8, CC1, CC1, CC1; VPALIGNR $12, DD1, DD1, DD1
 -	VPALIGNR $4, BB2, BB2, BB2; VPALIGNR $8, CC2, CC2, CC2; VPALIGNR $12, DD2, DD2, DD2
 -	VPALIGNR $4, BB3, BB3, BB3; VPALIGNR $8, CC3, CC3, CC3; VPALIGNR $12, DD3, DD3, DD3
--
--	VMOVDQA CC3, tmpStoreAVX2
--	chachaQR_AVX2(AA0, BB0, CC0, DD0, CC3); chachaQR_AVX2(AA1, BB1, CC1, DD1, CC3); chachaQR_AVX2(AA2, BB2, CC2, DD2, CC3)
--	VMOVDQA tmpStoreAVX2, CC3
--	VMOVDQA CC1, tmpStoreAVX2
--	chachaQR_AVX2(AA3, BB3, CC3, DD3, CC1)
--	VMOVDQA tmpStoreAVX2, CC1
--
--	VPALIGNR $12, BB0, BB0, BB0; VPALIGNR $8, CC0, CC0, CC0; VPALIGNR $4, DD0, DD0, DD0
--	VPALIGNR $12, BB1, BB1, BB1; VPALIGNR $8, CC1, CC1, CC1; VPALIGNR $4, DD1, DD1, DD1
--	VPALIGNR $12, BB2, BB2, BB2; VPALIGNR $8, CC2, CC2, CC2; VPALIGNR $4, DD2, DD2, DD2
--	VPALIGNR $12, BB3, BB3, BB3; VPALIGNR $8, CC3, CC3, CC3; VPALIGNR $4, DD3, DD3, DD3
--	VPADDD   BB0, AA0, AA0; VPADDD BB1, AA1, AA1; VPADDD BB2, AA2, AA2; VPADDD BB3, AA3, AA3
--	VPXOR    AA0, DD0, DD0; VPXOR AA1, DD1, DD1; VPXOR AA2, DD2, DD2; VPXOR AA3, DD3, DD3
--	VPSHUFB  ·rol16<>(SB), DD0, DD0; VPSHUFB ·rol16<>(SB), DD1, DD1; VPSHUFB ·rol16<>(SB), DD2, DD2; VPSHUFB ·rol16<>(SB), DD3, DD3
--	VPADDD   DD0, CC0, CC0; VPADDD DD1, CC1, CC1; VPADDD DD2, CC2, CC2; VPADDD DD3, CC3, CC3
--	VPXOR    CC0, BB0, BB0; VPXOR CC1, BB1, BB1; VPXOR CC2, BB2, BB2; VPXOR CC3, BB3, BB3
--	VMOVDQA  CC3, tmpStoreAVX2
--	VPSLLD   $12, BB0, CC3; VPSRLD $20, BB0, BB0; VPXOR CC3, BB0, BB0
--	VPSLLD   $12, BB1, CC3; VPSRLD $20, BB1, BB1; VPXOR CC3, BB1, BB1
--	VPSLLD   $12, BB2, CC3; VPSRLD $20, BB2, BB2; VPXOR CC3, BB2, BB2
--	VPSLLD   $12, BB3, CC3; VPSRLD $20, BB3, BB3; VPXOR CC3, BB3, BB3
--	VMOVDQA  tmpStoreAVX2, CC3
--
--	SUBQ $16, oup                  // Adjust the pointer
--	MOVQ $9, itr1
--	JMP  sealAVX2InternalLoopStart
 +	VMOVDQA  ·chacha20Constants<>+0(SB), Y0
 +	VMOVDQA  Y0, Y5
 +	VMOVDQA  Y0, Y6
@@ -21854,6 +21827,33 @@ sealAVX2Tail512LoopB:
 +	MOVQ     $0x00000009, CX
 +	JMP      sealAVX2InternalLoopStart
  
+-	VMOVDQA CC3, tmpStoreAVX2
+-	chachaQR_AVX2(AA0, BB0, CC0, DD0, CC3); chachaQR_AVX2(AA1, BB1, CC1, DD1, CC3); chachaQR_AVX2(AA2, BB2, CC2, DD2, CC3)
+-	VMOVDQA tmpStoreAVX2, CC3
+-	VMOVDQA CC1, tmpStoreAVX2
+-	chachaQR_AVX2(AA3, BB3, CC3, DD3, CC1)
+-	VMOVDQA tmpStoreAVX2, CC1
+-
+-	VPALIGNR $12, BB0, BB0, BB0; VPALIGNR $8, CC0, CC0, CC0; VPALIGNR $4, DD0, DD0, DD0
+-	VPALIGNR $12, BB1, BB1, BB1; VPALIGNR $8, CC1, CC1, CC1; VPALIGNR $4, DD1, DD1, DD1
+-	VPALIGNR $12, BB2, BB2, BB2; VPALIGNR $8, CC2, CC2, CC2; VPALIGNR $4, DD2, DD2, DD2
+-	VPALIGNR $12, BB3, BB3, BB3; VPALIGNR $8, CC3, CC3, CC3; VPALIGNR $4, DD3, DD3, DD3
+-	VPADDD   BB0, AA0, AA0; VPADDD BB1, AA1, AA1; VPADDD BB2, AA2, AA2; VPADDD BB3, AA3, AA3
+-	VPXOR    AA0, DD0, DD0; VPXOR AA1, DD1, DD1; VPXOR AA2, DD2, DD2; VPXOR AA3, DD3, DD3
+-	VPSHUFB  ·rol16<>(SB), DD0, DD0; VPSHUFB ·rol16<>(SB), DD1, DD1; VPSHUFB ·rol16<>(SB), DD2, DD2; VPSHUFB ·rol16<>(SB), DD3, DD3
+-	VPADDD   DD0, CC0, CC0; VPADDD DD1, CC1, CC1; VPADDD DD2, CC2, CC2; VPADDD DD3, CC3, CC3
+-	VPXOR    CC0, BB0, BB0; VPXOR CC1, BB1, BB1; VPXOR CC2, BB2, BB2; VPXOR CC3, BB3, BB3
+-	VMOVDQA  CC3, tmpStoreAVX2
+-	VPSLLD   $12, BB0, CC3; VPSRLD $20, BB0, BB0; VPXOR CC3, BB0, BB0
+-	VPSLLD   $12, BB1, CC3; VPSRLD $20, BB1, BB1; VPXOR CC3, BB1, BB1
+-	VPSLLD   $12, BB2, CC3; VPSRLD $20, BB2, BB2; VPXOR CC3, BB2, BB2
+-	VPSLLD   $12, BB3, CC3; VPSRLD $20, BB3, BB3; VPXOR CC3, BB3, BB3
+-	VMOVDQA  tmpStoreAVX2, CC3
+-
+-	SUBQ $16, oup                  // Adjust the pointer
+-	MOVQ $9, itr1
+-	JMP  sealAVX2InternalLoopStart
+-
  sealAVX2MainLoop:
 -	// Load state, increment counter blocks, store the incremented counters
 -	VMOVDQU ·chacha20Constants<>(SB), AA0; VMOVDQA AA0, AA1; VMOVDQA AA0, AA2; VMOVDQA AA0, AA3
@@ -22220,12 +22220,6 @@ sealAVX2Tail512LoopB:
 +	VPALIGNR $0x04, Y3, Y3, Y3
 +	DECQ     CX
  	JNE      sealAVX2InternalLoop
--
--	VPADDD  ·chacha20Constants<>(SB), AA0, AA0; VPADDD ·chacha20Constants<>(SB), AA1, AA1; VPADDD ·chacha20Constants<>(SB), AA2, AA2; VPADDD ·chacha20Constants<>(SB), AA3, AA3
--	VPADDD  state1StoreAVX2, BB0, BB0; VPADDD state1StoreAVX2, BB1, BB1; VPADDD state1StoreAVX2, BB2, BB2; VPADDD state1StoreAVX2, BB3, BB3
--	VPADDD  state2StoreAVX2, CC0, CC0; VPADDD state2StoreAVX2, CC1, CC1; VPADDD state2StoreAVX2, CC2, CC2; VPADDD state2StoreAVX2, CC3, CC3
--	VPADDD  ctr0StoreAVX2, DD0, DD0; VPADDD ctr1StoreAVX2, DD1, DD1; VPADDD ctr2StoreAVX2, DD2, DD2; VPADDD ctr3StoreAVX2, DD3, DD3
--	VMOVDQA CC3, tmpStoreAVX2
 +	VPADDD   ·chacha20Constants<>+0(SB), Y0, Y0
 +	VPADDD   ·chacha20Constants<>+0(SB), Y5, Y5
 +	VPADDD   ·chacha20Constants<>+0(SB), Y6, Y6
@@ -22244,6 +22238,12 @@ sealAVX2Tail512LoopB:
 +	VPADDD   192(BP), Y3, Y3
 +	VMOVDQA  Y15, 224(BP)
  
+-	VPADDD  ·chacha20Constants<>(SB), AA0, AA0; VPADDD ·chacha20Constants<>(SB), AA1, AA1; VPADDD ·chacha20Constants<>(SB), AA2, AA2; VPADDD ·chacha20Constants<>(SB), AA3, AA3
+-	VPADDD  state1StoreAVX2, BB0, BB0; VPADDD state1StoreAVX2, BB1, BB1; VPADDD state1StoreAVX2, BB2, BB2; VPADDD state1StoreAVX2, BB3, BB3
+-	VPADDD  state2StoreAVX2, CC0, CC0; VPADDD state2StoreAVX2, CC1, CC1; VPADDD state2StoreAVX2, CC2, CC2; VPADDD state2StoreAVX2, CC3, CC3
+-	VPADDD  ctr0StoreAVX2, DD0, DD0; VPADDD ctr1StoreAVX2, DD1, DD1; VPADDD ctr2StoreAVX2, DD2, DD2; VPADDD ctr3StoreAVX2, DD3, DD3
+-	VMOVDQA CC3, tmpStoreAVX2
+-
  	// We only hashed 480 of the 512 bytes available - hash the remaining 32 here
 -	polyAdd(0*8(oup))
 -	polyMulAVX2
@@ -22395,6 +22395,16 @@ sealAVX2Tail512LoopB:
 -	polyAdd(2*8(oup))
 -	polyMulAVX2
 -	LEAQ 32(oup), oup
+-
+-	MOVQ $10, itr1
+-	MOVQ $0, itr2
+-	CMPQ inl, $128
+-	JBE  sealAVX2Tail128
+-	CMPQ inl, $256
+-	JBE  sealAVX2Tail256
+-	CMPQ inl, $384
+-	JBE  sealAVX2Tail384
+-	JMP  sealAVX2Tail512
 +	ADDQ  (DI), R10
 +	ADCQ  8(DI), R11
 +	ADCQ  $0x01, R12
@@ -22474,16 +22484,6 @@ sealAVX2Tail512LoopB:
 +	JBE   sealAVX2Tail384
 +	JMP   sealAVX2Tail512
  
--	MOVQ $10, itr1
--	MOVQ $0, itr2
--	CMPQ inl, $128
--	JBE  sealAVX2Tail128
--	CMPQ inl, $256
--	JBE  sealAVX2Tail256
--	CMPQ inl, $384
--	JBE  sealAVX2Tail384
--	JMP  sealAVX2Tail512
--
 -// ----------------------------------------------------------------------------
 -// Special optimization for buffers smaller than 193 bytes
  seal192AVX2:
@@ -22814,10 +22814,10 @@ sealAVX2Tail512LoopB:
 +	CMPQ    BX, $0x10
 +	VMOVDQA X0, X1
  	JB      sealAVX2ShortDone
+-
+-	SUBQ $16, inl
 +	SUBQ    $0x10, BX
  
--	SUBQ $16, inl
--
  	// Load for encryption
 -	VPXOR   (inp), A0, T0
 -	VMOVDQU T0, (oup)
@@ -23416,6 +23416,8 @@ sealAVX2Tail512LoopB:
 -	VPERM2I128 $0x02, CC1, DD1, BB0
 -	VPERM2I128 $0x13, AA1, BB1, CC0
 -	VPERM2I128 $0x13, CC1, DD1, DD0
+-
+-	JMP sealAVX2SealHash
 +	VPADDD     Y14, Y0, Y0
 +	VPXOR      Y0, Y4, Y4
 +	VPSHUFB    ·rol16<>+0(SB), Y4, Y4
@@ -23608,8 +23610,6 @@ sealAVX2Tail512LoopB:
 +	VPERM2I128 $0x13, Y13, Y1, Y4
 +	JMP        sealAVX2SealHash
  
--	JMP sealAVX2SealHash
--
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 384 bytes of ciphertext
  sealAVX2Tail384:
@@ -24663,12 +24663,6 @@ sealAVX2Tail512LoopB:
 -#else
 -#define ROL8(R, T) ROL(8, R, T)
 -#endif
--
--#define chachaQR(A, B, C, D, T) \
--	PADDD B, A; PXOR A, D; ROL16(D, T) \
--	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $12, T; PSRLL $20, B; PXOR T, B \
--	PADDD B, A; PXOR A, D; ROL8(D, T) \
--	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $7, T; PSRLL $25, B; PXOR T, B
 +// func polyHashADInternal<>()
 +TEXT polyHashADInternal<>(SB), NOSPLIT, $0
 +	// Hack: Must declare #define macros inside of a function due to Avo constraints
@@ -24679,11 +24673,11 @@ sealAVX2Tail512LoopB:
 +		PSRLL $(32-(N)), R; \
 +		PXOR T, R
  
--#define chachaQR_AVX2(A, B, C, D, T) \
--	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol16<>(SB), D, D                         \
--	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $12, B, T; VPSRLD $20, B, B; VPXOR T, B, B \
--	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol8<>(SB), D, D                          \
--	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $7, B, T; VPSRLD $25, B, B; VPXOR T, B, B
+-#define chachaQR(A, B, C, D, T) \
+-	PADDD B, A; PXOR A, D; ROL16(D, T) \
+-	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $12, T; PSRLL $20, B; PXOR T, B \
+-	PADDD B, A; PXOR A, D; ROL8(D, T) \
+-	PADDD D, C; PXOR C, B; MOVO B, T; PSLLL $7, T; PSRLL $25, B; PXOR T, B
 +	// ROL8 rotates the uint32s in register R left by 8, using temporary T if needed.
 +	#ifdef GOAMD64_v2
 +		#define ROL8(R, T) PSHUFB ·rol8<>(SB), R
@@ -24691,6 +24685,12 @@ sealAVX2Tail512LoopB:
 +		#define ROL8(R, T) ROL(8, R, T)
 +	#endif
  
+-#define chachaQR_AVX2(A, B, C, D, T) \
+-	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol16<>(SB), D, D                         \
+-	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $12, B, T; VPSRLD $20, B, B; VPXOR T, B, B \
+-	VPADDD B, A, A; VPXOR A, D, D; VPSHUFB ·rol8<>(SB), D, D                          \
+-	VPADDD D, C, C; VPXOR C, B, B; VPSLLD $7, B, T; VPSRLD $25, B, B; VPXOR T, B, B
+-
 -#define polyAdd(S) ADDQ S, acc0; ADCQ 8+S, acc1; ADCQ $1, acc2
 -#define polyMulStage1 MOVQ (0*8)(BP), AX; MOVQ AX, t2; MULQ acc0; MOVQ AX, t0; MOVQ DX, t1; MOVQ (0*8)(BP), AX; MULQ acc1; IMULQ acc2, t2; ADDQ AX, t1; ADCQ DX, t2
 -#define polyMulStage2 MOVQ (1*8)(BP), AX; MOVQ AX, t3; MULQ acc0; ADDQ AX, t1; ADCQ $0, DX; MOVQ DX, acc0; MOVQ (1*8)(BP), AX; MULQ acc1; ADDQ AX, t2; ADCQ $0, DX
@@ -26480,6 +26480,26 @@ sealAVX2Tail512LoopB:
 -	chachaQR(A0, B0, C0, D0, T0); chachaQR(A1, B1, C1, D1, T0)
 -	shiftB0Right; shiftC0Right; shiftD0Right
 -	shiftB1Right; shiftC1Right; shiftD1Right
+-
+-	CMPQ itr2, itr1
+-	JB   openSSETail128LoopA
+-
+-	CMPQ itr2, $160
+-	JNE  openSSETail128LoopB
+-
+-	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1
+-	PADDL state1Store, B0; PADDL state1Store, B1
+-	PADDL state2Store, C0; PADDL state2Store, C1
+-	PADDL ctr1Store, D0; PADDL ctr0Store, D1
+-
+-	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
+-	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
+-	MOVOU A1, (0*16)(oup); MOVOU B1, (1*16)(oup); MOVOU C1, (2*16)(oup); MOVOU D1, (3*16)(oup)
+-
+-	SUBQ $64, inl
+-	LEAQ 64(inp), inp
+-	LEAQ 64(oup), oup
+-	JMP  openSSETail64DecLoop
 +	ADDQ  $0x10, R9
 +	PADDD X3, X0
 +	PXOR  X0, X9
@@ -26658,26 +26678,6 @@ sealAVX2Tail512LoopB:
 +	LEAQ  64(DI), DI
 +	JMP   openSSETail64DecLoop
  
--	CMPQ itr2, itr1
--	JB   openSSETail128LoopA
--
--	CMPQ itr2, $160
--	JNE  openSSETail128LoopB
--
--	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1
--	PADDL state1Store, B0; PADDL state1Store, B1
--	PADDL state2Store, C0; PADDL state2Store, C1
--	PADDL ctr1Store, D0; PADDL ctr0Store, D1
--
--	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
--	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
--	MOVOU A1, (0*16)(oup); MOVOU B1, (1*16)(oup); MOVOU C1, (2*16)(oup); MOVOU D1, (3*16)(oup)
--
--	SUBQ $64, inl
--	LEAQ 64(inp), inp
--	LEAQ 64(oup), oup
--	JMP  openSSETail64DecLoop
--
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 192 bytes of ciphertext
  openSSETail192:
@@ -27113,6 +27113,14 @@ sealAVX2Tail512LoopB:
 -	PADDL state1Store, B0; PADDL state1Store, B1; PADDL state1Store, B2
 -	PADDL state2Store, C0; PADDL state2Store, C1; PADDL state2Store, C2
 -	PADDL ctr2Store, D0; PADDL ctr1Store, D1; PADDL ctr0Store, D2
+-
+-	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
+-	PXOR  T0, A2; PXOR T1, B2; PXOR T2, C2; PXOR T3, D2
+-	MOVOU A2, (0*16)(oup); MOVOU B2, (1*16)(oup); MOVOU C2, (2*16)(oup); MOVOU D2, (3*16)(oup)
+-
+-	MOVOU (4*16)(inp), T0; MOVOU (5*16)(inp), T1; MOVOU (6*16)(inp), T2; MOVOU (7*16)(inp), T3
+-	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
+-	MOVOU A1, (4*16)(oup); MOVOU B1, (5*16)(oup); MOVOU C1, (6*16)(oup); MOVOU D1, (7*16)(oup)
 +	PADDL ·chacha20Constants<>+0(SB), X0
 +	PADDL ·chacha20Constants<>+0(SB), X1
 +	PADDL ·chacha20Constants<>+0(SB), X2
@@ -27154,14 +27162,6 @@ sealAVX2Tail512LoopB:
 +	LEAQ  128(DI), DI
 +	JMP   openSSETail64DecLoop
  
--	MOVOU (0*16)(inp), T0; MOVOU (1*16)(inp), T1; MOVOU (2*16)(inp), T2; MOVOU (3*16)(inp), T3
--	PXOR  T0, A2; PXOR T1, B2; PXOR T2, C2; PXOR T3, D2
--	MOVOU A2, (0*16)(oup); MOVOU B2, (1*16)(oup); MOVOU C2, (2*16)(oup); MOVOU D2, (3*16)(oup)
--
--	MOVOU (4*16)(inp), T0; MOVOU (5*16)(inp), T1; MOVOU (6*16)(inp), T2; MOVOU (7*16)(inp), T3
--	PXOR  T0, A1; PXOR T1, B1; PXOR T2, C1; PXOR T3, D1
--	MOVOU A1, (4*16)(oup); MOVOU B1, (5*16)(oup); MOVOU C1, (6*16)(oup); MOVOU D1, (7*16)(oup)
--
 -	SUBQ $128, inl
 -	LEAQ 128(inp), inp
 -	LEAQ 128(oup), oup
@@ -29455,8 +29455,6 @@ sealAVX2Tail512LoopB:
 -	LEAQ    (4*32)(inp), inp
 -	LEAQ    (4*32)(oup), oup
 -	SUBQ    $4*32, inl
--
--	JMP openAVX2TailLoop
 +	VPADDD     ·chacha20Constants<>+0(SB), Y0, Y0
 +	VPADDD     ·chacha20Constants<>+0(SB), Y5, Y5
 +	VPADDD     32(BP), Y14, Y14
@@ -29486,6 +29484,8 @@ sealAVX2Tail512LoopB:
 +	SUBQ       $0x80, BX
 +	JMP        openAVX2TailLoop
  
+-	JMP openAVX2TailLoop
+-
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 384 bytes of ciphertext
  openAVX2Tail384:
@@ -30382,26 +30382,21 @@ sealAVX2Tail512LoopB:
 +DATA ·chacha20Constants<>+24(SB)/4, $0x79622d32
 +DATA ·chacha20Constants<>+28(SB)/4, $0x6b206574
 +GLOBL ·chacha20Constants<>(SB), RODATA|NOPTR, $32
- 
--	LEAQ (12*32)(inp), inp
--	LEAQ (12*32)(oup), oup
--	SUBQ $12*32, inl
++
 +DATA ·polyClampMask<>+0(SB)/8, $0x0ffffffc0fffffff
 +DATA ·polyClampMask<>+8(SB)/8, $0x0ffffffc0ffffffc
 +DATA ·polyClampMask<>+16(SB)/8, $0xffffffffffffffff
 +DATA ·polyClampMask<>+24(SB)/8, $0xffffffffffffffff
 +GLOBL ·polyClampMask<>(SB), RODATA|NOPTR, $32
  
--	JMP openAVX2TailLoop
+-	LEAQ (12*32)(inp), inp
+-	LEAQ (12*32)(oup), oup
+-	SUBQ $12*32, inl
 +DATA ·sseIncMask<>+0(SB)/8, $0x0000000000000001
 +DATA ·sseIncMask<>+8(SB)/8, $0x0000000000000000
 +GLOBL ·sseIncMask<>(SB), RODATA|NOPTR, $16
  
--// ----------------------------------------------------------------------------
--// ----------------------------------------------------------------------------
--// func chacha20Poly1305Seal(dst, key, src, ad []byte)
--TEXT ·chacha20Poly1305Seal(SB), 0, $288-96
--	// For aligned stack access
+-	JMP openAVX2TailLoop
 +DATA ·andMask<>+0(SB)/8, $0x00000000000000ff
 +DATA ·andMask<>+8(SB)/8, $0x0000000000000000
 +DATA ·andMask<>+16(SB)/8, $0x000000000000ffff
@@ -30433,7 +30428,12 @@ sealAVX2Tail512LoopB:
 +DATA ·andMask<>+224(SB)/8, $0xffffffffffffffff
 +DATA ·andMask<>+232(SB)/8, $0x00ffffffffffffff
 +GLOBL ·andMask<>(SB), RODATA|NOPTR, $240
-+
+ 
+-// ----------------------------------------------------------------------------
+-// ----------------------------------------------------------------------------
+-// func chacha20Poly1305Seal(dst, key, src, ad []byte)
+-TEXT ·chacha20Poly1305Seal(SB), 0, $288-96
+-	// For aligned stack access
 +DATA ·avx2InitMask<>+0(SB)/8, $0x0000000000000000
 +DATA ·avx2InitMask<>+8(SB)/8, $0x0000000000000000
 +DATA ·avx2InitMask<>+16(SB)/8, $0x0000000000000001
@@ -31794,14 +31794,14 @@ sealAVX2Tail512LoopB:
 -	PADDL state1Store, B1
 -	PADDL state2Store, C1
 -	PADDL ctr0Store, D1
--
--	JMP sealSSE128Seal
 +	PADDL ·chacha20Constants<>+0(SB), X1
 +	PADDL 32(BP), X4
 +	PADDL 48(BP), X7
 +	PADDL 80(BP), X10
 +	JMP   sealSSE128Seal
  
+-	JMP sealSSE128Seal
+-
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 128 bytes of plaintext
  sealSSETail128:
@@ -31882,9 +31882,6 @@ sealAVX2Tail512LoopB:
 -
 -	DECQ itr1
 -	JG   sealSSETail128LoopA
--
--	DECQ itr2
--	JGE  sealSSETail128LoopB
 +	PADDD X3, X0
 +	PXOR  X0, X9
 +	ROL16(X9, X12)
@@ -32104,6 +32101,9 @@ sealAVX2Tail512LoopB:
 +	SUBQ  $0x40, BX
 +	JMP   sealSSE128SealHash
  
+-	DECQ itr2
+-	JGE  sealSSETail128LoopB
+-
 -	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1
 -	PADDL state1Store, B0; PADDL state1Store, B1
 -	PADDL state2Store, C0; PADDL state2Store, C1
@@ -32198,6 +32198,21 @@ sealAVX2Tail512LoopB:
 -	shiftB0Left; shiftC0Left; shiftD0Left
 -	shiftB1Left; shiftC1Left; shiftD1Left
 -	shiftB2Left; shiftC2Left; shiftD2Left
+-
+-	polyAdd(0(oup))
+-	polyMul
+-	LEAQ 16(oup), oup
+-
+-	chachaQR(A0, B0, C0, D0, T0); chachaQR(A1, B1, C1, D1, T0); chachaQR(A2, B2, C2, D2, T0)
+-	shiftB0Right; shiftC0Right; shiftD0Right
+-	shiftB1Right; shiftC1Right; shiftD1Right
+-	shiftB2Right; shiftC2Right; shiftD2Right
+-
+-	DECQ itr1
+-	JG   sealSSETail192LoopA
+-
+-	DECQ itr2
+-	JGE  sealSSETail192LoopB
 +	PADDD X3, X0
 +	PXOR  X0, X9
 +	ROL16(X9, X12)
@@ -32513,21 +32528,6 @@ sealAVX2Tail512LoopB:
 +	SUBQ  $0x80, BX
 +	JMP   sealSSE128SealHash
  
--	polyAdd(0(oup))
--	polyMul
--	LEAQ 16(oup), oup
--
--	chachaQR(A0, B0, C0, D0, T0); chachaQR(A1, B1, C1, D1, T0); chachaQR(A2, B2, C2, D2, T0)
--	shiftB0Right; shiftC0Right; shiftD0Right
--	shiftB1Right; shiftC1Right; shiftD1Right
--	shiftB2Right; shiftC2Right; shiftD2Right
--
--	DECQ itr1
--	JG   sealSSETail192LoopA
--
--	DECQ itr2
--	JGE  sealSSETail192LoopB
--
 -	PADDL ·chacha20Constants<>(SB), A0; PADDL ·chacha20Constants<>(SB), A1; PADDL ·chacha20Constants<>(SB), A2
 -	PADDL state1Store, B0; PADDL state1Store, B1; PADDL state1Store, B2
 -	PADDL state2Store, C0; PADDL state2Store, C1; PADDL state2Store, C2
@@ -34370,6 +34370,16 @@ sealAVX2Tail512LoopB:
 -	polyAdd(2*8(oup))
 -	polyMulAVX2
 -	LEAQ 32(oup), oup
+-
+-	MOVQ $10, itr1
+-	MOVQ $0, itr2
+-	CMPQ inl, $128
+-	JBE  sealAVX2Tail128
+-	CMPQ inl, $256
+-	JBE  sealAVX2Tail256
+-	CMPQ inl, $384
+-	JBE  sealAVX2Tail384
+-	JMP  sealAVX2Tail512
 +	ADDQ  (DI), R10
 +	ADCQ  8(DI), R11
 +	ADCQ  $0x01, R12
@@ -34449,16 +34459,6 @@ sealAVX2Tail512LoopB:
 +	JBE   sealAVX2Tail384
 +	JMP   sealAVX2Tail512
  
--	MOVQ $10, itr1
--	MOVQ $0, itr2
--	CMPQ inl, $128
--	JBE  sealAVX2Tail128
--	CMPQ inl, $256
--	JBE  sealAVX2Tail256
--	CMPQ inl, $384
--	JBE  sealAVX2Tail384
--	JMP  sealAVX2Tail512
--
 -// ----------------------------------------------------------------------------
 -// Special optimization for buffers smaller than 193 bytes
  seal192AVX2:
@@ -35391,6 +35391,8 @@ sealAVX2Tail512LoopB:
 -	VPERM2I128 $0x02, CC1, DD1, BB0
 -	VPERM2I128 $0x13, AA1, BB1, CC0
 -	VPERM2I128 $0x13, CC1, DD1, DD0
+-
+-	JMP sealAVX2SealHash
 +	VPADDD     Y14, Y0, Y0
 +	VPXOR      Y0, Y4, Y4
 +	VPSHUFB    ·rol16<>+0(SB), Y4, Y4
@@ -35583,8 +35585,6 @@ sealAVX2Tail512LoopB:
 +	VPERM2I128 $0x13, Y13, Y1, Y4
 +	JMP        sealAVX2SealHash
  
--	JMP sealAVX2SealHash
--
 -// ----------------------------------------------------------------------------
 -// Special optimization for the last 384 bytes of ciphertext
  sealAVX2Tail384:
