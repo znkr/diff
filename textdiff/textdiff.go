@@ -22,7 +22,7 @@
 //
 // Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With
 // [diff.Minimal], time complexity becomes O(ND) where N = len(x) + len(y) and D
-// is the number of edits.
+// is the number of edits. With [Fast], time complexity is O(N log N).
 package textdiff
 
 import (
@@ -247,6 +247,9 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 // AppendUnified is [Unified], but it appends the output to dst and returns the
 // extended buffer. If x and y are identical, it returns dst.
 //
+// The following options are supported: [diff.Context], [diff.Minimal],
+// [diff.Fast], [IndentHeuristic], [TerminalColors]
+//
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
 func AppendUnified[T string | []byte](dst []byte, x, y T, opts ...Option) []byte {
@@ -258,6 +261,9 @@ func AppendUnified[T string | []byte](dst []byte, x, y T, opts ...Option) []byte
 // output and writes it in chunks of about 32 KiB, so w doesn't need to be
 // buffered. If x and y are identical, it doesn't write anything. It stops at
 // the first error from w and returns it.
+//
+// The following options are supported: [diff.Context], [diff.Minimal],
+// [diff.Fast], [IndentHeuristic], [TerminalColors]
 //
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
