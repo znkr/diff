@@ -110,6 +110,43 @@ func TestMyersSplit(t *testing.T) {
 	}
 }
 
+func TestMyersCompare_commonPrefixSuffix(t *testing.T) {
+	// compare is called on pieces of the inputs that can start or end with
+	// matches. The first and last elements of x and y differ, so init doesn't
+	// strip anything, and compare gets the piece between them.
+	tests := []struct {
+		x, y string
+		want int // number of edits
+	}{
+		{"zabz", "yacy", 2}, // common prefix "a"
+		{"zbaz", "ycay", 2}, // common suffix "a"
+		{"zaabz", "yaacy", 2},
+		{"zabcz", "yaxcy", 2}, // common prefix "a" and suffix "c"
+	}
+	eq := func(a, b byte) bool { return a == b }
+	for _, tt := range tests {
+		x, y := []byte(tt.x), []byte(tt.y)
+		var m myers[byte]
+		m.init(x, y, eq)
+		m.compare(1, len(x)-1, 1, len(y)-1, true, eq)
+		got := 0
+		for i := 1; i < len(x)-1; i++ {
+			if m.rx.Get(i) {
+				got++
+			}
+		}
+		for i := 1; i < len(y)-1; i++ {
+			if m.ry.Get(i) {
+				got++
+			}
+		}
+		m.release()
+		if got != tt.want {
+			t.Errorf("compare(%q, %q) between the first and last element = %d edits, want %d", tt.x, tt.y, got, tt.want)
+		}
+	}
+}
+
 func TestMyersSplit_largeRandomInputs(t *testing.T) {
 	eq := func(x, y int32) bool { return x == y }
 	for i := range 20 {

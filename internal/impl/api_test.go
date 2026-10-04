@@ -318,6 +318,55 @@ func checkDiffMatchesDiffFunc[T comparable](t *testing.T, x, y []T) {
 	}
 }
 
+func TestDiffMinimal(t *testing.T) {
+	// In minimal mode, the number of edits is the number of elements that
+	// aren't part of a longest common subsequence.
+	rng := rand.New(rand.NewPCG(9, 10))
+	eq := func(a, b int) bool { return a == b }
+	cfg := config.Config{Mode: config.ModeMinimal}
+	for range 5000 {
+		alphabet := 2 + rng.IntN(4)
+		gen := func() []int {
+			x := make([]int, rng.IntN(40))
+			for i := range x {
+				x[i] = rng.IntN(alphabet)
+			}
+			return x
+		}
+		x, y := gen(), gen()
+		want := len(x) + len(y) - 2*lcsLen(x, y)
+		rx, ry := Diff(x, y, cfg)
+		if got := countEdits(t, x, y, rx, ry); got != want {
+			t.Fatalf("Diff(%v, %v) has %d edits, want %d", x, y, got, want)
+		}
+		rx, ry = DiffFunc(x, y, eq, cfg)
+		if got := countEdits(t, x, y, rx, ry); got != want {
+			t.Fatalf("DiffFunc(%v, %v) has %d edits, want %d", x, y, got, want)
+		}
+		rx, ry = DiffHash(x, y, maphash.ComparableHasher[int]{}, cfg)
+		if got := countEdits(t, x, y, rx, ry); got != want {
+			t.Fatalf("DiffHash(%v, %v) has %d edits, want %d", x, y, got, want)
+		}
+	}
+}
+
+// lcsLen returns the length of a longest common subsequence of x and y.
+func lcsLen(x, y []int) int {
+	next := make([]int, len(y)+1)
+	cur := make([]int, len(y)+1)
+	for i := len(x) - 1; i >= 0; i-- {
+		for j := len(y) - 1; j >= 0; j-- {
+			if x[i] == y[j] {
+				cur[j] = next[j+1] + 1
+			} else {
+				cur[j] = max(next[j], cur[j+1])
+			}
+		}
+		next, cur = cur, next
+	}
+	return next[0]
+}
+
 // countEdits returns the number of edits in rx and ry. It fails the test if rx
 // and ry are not an edit script from x to y.
 func countEdits[T comparable](t *testing.T, x, y []T, rx, ry rvecs.Vec) int {

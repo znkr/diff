@@ -97,10 +97,19 @@ func (m *myers[T]) release() {
 }
 
 // compare finds an optimal d-path from (smin, tmin) to (smax, tmax).
-//
-// Important: x[smin:smax] and y[tmin:tmax] must not have a common prefix or a
-// common suffix.
 func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, y T) bool) {
+	// split requires inputs without a common prefix or suffix. The pieces
+	// before and after the diagonal that split returns can have one, because a
+	// match can precede or follow the diagonal without being part of it.
+	for smin < smax && tmin < tmax && eq(m.x[smin], m.y[tmin]) {
+		smin++
+		tmin++
+	}
+	for smax > smin && tmax > tmin && eq(m.x[smax-1], m.y[tmax-1]) {
+		smax--
+		tmax--
+	}
+
 	if smin == smax {
 		// s is empty, therefore everything in tmin to tmax is an insertion.
 		if m.yidx == nil {
@@ -118,13 +127,10 @@ func (m *myers[T]) compare(smin, smax, tmin, tmax int, optimal bool, eq func(x, 
 	} else {
 		// Use split to divide the input into three pieces:
 		//
-		//   (1) A, possibly empty, rect (smin, tmin) to (s0, s1)
+		//   (1) A, possibly empty, rect (smin, tmin) to (s0, t0)
 		//   (2) A, possibly empty, sequence of diagonals (matches) (s0, t0) to
 		//       (s1, t1)
 		//   (3) A, possibly empty, rect (s1, t1) to (smax, tmax)
-		//
-		// (1) and (3) will not have a common suffix or a common prefix, so we
-		// can use them directly as inputs to compare.
 		s0, s1, t0, t1, opt0, opt1 := m.split(smin, smax, tmin, tmax, optimal, eq)
 
 		// Recurse into (1) and (3).

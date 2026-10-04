@@ -383,10 +383,10 @@ func (p PanicValue) String() string {
  	g.wg.Wait()
  	if g.cancel != nil {
  		g.cancel(g.err)
- 	}
++	}
 +	if g.panicValue != nil {
 +		panic(g.panicValue)
-+	}
+ 	}
 +	if g.abnormal {
 +		runtime.Goexit()
 +	}

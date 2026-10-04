@@ -541,7 +541,7 @@ package noder
  ## Object Sections
  Information about an object (e.g. variable, function, type name, etc.)
  is split into multiple elements in different sections. Those elements
-@@ -160,21 +198,35 @@
+@@ -160,22 +198,36 @@
                    .
  
  ### Definition Section
@@ -577,26 +577,28 @@ package noder
 +                 .
 +
 +To use an object definition elsewhere, an ObjectUse is encoded.
-+
+ 
 +    ObjectUse  = [ Sync ]
 +                 [ Bool ]
 +                 Ref[ObjectDef]
 +                 Uint64              // the number of type arguments
 +                 { TypeUse }         // references to the type arguments
 +                 .
- 
++
  # References
  A reference table precedes every element. Each entry in the table
-@@ -193,10 +245,15 @@
+ contains a (section, index) pair denoting the location of the
+@@ -192,11 +244,16 @@
+ 
  Elements encode references to other elements as an index in the
  reference table — not the location of the referenced element directly.
++
++    RefTableIdx   = Uint64 .
  
 -    // TODO(markfreeman): Rename to RefUse.
 -    UseReloc = [ Sync ]
 -               RelElemIdx
 -               .
-+    RefTableIdx   = Uint64 .
-+
 +To do this, the Ref[T] primitive is used as below; note that this is
 +the same shape as provided by package pkgbits, just with new
 +interpretation applied.
