@@ -84,16 +84,11 @@ func run(rx, ry rvecs.Vec, p *preprocessed, cfg config.Config) {
 // Note that this function has generally worse performance than [Diff] for diffs
 // with many changes.
 func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry rvecs.Vec) {
-	rx, ry = rvecs.Make(len(x), len(y))
-
-	smin, smax, tmin, tmax := findChangeBoundsFunc(x, y, eq)
-	if handleTrivialBounds(rx, ry, smin, smax, tmin, tmax) {
-		return
-	}
-
 	var m myers[T]
-	m.rx, m.ry = rx, ry
-	smin, smax, tmin, tmax = m.init(x, y, eq)
+	m.rx, m.ry = rvecs.Make(len(x), len(y))
+	// init strips the common prefix and suffix, and compare handles an empty x
+	// or y.
+	smin, smax, tmin, tmax := m.init(x, y, eq)
 	m.compare(smin, smax, tmin, tmax, cfg.Mode == config.ModeMinimal, eq)
 	m.release()
 	return m.rx, m.ry
@@ -113,27 +108,6 @@ func findChangeBounds[T comparable](x, y []T) (smin, smax, tmin, tmax int) {
 
 	// Strip common suffix.
 	for smax > smin && tmax > tmin && x[smax-1] == y[tmax-1] {
-		smax--
-		tmax--
-	}
-
-	return
-}
-
-// findChangeBoundsFunc returns the upper and lower bounds for the changed
-// portion of the inputs.
-func findChangeBoundsFunc[T any](x, y []T, eq func(a, b T) bool) (smin, smax, tmin, tmax int) {
-	smin, tmin = 0, 0
-	smax, tmax = len(x), len(y)
-
-	// Strip common prefix.
-	for smin < smax && tmin < tmax && eq(x[smin], y[tmin]) {
-		smin++
-		tmin++
-	}
-
-	// Strip common suffix.
-	for smax > smin && tmax > tmin && eq(x[smax-1], y[tmax-1]) {
 		smax--
 		tmax--
 	}
