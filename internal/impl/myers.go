@@ -251,7 +251,9 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				k0 := k + v0
 				s := vf[k0]
 				t := s - k
-				v := (s - smin) + (t - tmin) - max(fmid-d, d-fmid)
+				// v is the progress of the path minus the distance of its
+				// diagonal from the middle diagonal.
+				v := (s - smin) + (t - tmin) - max(fmid-k, k-fmid)
 				if s < smin || smax <= s || t < tmin || tmax <= t {
 					continue
 				}
@@ -291,7 +293,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				if s < smin || smax <= s || t < tmin || tmax <= t {
 					continue
 				}
-				v := (smax - s) + (tmax - t) - max(bmid-d, d-bmid)
+				v := (smax - s) + (tmax - t) - max(bmid-k, k-bmid)
 				if v <= goodDiagMagic*d || v < best.v {
 					continue
 				}
