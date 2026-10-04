@@ -21,11 +21,13 @@ import (
 	"znkr.io/diff"
 )
 
-// Compare to strings line by line and output the difference as a pseudo-unified diff output (i.e.
-// it's similar to what diff -u would produce). The format is not a correct unified diff though, in
-// particular line endings (esp. at the end of the input) are handled differently.
+// Compare to strings line by line and output the difference as a pseudo-unified
+// diff output (i.e. it's similar to what diff -u would produce). The format is
+// not a correct unified diff though, in particular line endings (esp. at the
+// end of the input) are handled differently.
 //
-// More generally, comparing text line by line is better solved with the textdiff subpackage.
+// More generally, comparing text line by line is better solved with the
+// textdiff subpackage.
 func ExampleHunks_pseudoUnified() {
 	x := `this paragraph
 is not

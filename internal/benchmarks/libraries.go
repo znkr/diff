@@ -46,8 +46,8 @@ var Impls = []Impl{
 	{
 		Name: "diffmatchpatch",
 		Diff: func(x, y []byte) []byte {
-			// This function is not exactly creating a unified diff, but it's close enough to be
-			// comparable.
+			// This function is not exactly creating a unified diff, but it's
+			// close enough to be comparable.
 			dmp := diffmatchpatch.New()
 			rx, ry, lines := dmp.DiffLinesToRunes(string(x), string(y))
 			diffs := dmp.DiffMainRunes(rx, ry, false)
@@ -96,16 +96,16 @@ var Impls = []Impl{
 	{
 		Name: "godebug",
 		Diff: func(x, y []byte) []byte {
-			// This function is not exactly creating a unified diff, but it's close enough to be
-			// comparable.
+			// This function is not exactly creating a unified diff, but it's
+			// close enough to be comparable.
 			return []byte(godebug.Diff(string(x), string(y)))
 		},
 	},
 	{
 		Name: "mb0",
 		Diff: func(x, y []byte) []byte {
-			// This function is not exactly creating a unified diff, but it's close enough to be
-			// comparable.
+			// This function is not exactly creating a unified diff, but it's
+			// close enough to be comparable.
 			d := mb0lines{
 				x: bytes.SplitAfter(x, []byte("\n")),
 				y: bytes.SplitAfter(y, []byte("\n")),

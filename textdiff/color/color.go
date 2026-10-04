@@ -1,16 +1,18 @@
-// Package color provides configuration for coloring for unified diffs using ANSI escape sequences.
+// Package color provides configuration for coloring for unified diffs using
+// ANSI escape sequences.
 //
-// Specifying colors uses [Select Graphic Rendition parameters]. For example the code below,
-// presents the header in bold yellow:
+// Specifying colors uses [Select Graphic Rendition parameters]. For example the
+// code below, presents the header in bold yellow:
 //
 //	HunkHeader(1, 33)
 //
 // This is equivalent to the following raw ANSI sequence: \033[1;33m.
 //
-// It's the responsibility of the caller to ensure that the parameters are correct and supported
-// by the underlying terminal.
+// It's the responsibility of the caller to ensure that the parameters are
+// correct and supported by the underlying terminal.
 //
-// [Select Graphic Rendition parameters]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
+// [Select Graphic Rendition parameters]:
+// https://en.wikipedia.org/wiki/ANSI_escape_code#SGR
 package color
 
 import (
@@ -20,9 +22,11 @@ import (
 	"znkr.io/diff/internal/config"
 )
 
-// A Option makes it possible to configure custom colors in [textdiff.TerminalColors].
+// A Option makes it possible to configure custom colors in
+// [textdiff.TerminalColors].
 //
-// [textdiff.TerminalColors]: https://pkg.go.dev/znkr.io/diff/textdiff#TerminalColors
+// [textdiff.TerminalColors]:
+// https://pkg.go.dev/znkr.io/diff/textdiff#TerminalColors
 type Option func(*config.ColorConfig)
 
 // HunkHeaders colors hunk headers, the "@@ ... @@" part of the unified diff.

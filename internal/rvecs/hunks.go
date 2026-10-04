@@ -39,10 +39,11 @@ func Hunks(rx, ry []bool, cfg config.Config) iter.Seq[Hunk] {
 			if rx[s] || ry[t] {
 				run = 0 // not a match, reset run counter.
 
-				// If we're not inside a hunk, start a new hunk or, if there's an overlap due to
-				// context, continue with the previous hunk.
+				// If we're not inside a hunk, start a new hunk or, if there's
+				// an overlap due to context, continue with the previous hunk.
 				if s0 < 0 {
-					// start of missing matches (didn't collect matches before now)
+					// start of missing matches (didn't collect matches before
+					// now)
 					s0, t0 = max(0, s-context), max(0, t-context)
 					d = s - s0
 				}
@@ -63,8 +64,8 @@ func Hunks(rx, ry []bool, cfg config.Config) iter.Seq[Hunk] {
 					d++
 				}
 			}
-			// Active in-progress hunk and we've seen as many matches as we want in a context, finish
-			// the hunk.
+			// Active in-progress hunk and we've seen as many matches as we want
+			// in a context, finish the hunk.
 			if s0 >= 0 && (run > 2*context || s == n && t == m) {
 				Δ := min(0, -run+context)
 				if !yield(Hunk{s0, s + Δ, t0, t + Δ, d + Δ}) {

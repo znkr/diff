@@ -62,7 +62,8 @@ func TestUnified(t *testing.T) {
 				})
 			}
 
-			// Run in a cleanup to makes sure to runs after the subtests have finished.
+			// Run in a cleanup to makes sure to runs after the subtests have
+			// finished.
 			t.Cleanup(func() {
 				if *update {
 					f, err := os.CreateTemp("", "test-unified-*")
@@ -822,8 +823,9 @@ func parseTests(t testing.TB) []test {
 					case "force-anchoring-heuristic":
 						switch v {
 						case "true":
-							// The inline function definition is necessary, because the anchoring
-							// heuristic is not exported as an option.
+							// The inline function definition is necessary,
+							// because the anchoring heuristic is not exported
+							// as an option.
 							st.opts = append(st.opts, func(cfg *config.Config) config.Flag {
 								cfg.ForceAnchoringHeuristic = true
 								return 0

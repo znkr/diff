@@ -29,18 +29,19 @@ func TestMyersSplit(t *testing.T) {
 		inX, inY     string
 		wantX, wantY string
 	}{
-		// The input and output of this tests are strings containing markers that define ranges. For
-		// example, ab[cde]fg represents the string abcdefg and the range [2, 5]. The input consists
-		// of two strings and must always define a single range (the area of interest). The output
-		// are two strings representing the split areas. Everything in between the two splits must
-		// be identical in both output strings.
+		// The input and output of this tests are strings containing markers
+		// that define ranges. For example, ab[cde]fg represents the string
+		// abcdefg and the range [2, 5]. The input consists of two strings and
+		// must always define a single range (the area of interest). The output
+		// are two strings representing the split areas. Everything in between
+		// the two splits must be identical in both output strings.
 		//
-		// In the diffing algorithm, the outputs ranges will be used as input ranges recursively.
-		// This pattern is emulated below.
+		// In the diffing algorithm, the outputs ranges will be used as input
+		// ranges recursively. This pattern is emulated below.
 		//
-		// I realize that this is a bit unconventional, but I wanted a way to understand the test
-		// at a glace without looking up strings parts from indices and this is the best I could
-		// come up with.
+		// I realize that this is a bit unconventional, but I wanted a way to
+		// understand the test at a glace without looking up strings parts from
+		// indices and this is the best I could come up with.
 		//
 		//     inX          inY          wantX         wantY
 		{"[ABCABBA]", "[CBABAC]", "[ABC]AB[BA]", "[CB]AB[AC]"},
@@ -59,22 +60,24 @@ func TestMyersSplit(t *testing.T) {
 		{"[axxx]yyxxxb", "[cxxxzz]xxxd", "[a]xxx[]yyxxxb", "[c]xxx[zz]xxxd"},
 		{"axxx[yyxxxb]", "cxxxzz[xxxd]", "axxx[yy]xxx[b]", "cxxxzz[]xxx[d]"},
 
-		// For performance and simplicity, split skips the d=0 diagonal that handles matches in
-		// prefixes, suffixes and fully identical inputs. These are handled at a higher level,
-		// this test only makes sure that prefix and postfix are handled correctly
+		// For performance and simplicity, split skips the d=0 diagonal that
+		// handles matches in prefixes, suffixes and fully identical inputs.
+		// These are handled at a higher level, this test only makes sure that
+		// prefix and postfix are handled correctly
 		{"abcdefg[0]", "abcdefg[]", "abcdefg[0][]", "abcdefg[][]"},
 		{"[0]abcdefg", "[]abcdefg", "[0][]abcdefg", "[][]abcdefg"},
 		{"abcd[0]efg", "abcd[]efg", "abcd[0][]efg", "abcd[][]efg"},
 
-		// Differently sized inputs will cause the algorithm to walk over the edge of the grid. The
-		// tests below test that this edge condition is handled correctly.
+		// Differently sized inputs will cause the algorithm to walk over the
+		// edge of the grid. The tests below test that this edge condition is
+		// handled correctly.
 		{"[abcdefghijklmnoparstuvzxyz]", "[x]", "[abcdefghijklm][noparstuvzxyz]", "[][x]"},
 		{"[abcdefghijklmnoparstuvzxyz]", "[]", "[abcdefghijklm][noparstuvzxyz]", "[][]"},
 		{"[x]", "[abcdefghijklmnoparstuvzxyz]", "[][x]", "[abcdefghijklm][noparstuvzxyz]"},
 		{"[]", "[abcdefghijklmnoparstuvzxyz]", "[][]", "[abcdefghijklm][noparstuvzxyz]"},
 
-		// We're not testing the case that both x and y are empty, because we're never going to
-		// call it with an empty input.
+		// We're not testing the case that both x and y are empty, because we're
+		// never going to call it with an empty input.
 	}
 
 	eq := func(a, b byte) bool { return a == b }
@@ -114,11 +117,13 @@ func TestMyersSplit_largeRandomInputs(t *testing.T) {
 		t.Run(fmt.Sprintf("seed=%x", seed), func(t *testing.T) {
 			t.Parallel()
 			rng := rand.New(rand.NewChaCha8(seed))
-			x := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			// must be large enough to beat the min cost limit
+			x := make([]int32, 1<<16-rng.IntN(1<<10))
 			for s := range x {
 				x[s] = int32(rng.IntN(10))
 			}
-			y := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			// must be large enough to beat the min cost limit
+			y := make([]int32, 1<<16-rng.IntN(1<<10))
 			for t := range y {
 				y[t] = int32(rng.IntN(10))
 			}
@@ -140,11 +145,13 @@ func TestMyersSplit_largeSimilarInputs(t *testing.T) {
 		t.Run(fmt.Sprintf("seed=%x", seed), func(t *testing.T) {
 			t.Parallel()
 			rng := rand.New(rand.NewChaCha8(seed))
-			x := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			// must be large enough to beat the min cost limit
+			x := make([]int32, 1<<16-rng.IntN(1<<10))
 			for s := range x {
 				x[s] = int32(rng.IntN(10))
 			}
-			y := make([]int32, 1<<16-rng.IntN(1<<10)) // must be large enough to beat the min cost limit
+			// must be large enough to beat the min cost limit
+			y := make([]int32, 1<<16-rng.IntN(1<<10))
 			for t := range y {
 				if t%30 < 5 || t+3 >= len(x) {
 					// Five lines of noise

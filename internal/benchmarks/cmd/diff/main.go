@@ -1,4 +1,5 @@
-// diff is a small CLI to manually run the diffing implementations used for benchmarking.
+// diff is a small CLI to manually run the diffing implementations used for
+// benchmarking.
 package main
 
 import (

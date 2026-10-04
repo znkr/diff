@@ -19,10 +19,12 @@ import "znkr.io/diff/internal/config"
 // Option configures the behavior of comparison functions.
 type Option = config.Option
 
-// Context sets the number of unchanged elements to include around each hunk. The default is 3.
+// Context sets the number of unchanged elements to include around each hunk.
+// The default is 3.
 //
-// Context anchors diffs in the surrounding context in addition to position information. For
-// example, with Context(2), you'll see 2 unchanged elements before and after each group of changes.
+// Context anchors diffs in the surrounding context in addition to position
+// information. For example, with Context(2), you'll see 2 unchanged elements
+// before and after each group of changes.
 //
 // Only supported by functions that return hunks.
 func Context(n int) Option {
@@ -32,15 +34,16 @@ func Context(n int) Option {
 	}
 }
 
-// Minimal ensures the diff algorithm finds the shortest possible diff by disabling performance
-// heuristics.
+// Minimal ensures the diff algorithm finds the shortest possible diff by
+// disabling performance heuristics.
 //
-// By default, the diff functions use heuristics to speed up computation for large inputs with many
-// changes, which may produce slightly longer diffs. Use this option when you need the absolute
-// shortest diff, at the cost of potentially slower performance.
+// By default, the diff functions use heuristics to speed up computation for
+// large inputs with many changes, which may produce slightly longer diffs. Use
+// this option when you need the absolute shortest diff, at the cost of
+// potentially slower performance.
 //
-// Performance impact: Changes time complexity from O(N^1.5 log N) to O(ND) where N = len(x) +
-// len(y) and D is the number of differences.
+// Performance impact: Changes time complexity from O(N^1.5 log N) to O(ND)
+// where N = len(x) + len(y) and D is the number of differences.
 func Minimal() Option {
 	return func(cfg *config.Config) config.Flag {
 		cfg.Mode = config.ModeMinimal
@@ -48,12 +51,14 @@ func Minimal() Option {
 	}
 }
 
-// Fast uses a heuristic to find a reasonable diff instead of trying to find a minimal diff.
+// Fast uses a heuristic to find a reasonable diff instead of trying to find a
+// minimal diff.
 //
-// This option trades diff minimality for runtime performance. The resulting diff can be a lot
-// larger than the diff created by default. The speedup from using [Fast] only really manifests for
-// relatively few, very large inputs because the default already use the underlying heuristic to
-// speed up large inputs.
+// This option trades diff minimality for runtime performance. The resulting
+// diff can be a lot larger than the diff created by default. The speedup from
+// using [Fast] only really manifests for relatively few, very large inputs
+// because the default already use the underlying heuristic to speed up large
+// inputs.
 //
 // The heuristic only works for comparable types.
 //

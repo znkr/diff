@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package byteview provides a mechanism to handle strings and []byte as immutable byte views.
+// Package byteview provides a mechanism to handle strings and []byte as
+// immutable byte views.
 package byteview
 
 import (
@@ -49,9 +50,9 @@ func (v ByteView) Bytes() iter.Seq[byte] {
 	}
 }
 
-// UnsafeAs converts a ByteView to type T independently of what it was originally. This is
-// only safe if the type is the same one used for From and either the result is not modified
-// or the ByteView is no longer used.
+// UnsafeAs converts a ByteView to type T independently of what it was
+// originally. This is only safe if the type is the same one used for From and
+// either the result is not modified or the ByteView is no longer used.
 func UnsafeAs[T string | []byte](v ByteView) T {
 	switch any((*T)(nil)).(type) {
 	case *string:
@@ -62,9 +63,9 @@ func UnsafeAs[T string | []byte](v ByteView) T {
 	panic("never reached")
 }
 
-// SplitLines splits the input on '\n' and returns the lines including the newline character and
-// and either -1 if the last line ends in a newline character or len([]ByteView) if it's missing
-// a newline character.
+// SplitLines splits the input on '\n' and returns the lines including the
+// newline character and and either -1 if the last line ends in a newline
+// character or len([]ByteView) if it's missing a newline character.
 func SplitLines(v ByteView) (lines []ByteView, missingNewline int) {
 	s := v.data
 	n := strings.Count(v.data, "\n")

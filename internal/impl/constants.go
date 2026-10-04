@@ -14,14 +14,25 @@
 
 package impl
 
-// minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the heuristic is only
-// applied when the cost exceeds this number (large files with a lot of differences).
+// minCostLimit is a lower bound for the TOO_EXPENSIVE heuristic. That is the
+// heuristic is only applied when the cost exceeds this number (large files with
+// a lot of differences).
 const minCostLimit = 4096
 
 // Constants for GOOD_DIAGONAL heuristic.
-const goodDiagMinLen = 20     // Minimal length of a diagonal for it to be considered.
-const goodDiagCostLimit = 256 // The Heuristic is only applied if the cost exceeds this number.
-const goodDiagMagic = 4       // Magic number for diagonal selection.
+const (
+	// Minimal length of a diagonal for it to be considered.
+	goodDiagMinLen = 20
+
+	// The Heuristic is only applied if the cost exceeds this number.
+	goodDiagCostLimit = 256
+
+	// Magic number for diagonal selection.
+	goodDiagMagic = 4
+)
 
 // Constants for ANCHORING heuristic.
-const anchoringHeuristicMinInputLen = 5_000 // Minimum length for enabling the anchoring heuristic.
+const (
+	// Minimum length for enabling the anchoring heuristic.
+	anchoringHeuristicMinInputLen = 5_000
+)
