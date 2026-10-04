@@ -158,7 +158,8 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 				k0 := k + v0
 				s := vf[k0]
 				t := s - k
-				v := (s - smin) + (t - tmin) - max(fmid-d, d-fmid)
+
+				v := (s - smin) + (t - tmin) - max(fmid-k, k-fmid)
 				if s < smin || smax <= s || t < tmin || tmax <= t {
 					continue
 				}
@@ -193,7 +194,7 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 				if s < smin || smax <= s || t < tmin || tmax <= t {
 					continue
 				}
-				v := (smax - s) + (tmax - t) - max(bmid-d, d-bmid)
+				v := (smax - s) + (tmax - t) - max(bmid-k, k-bmid)
 				if v <= goodDiagMagic*d || v < best.v {
 					continue
 				}
