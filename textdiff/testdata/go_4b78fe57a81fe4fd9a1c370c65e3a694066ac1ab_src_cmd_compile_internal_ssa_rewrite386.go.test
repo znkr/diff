@@ -53509,10 +53509,16 @@ func rewriteBlock386(b *Block) bool {
  	// match: (MOVBstore [i] {s} p (SHRLconst [8] w) x:(MOVBstore [i-1] {s} p w mem))
  	// cond: x.Uses == 1 && clobber(x)
  	// result: (MOVWstore [i-1] {s} p w mem)
-@@ -5590,6 +5635,99 @@
- 		v.AddArg(mem)
- 		return true
- 	}
+@@ -5584,6 +5629,99 @@
+ 		}
+ 		v.reset(Op386MOVWstore)
+ 		v.AuxInt = i - 1
++		v.Aux = s
++		v.AddArg(p)
++		v.AddArg(w)
++		v.AddArg(mem)
++		return true
++	}
 +	// match: (MOVBstore [i] {s} p w x:(MOVBstore {s} [i+1] p (SHRWconst [8] w) mem))
 +	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstore [i] {s} p w mem)
@@ -53600,46 +53606,52 @@ func rewriteBlock386(b *Block) bool {
 +		}
 +		v.reset(Op386MOVWstore)
 +		v.AuxInt = i
+ 		v.Aux = s
+ 		v.AddArg(p)
+ 		v.AddArg(w)
+@@ -6159,6 +6297,359 @@
+ 		}
+ 		v.reset(Op386MOVWstoreidx1)
+ 		v.AuxInt = i - 1
 +		v.Aux = s
 +		v.AddArg(p)
++		v.AddArg(idx)
 +		v.AddArg(w)
 +		v.AddArg(mem)
 +		return true
 +	}
- 	// match: (MOVBstore [i] {s} p (SHRLconst [j] w) x:(MOVBstore [i-1] {s} p w0:(SHRLconst [j-8] w) mem))
- 	// cond: x.Uses == 1 && clobber(x)
- 	// result: (MOVWstore [i-1] {s} p w0 mem)
-@@ -6166,9 +6304,9 @@
- 		v.AddArg(mem)
- 		return true
- 	}
--	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
 +	// match: (MOVBstoreidx1 [i] {s} p idx (SHRWconst [8] w) x:(MOVBstoreidx1 [i-1] {s} p idx w mem))
- 	// cond: x.Uses == 1 && clobber(x)
--	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
++	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstoreidx1 [i-1] {s} p idx w mem)
- 	for {
- 		i := v.AuxInt
- 		s := v.Aux
-@@ -6176,10 +6314,12 @@
- 		p := v.Args[0]
- 		idx := v.Args[1]
- 		v_2 := v.Args[2]
--		if v_2.Op != Op386SHRLconst {
++	for {
++		i := v.AuxInt
++		s := v.Aux
++		_ = v.Args[3]
++		p := v.Args[0]
++		idx := v.Args[1]
++		v_2 := v.Args[2]
 +		if v_2.Op != Op386SHRWconst {
 +			break
 +		}
 +		if v_2.AuxInt != 8 {
- 			break
- 		}
--		j := v_2.AuxInt
- 		w := v_2.Args[0]
- 		x := v.Args[3]
- 		if x.Op != Op386MOVBstoreidx1 {
-@@ -6196,16 +6336,59 @@
- 			break
- 		}
- 		if idx != x.Args[1] {
++			break
++		}
++		w := v_2.Args[0]
++		x := v.Args[3]
++		if x.Op != Op386MOVBstoreidx1 {
++			break
++		}
++		if x.AuxInt != i-1 {
++			break
++		}
++		if x.Aux != s {
++			break
++		}
++		_ = x.Args[3]
++		if p != x.Args[0] {
++			break
++		}
++		if idx != x.Args[1] {
 +			break
 +		}
 +		if w != x.Args[2] {
@@ -53647,10 +53659,8 @@ func rewriteBlock386(b *Block) bool {
 +		}
 +		mem := x.Args[3]
 +		if !(x.Uses == 1 && clobber(x)) {
- 			break
- 		}
--		w0 := x.Args[2]
--		if w0.Op != Op386SHRLconst {
++			break
++		}
 +		v.reset(Op386MOVWstoreidx1)
 +		v.AuxInt = i - 1
 +		v.Aux = s
@@ -53689,59 +53699,58 @@ func rewriteBlock386(b *Block) bool {
 +		}
 +		_ = x.Args[3]
 +		if idx != x.Args[0] {
- 			break
- 		}
--		if w0.AuxInt != j-8 {
++			break
++		}
 +		if p != x.Args[1] {
- 			break
- 		}
--		if w != w0.Args[0] {
++			break
++		}
 +		if w != x.Args[2] {
- 			break
- 		}
- 		mem := x.Args[3]
-@@ -6217,24 +6400,29 @@
- 		v.Aux = s
- 		v.AddArg(p)
- 		v.AddArg(idx)
--		v.AddArg(w0)
++			break
++		}
++		mem := x.Args[3]
++		if !(x.Uses == 1 && clobber(x)) {
++			break
++		}
++		v.reset(Op386MOVWstoreidx1)
++		v.AuxInt = i - 1
++		v.Aux = s
++		v.AddArg(p)
++		v.AddArg(idx)
 +		v.AddArg(w)
- 		v.AddArg(mem)
- 		return true
- 	}
--	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} idx p w0:(SHRLconst [j-8] w) mem))
++		v.AddArg(mem)
++		return true
++	}
 +	return false
 +}
 +func rewriteValue386_Op386MOVBstoreidx1_10(v *Value) bool {
 +	// match: (MOVBstoreidx1 [i] {s} idx p (SHRWconst [8] w) x:(MOVBstoreidx1 [i-1] {s} p idx w mem))
- 	// cond: x.Uses == 1 && clobber(x)
--	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
++	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstoreidx1 [i-1] {s} p idx w mem)
- 	for {
- 		i := v.AuxInt
- 		s := v.Aux
- 		_ = v.Args[3]
--		p := v.Args[0]
--		idx := v.Args[1]
++	for {
++		i := v.AuxInt
++		s := v.Aux
++		_ = v.Args[3]
 +		idx := v.Args[0]
 +		p := v.Args[1]
- 		v_2 := v.Args[2]
--		if v_2.Op != Op386SHRLconst {
++		v_2 := v.Args[2]
 +		if v_2.Op != Op386SHRWconst {
 +			break
 +		}
 +		if v_2.AuxInt != 8 {
- 			break
- 		}
--		j := v_2.AuxInt
- 		w := v_2.Args[0]
- 		x := v.Args[3]
- 		if x.Op != Op386MOVBstoreidx1 {
-@@ -6247,20 +6435,63 @@
- 			break
- 		}
- 		_ = x.Args[3]
--		if idx != x.Args[0] {
++			break
++		}
++		w := v_2.Args[0]
++		x := v.Args[3]
++		if x.Op != Op386MOVBstoreidx1 {
++			break
++		}
++		if x.AuxInt != i-1 {
++			break
++		}
++		if x.Aux != s {
++			break
++		}
++		_ = x.Args[3]
 +		if p != x.Args[0] {
 +			break
 +		}
@@ -53786,39 +53795,34 @@ func rewriteBlock386(b *Block) bool {
 +			break
 +		}
 +		if x.AuxInt != i-1 {
- 			break
- 		}
--		if p != x.Args[1] {
++			break
++		}
 +		if x.Aux != s {
- 			break
- 		}
--		w0 := x.Args[2]
--		if w0.Op != Op386SHRLconst {
++			break
++		}
 +		_ = x.Args[3]
 +		if idx != x.Args[0] {
- 			break
- 		}
--		if w0.AuxInt != j-8 {
++			break
++		}
 +		if p != x.Args[1] {
- 			break
- 		}
--		if w != w0.Args[0] {
++			break
++		}
 +		if w != x.Args[2] {
- 			break
- 		}
- 		mem := x.Args[3]
-@@ -6272,13 +6503,523 @@
- 		v.Aux = s
- 		v.AddArg(p)
- 		v.AddArg(idx)
--		v.AddArg(w0)
++			break
++		}
++		mem := x.Args[3]
++		if !(x.Uses == 1 && clobber(x)) {
++			break
++		}
++		v.reset(Op386MOVWstoreidx1)
++		v.AuxInt = i - 1
++		v.Aux = s
++		v.AddArg(p)
++		v.AddArg(idx)
 +		v.AddArg(w)
- 		v.AddArg(mem)
- 		return true
- 	}
--	return false
--}
--func rewriteValue386_Op386MOVBstoreidx1_10(v *Value) bool {
++		v.AddArg(mem)
++		return true
++	}
 +	// match: (MOVBstoreidx1 [i] {s} p idx w x:(MOVBstoreidx1 [i+1] {s} p idx (SHRLconst [8] w) mem))
 +	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstoreidx1 [i] {s} p idx w mem)
@@ -53962,13 +53966,13 @@ func rewriteBlock386(b *Block) bool {
 +		}
 +		v.reset(Op386MOVWstoreidx1)
 +		v.AuxInt = i
-+		v.Aux = s
-+		v.AddArg(p)
-+		v.AddArg(idx)
-+		v.AddArg(w)
-+		v.AddArg(mem)
-+		return true
-+	}
+ 		v.Aux = s
+ 		v.AddArg(p)
+ 		v.AddArg(idx)
+@@ -6166,6 +6657,259 @@
+ 		v.AddArg(mem)
+ 		return true
+ 	}
 +	// match: (MOVBstoreidx1 [i] {s} idx p w x:(MOVBstoreidx1 [i+1] {s} idx p (SHRLconst [8] w) mem))
 +	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstoreidx1 [i] {s} p idx w mem)
@@ -54222,116 +54226,16 @@ func rewriteBlock386(b *Block) bool {
 +	return false
 +}
 +func rewriteValue386_Op386MOVBstoreidx1_20(v *Value) bool {
-+	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
-+	// cond: x.Uses == 1 && clobber(x)
-+	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
-+	for {
-+		i := v.AuxInt
-+		s := v.Aux
-+		_ = v.Args[3]
-+		p := v.Args[0]
-+		idx := v.Args[1]
-+		v_2 := v.Args[2]
-+		if v_2.Op != Op386SHRLconst {
-+			break
-+		}
-+		j := v_2.AuxInt
-+		w := v_2.Args[0]
-+		x := v.Args[3]
-+		if x.Op != Op386MOVBstoreidx1 {
-+			break
-+		}
-+		if x.AuxInt != i-1 {
-+			break
-+		}
-+		if x.Aux != s {
-+			break
-+		}
-+		_ = x.Args[3]
-+		if p != x.Args[0] {
-+			break
-+		}
-+		if idx != x.Args[1] {
-+			break
-+		}
-+		w0 := x.Args[2]
-+		if w0.Op != Op386SHRLconst {
-+			break
-+		}
-+		if w0.AuxInt != j-8 {
-+			break
-+		}
-+		if w != w0.Args[0] {
-+			break
-+		}
-+		mem := x.Args[3]
-+		if !(x.Uses == 1 && clobber(x)) {
-+			break
-+		}
-+		v.reset(Op386MOVWstoreidx1)
-+		v.AuxInt = i - 1
-+		v.Aux = s
-+		v.AddArg(p)
-+		v.AddArg(idx)
-+		v.AddArg(w0)
-+		v.AddArg(mem)
-+		return true
-+	}
-+	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} idx p w0:(SHRLconst [j-8] w) mem))
-+	// cond: x.Uses == 1 && clobber(x)
-+	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
-+	for {
-+		i := v.AuxInt
-+		s := v.Aux
-+		_ = v.Args[3]
-+		p := v.Args[0]
-+		idx := v.Args[1]
-+		v_2 := v.Args[2]
-+		if v_2.Op != Op386SHRLconst {
-+			break
-+		}
-+		j := v_2.AuxInt
-+		w := v_2.Args[0]
-+		x := v.Args[3]
-+		if x.Op != Op386MOVBstoreidx1 {
-+			break
-+		}
-+		if x.AuxInt != i-1 {
-+			break
-+		}
-+		if x.Aux != s {
-+			break
-+		}
-+		_ = x.Args[3]
-+		if idx != x.Args[0] {
-+			break
-+		}
-+		if p != x.Args[1] {
-+			break
-+		}
-+		w0 := x.Args[2]
-+		if w0.Op != Op386SHRLconst {
-+			break
-+		}
-+		if w0.AuxInt != j-8 {
-+			break
-+		}
-+		if w != w0.Args[0] {
-+			break
-+		}
-+		mem := x.Args[3]
-+		if !(x.Uses == 1 && clobber(x)) {
-+			break
-+		}
-+		v.reset(Op386MOVWstoreidx1)
-+		v.AuxInt = i - 1
-+		v.Aux = s
-+		v.AddArg(p)
-+		v.AddArg(idx)
-+		v.AddArg(w0)
-+		v.AddArg(mem)
-+		return true
-+	}
+ 	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
+ 	// cond: x.Uses == 1 && clobber(x)
+ 	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
+@@ -6276,9 +7020,6 @@
+ 		v.AddArg(mem)
+ 		return true
+ 	}
+-	return false
+-}
+-func rewriteValue386_Op386MOVBstoreidx1_10(v *Value) bool {
  	// match: (MOVBstoreidx1 [i] {s} idx p (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
  	// cond: x.Uses == 1 && clobber(x)
  	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
@@ -54505,39 +54409,44 @@ func rewriteBlock386(b *Block) bool {
  	// match: (MOVBstore [i] {s} p (SHRLconst [j] w) x:(MOVBstore [i-1] {s} p w0:(SHRLconst [j-8] w) mem))
  	// cond: x.Uses == 1 && clobber(x)
  	// result: (MOVWstore [i-1] {s} p w0 mem)
-@@ -6166,9 +6304,9 @@
+@@ -6166,6 +6304,612 @@
  		v.AddArg(mem)
  		return true
  	}
--	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
 +	// match: (MOVBstoreidx1 [i] {s} p idx (SHRWconst [8] w) x:(MOVBstoreidx1 [i-1] {s} p idx w mem))
- 	// cond: x.Uses == 1 && clobber(x)
--	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
++	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstoreidx1 [i-1] {s} p idx w mem)
- 	for {
- 		i := v.AuxInt
- 		s := v.Aux
-@@ -6176,10 +6314,12 @@
- 		p := v.Args[0]
- 		idx := v.Args[1]
- 		v_2 := v.Args[2]
--		if v_2.Op != Op386SHRLconst {
++	for {
++		i := v.AuxInt
++		s := v.Aux
++		_ = v.Args[3]
++		p := v.Args[0]
++		idx := v.Args[1]
++		v_2 := v.Args[2]
 +		if v_2.Op != Op386SHRWconst {
 +			break
 +		}
 +		if v_2.AuxInt != 8 {
- 			break
- 		}
--		j := v_2.AuxInt
- 		w := v_2.Args[0]
- 		x := v.Args[3]
- 		if x.Op != Op386MOVBstoreidx1 {
-@@ -6198,14 +6338,57 @@
- 		if idx != x.Args[1] {
- 			break
- 		}
--		w0 := x.Args[2]
--		if w0.Op != Op386SHRLconst {
++			break
++		}
++		w := v_2.Args[0]
++		x := v.Args[3]
++		if x.Op != Op386MOVBstoreidx1 {
++			break
++		}
++		if x.AuxInt != i-1 {
++			break
++		}
++		if x.Aux != s {
++			break
++		}
++		_ = x.Args[3]
++		if p != x.Args[0] {
++			break
++		}
++		if idx != x.Args[1] {
++			break
++		}
 +		if w != x.Args[2] {
 +			break
 +		}
@@ -54583,59 +54492,58 @@ func rewriteBlock386(b *Block) bool {
 +		}
 +		_ = x.Args[3]
 +		if idx != x.Args[0] {
- 			break
- 		}
--		if w0.AuxInt != j-8 {
++			break
++		}
 +		if p != x.Args[1] {
- 			break
- 		}
--		if w != w0.Args[0] {
++			break
++		}
 +		if w != x.Args[2] {
- 			break
- 		}
- 		mem := x.Args[3]
-@@ -6217,24 +6400,29 @@
- 		v.Aux = s
- 		v.AddArg(p)
- 		v.AddArg(idx)
--		v.AddArg(w0)
++			break
++		}
++		mem := x.Args[3]
++		if !(x.Uses == 1 && clobber(x)) {
++			break
++		}
++		v.reset(Op386MOVWstoreidx1)
++		v.AuxInt = i - 1
++		v.Aux = s
++		v.AddArg(p)
++		v.AddArg(idx)
 +		v.AddArg(w)
- 		v.AddArg(mem)
- 		return true
- 	}
--	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} idx p w0:(SHRLconst [j-8] w) mem))
++		v.AddArg(mem)
++		return true
++	}
 +	return false
 +}
 +func rewriteValue386_Op386MOVBstoreidx1_10(v *Value) bool {
 +	// match: (MOVBstoreidx1 [i] {s} idx p (SHRWconst [8] w) x:(MOVBstoreidx1 [i-1] {s} p idx w mem))
- 	// cond: x.Uses == 1 && clobber(x)
--	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
++	// cond: x.Uses == 1 && clobber(x)
 +	// result: (MOVWstoreidx1 [i-1] {s} p idx w mem)
- 	for {
- 		i := v.AuxInt
- 		s := v.Aux
- 		_ = v.Args[3]
--		p := v.Args[0]
--		idx := v.Args[1]
++	for {
++		i := v.AuxInt
++		s := v.Aux
++		_ = v.Args[3]
 +		idx := v.Args[0]
 +		p := v.Args[1]
- 		v_2 := v.Args[2]
--		if v_2.Op != Op386SHRLconst {
++		v_2 := v.Args[2]
 +		if v_2.Op != Op386SHRWconst {
 +			break
 +		}
 +		if v_2.AuxInt != 8 {
- 			break
- 		}
--		j := v_2.AuxInt
- 		w := v_2.Args[0]
- 		x := v.Args[3]
- 		if x.Op != Op386MOVBstoreidx1 {
-@@ -6247,20 +6435,63 @@
- 			break
- 		}
- 		_ = x.Args[3]
--		if idx != x.Args[0] {
++			break
++		}
++		w := v_2.Args[0]
++		x := v.Args[3]
++		if x.Op != Op386MOVBstoreidx1 {
++			break
++		}
++		if x.AuxInt != i-1 {
++			break
++		}
++		if x.Aux != s {
++			break
++		}
++		_ = x.Args[3]
 +		if p != x.Args[0] {
 +			break
 +		}
@@ -54680,32 +54588,30 @@ func rewriteBlock386(b *Block) bool {
 +			break
 +		}
 +		if x.AuxInt != i-1 {
- 			break
- 		}
--		if p != x.Args[1] {
++			break
++		}
 +		if x.Aux != s {
- 			break
- 		}
--		w0 := x.Args[2]
--		if w0.Op != Op386SHRLconst {
++			break
++		}
 +		_ = x.Args[3]
 +		if idx != x.Args[0] {
- 			break
- 		}
--		if w0.AuxInt != j-8 {
++			break
++		}
 +		if p != x.Args[1] {
- 			break
- 		}
--		if w != w0.Args[0] {
++			break
++		}
 +		if w != x.Args[2] {
- 			break
- 		}
- 		mem := x.Args[3]
-@@ -6272,13 +6503,523 @@
- 		v.Aux = s
- 		v.AddArg(p)
- 		v.AddArg(idx)
--		v.AddArg(w0)
++			break
++		}
++		mem := x.Args[3]
++		if !(x.Uses == 1 && clobber(x)) {
++			break
++		}
++		v.reset(Op386MOVWstoreidx1)
++		v.AuxInt = i - 1
++		v.Aux = s
++		v.AddArg(p)
++		v.AddArg(idx)
 +		v.AddArg(w)
 +		v.AddArg(mem)
 +		return true
@@ -55113,113 +55019,10 @@ func rewriteBlock386(b *Block) bool {
 +	return false
 +}
 +func rewriteValue386_Op386MOVBstoreidx1_20(v *Value) bool {
-+	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
-+	// cond: x.Uses == 1 && clobber(x)
-+	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
-+	for {
-+		i := v.AuxInt
-+		s := v.Aux
-+		_ = v.Args[3]
-+		p := v.Args[0]
-+		idx := v.Args[1]
-+		v_2 := v.Args[2]
-+		if v_2.Op != Op386SHRLconst {
-+			break
-+		}
-+		j := v_2.AuxInt
-+		w := v_2.Args[0]
-+		x := v.Args[3]
-+		if x.Op != Op386MOVBstoreidx1 {
-+			break
-+		}
-+		if x.AuxInt != i-1 {
-+			break
-+		}
-+		if x.Aux != s {
-+			break
-+		}
-+		_ = x.Args[3]
-+		if p != x.Args[0] {
-+			break
-+		}
-+		if idx != x.Args[1] {
-+			break
-+		}
-+		w0 := x.Args[2]
-+		if w0.Op != Op386SHRLconst {
-+			break
-+		}
-+		if w0.AuxInt != j-8 {
-+			break
-+		}
-+		if w != w0.Args[0] {
-+			break
-+		}
-+		mem := x.Args[3]
-+		if !(x.Uses == 1 && clobber(x)) {
-+			break
-+		}
-+		v.reset(Op386MOVWstoreidx1)
-+		v.AuxInt = i - 1
-+		v.Aux = s
-+		v.AddArg(p)
-+		v.AddArg(idx)
-+		v.AddArg(w0)
-+		v.AddArg(mem)
-+		return true
-+	}
-+	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} idx p w0:(SHRLconst [j-8] w) mem))
-+	// cond: x.Uses == 1 && clobber(x)
-+	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
-+	for {
-+		i := v.AuxInt
-+		s := v.Aux
-+		_ = v.Args[3]
-+		p := v.Args[0]
-+		idx := v.Args[1]
-+		v_2 := v.Args[2]
-+		if v_2.Op != Op386SHRLconst {
-+			break
-+		}
-+		j := v_2.AuxInt
-+		w := v_2.Args[0]
-+		x := v.Args[3]
-+		if x.Op != Op386MOVBstoreidx1 {
-+			break
-+		}
-+		if x.AuxInt != i-1 {
-+			break
-+		}
-+		if x.Aux != s {
-+			break
-+		}
-+		_ = x.Args[3]
-+		if idx != x.Args[0] {
-+			break
-+		}
-+		if p != x.Args[1] {
-+			break
-+		}
-+		w0 := x.Args[2]
-+		if w0.Op != Op386SHRLconst {
-+			break
-+		}
-+		if w0.AuxInt != j-8 {
-+			break
-+		}
-+		if w != w0.Args[0] {
-+			break
-+		}
-+		mem := x.Args[3]
-+		if !(x.Uses == 1 && clobber(x)) {
-+			break
-+		}
-+		v.reset(Op386MOVWstoreidx1)
-+		v.AuxInt = i - 1
-+		v.Aux = s
-+		v.AddArg(p)
-+		v.AddArg(idx)
-+		v.AddArg(w0)
+ 	// match: (MOVBstoreidx1 [i] {s} p idx (SHRLconst [j] w) x:(MOVBstoreidx1 [i-1] {s} p idx w0:(SHRLconst [j-8] w) mem))
+ 	// cond: x.Uses == 1 && clobber(x)
+ 	// result: (MOVWstoreidx1 [i-1] {s} p idx w0 mem)
+@@ -6276,9 +7020,6 @@
  		v.AddArg(mem)
  		return true
  	}
