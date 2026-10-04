@@ -15,6 +15,7 @@
 package impl
 
 import (
+	"hash/maphash"
 	"math"
 	"math/rand/v2"
 	"slices"
@@ -298,6 +299,17 @@ func checkDiffMatchesDiffFunc[T comparable](t *testing.T, x, y []T) {
 	} {
 		rx, ry := Diff(x, y, cfg)
 		got := countEdits(t, x, y, rx, ry)
+		hx, hy := DiffHash(x, y, maphash.ComparableHasher[T]{}, cfg)
+		for i := range len(x) {
+			if rx.Get(i) != hx.Get(i) {
+				t.Fatalf("DiffHash(%v, %v, %+v) differs from Diff at x[%d]", x, y, cfg, i)
+			}
+		}
+		for j := range len(y) {
+			if ry.Get(j) != hy.Get(j) {
+				t.Fatalf("DiffHash(%v, %v, %+v) differs from Diff at y[%d]", x, y, cfg, j)
+			}
+		}
 		rx, ry = DiffFunc(x, y, eq, cfg)
 		want := countEdits(t, x, y, rx, ry)
 		if cfg.Mode == config.ModeMinimal && got != want {

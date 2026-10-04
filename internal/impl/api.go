@@ -16,6 +16,7 @@ package impl
 
 import (
 	"fmt"
+	"hash/maphash"
 
 	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/lines"
@@ -94,6 +95,22 @@ func DiffFunc[T any](x, y []T, eq func(a, b T) bool, cfg config.Config) (rx, ry 
 	return m.rx, m.ry
 }
 
+// DiffHash compares the contents of x and y with h and returns the changes
+// necessary to convert from one to the other.
+func DiffHash[T any](x, y []T, h maphash.Hasher[T], cfg config.Config) (rx, ry rvecs.Vec) {
+	rx, ry = rvecs.Make(len(x), len(y))
+
+	smin, smax, tmin, tmax := findChangeBoundsHash(x, y, h)
+	if handleTrivialBounds(rx, ry, smin, smax, tmin, tmax) {
+		return
+	}
+
+	p := preprocessHash(rx, ry, smin, smax, tmin, tmax, x, y, h)
+	run(rx, ry, &p, cfg)
+	p.release()
+	return rx, ry
+}
+
 // findChangeBounds returns the upper and lower bounds for the changed portion
 // of the inputs.
 func findChangeBounds[T comparable](x, y []T) (smin, smax, tmin, tmax int) {
@@ -108,6 +125,27 @@ func findChangeBounds[T comparable](x, y []T) (smin, smax, tmin, tmax int) {
 
 	// Strip common suffix.
 	for smax > smin && tmax > tmin && x[smax-1] == y[tmax-1] {
+		smax--
+		tmax--
+	}
+
+	return
+}
+
+// findChangeBoundsHash returns the upper and lower bounds for the changed
+// portion of the inputs, comparing elements with h.
+func findChangeBoundsHash[T any](x, y []T, h maphash.Hasher[T]) (smin, smax, tmin, tmax int) {
+	smin, tmin = 0, 0
+	smax, tmax = len(x), len(y)
+
+	// Strip common prefix.
+	for smin < smax && tmin < tmax && h.Equal(x[smin], y[tmin]) {
+		smin++
+		tmin++
+	}
+
+	// Strip common suffix.
+	for smax > smin && tmax > tmin && h.Equal(x[smax-1], y[tmax-1]) {
 		smax--
 		tmax--
 	}

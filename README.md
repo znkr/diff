@@ -85,7 +85,9 @@ for i, h := range hunks {
 ```
 
 For both functions, a `...Func` variant exists that works with arbitrary slices by taking an
-equality function.
+equality function, and a `...Hash` variant that takes a `maphash.Hasher`. Use the `...Hash` variant
+instead of the `...Func` variant if the elements can be hashed. It's about 25% slower than `Hunks`
+and `Edits`, so use those for comparable types.
 
 ### Comparing Text
 

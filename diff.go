@@ -15,6 +15,7 @@
 package diff
 
 import (
+	"hash/maphash"
 	"slices"
 
 	"znkr.io/diff/internal/config"
@@ -88,13 +89,39 @@ func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 // The following options are supported: [Context], [Minimal]
 //
 // Note that this function has generally worse performance than [Hunks] for
-// diffs with many changes.
+// diffs with many changes. Use [HunksHash] if the elements can be hashed.
 //
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal)
 	rx, ry := impl.DiffFunc(x, y, eq, cfg)
+	defer rvecs.Release(rx, ry)
+	return hunks(x, y, rx, ry, cfg)
+}
+
+// HunksHash compares the contents of x and y using h to compare and hash
+// elements and returns the changes necessary to convert from one to the other.
+//
+// The output is a sequence of hunks that each describe a number of consecutive
+// edits. Hunks include a number of matching elements before and after the last
+// delete or insert operation. The number of elements can be configured using
+// [Context].
+//
+// If x and y are identical, the output has length zero.
+//
+// The following options are supported: [Context], [Minimal], [Fast]
+//
+// HunksHash uses the algorithm of [Hunks], but it hashes and compares elements
+// through h, which makes it about 25% slower than [Hunks]. Use [Hunks] for a
+// comparable T whose elements are equal if they are ==. Use HunksHash instead
+// of [HunksFunc] if the elements can be hashed.
+//
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
+func HunksHash[T any](x, y []T, h maphash.Hasher[T], opts ...Option) []Hunk[T] {
+	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast)
+	rx, ry := impl.DiffHash(x, y, h, cfg)
 	defer rvecs.Release(rx, ry)
 	return hunks(x, y, rx, ry, cfg)
 }
@@ -184,13 +211,35 @@ func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 // The following option is supported: [Minimal]
 //
 // Note that this function has generally worse performance than [Edits] for
-// diffs with many changes.
+// diffs with many changes. Use [EditsHash] if the elements can be hashed.
 //
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal)
 	rx, ry := impl.DiffFunc(x, y, eq, cfg)
+	defer rvecs.Release(rx, ry)
+	return edits(x, y, rx, ry)
+}
+
+// EditsHash compares the contents of x and y using h to compare and hash
+// elements and returns the changes necessary to convert from one to the other.
+//
+// EditsHash returns edits for every element in the input. If both x and y are
+// identical, the output will consist of a match edit for every input element.
+//
+// The following options are supported: [Minimal], [Fast]
+//
+// EditsHash uses the algorithm of [Edits], but it hashes and compares elements
+// through h, which makes it about 25% slower than [Edits]. Use [Edits] for a
+// comparable T whose elements are equal if they are ==. Use EditsHash instead
+// of [EditsFunc] if the elements can be hashed.
+//
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
+func EditsHash[T any](x, y []T, h maphash.Hasher[T], opts ...Option) []Edit[T] {
+	cfg := config.FromOptions(opts, config.Minimal|config.Fast)
+	rx, ry := impl.DiffHash(x, y, h, cfg)
 	defer rvecs.Release(rx, ry)
 	return edits(x, y, rx, ry)
 }
