@@ -338,6 +338,23 @@ func BenchmarkUnified(b *testing.B) {
 	}
 }
 
+// BenchmarkUnifiedSmallFiles diffs every small test input once per iteration,
+// which is the workload of a tool that diffs many small files.
+func BenchmarkUnifiedSmallFiles(b *testing.B) {
+	var tests []test
+	for _, tt := range parseTests(b) {
+		if len(tt.x)+len(tt.y) < 64<<10 {
+			tests = append(tests, tt)
+		}
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		for _, tt := range tests {
+			_ = Unified(tt.x, tt.y, IndentHeuristic())
+		}
+	}
+}
+
 func TestHunks(t *testing.T) {
 	tests := []struct {
 		name string
