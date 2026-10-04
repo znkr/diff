@@ -111,7 +111,37 @@ func preprocessLines(rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y *lines.L
 	return p
 }
 
-// preprocessed is the result of [preprocess] and [preprocessLines].
+// preprocessHash is [preprocess] for elements that h compares and hashes.
+func preprocessHash[T any](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y []T, h maphash.Hasher[T]) preprocessed {
+	p := newPreprocessed(smax-smin, tmax-tmin)
+
+	// The zero Hash has a random seed, and Reset keeps it.
+	var mh maphash.Hash
+	tab := newIDTable(smax - smin)
+	defer tab.release()
+
+	for i, e := range x[smin:smax] {
+		mh.Reset()
+		h.Hash(&mh, e)
+		id := tab.insertHash(x, smin+i, mh.Sum64(), h)
+		p.addX(id)
+	}
+	for i, e := range y[tmin:tmax] {
+		mh.Reset()
+		h.Hash(&mh, e)
+		id := tab.lookupHash(x, e, mh.Sum64(), h)
+		if id < 0 {
+			ry.Set(i + tmin)
+			continue
+		}
+		p.addY(id, i+tmin)
+	}
+	p.filterX(rx, smin)
+	return p
+}
+
+// preprocessed is the result of [preprocess], [preprocessLines], and
+// [preprocessHash].
 type preprocessed struct {
 	// x[smin:smax] as IDs except for elements that appear only in x
 	x0 []int

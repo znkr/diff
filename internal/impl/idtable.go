@@ -15,6 +15,7 @@
 package impl
 
 import (
+	"hash/maphash"
 	"math/bits"
 
 	"znkr.io/diff/internal/lines"
@@ -23,6 +24,7 @@ import (
 
 // idTable maps elements to dense IDs in the order they are inserted. The table
 // doesn't hold the elements; insert and lookup compare the elements of a slice,
+// insertHash and lookupHash do the same with a [maphash.Hasher], and
 // insertLine and lookupLine compare lines of an input.
 type idTable struct {
 	// slots is an open addressing hash table with linear probing. A slot holds
@@ -99,6 +101,40 @@ func (tab *idTable) lookup[T comparable](x []T, e T, h uint64) int {
 		if slot&^idMask == tag {
 			id := int(slot&idMask) - 1
 			if x[tab.reps[id]] == e {
+				return id
+			}
+		}
+	}
+}
+
+// insertHash is [idTable.insert] for elements that h compares.
+func (tab *idTable) insertHash[T any](x []T, i int, hv uint64, h maphash.Hasher[T]) int {
+	tag := hv &^ idMask
+	for j := hv & tab.mask; ; j = (j + 1) & tab.mask {
+		slot := tab.slots[j]
+		if slot == 0 {
+			return tab.add(j, tag, i)
+		}
+		if slot&^idMask == tag {
+			id := int(slot&idMask) - 1
+			if h.Equal(x[tab.reps[id]], x[i]) {
+				return id
+			}
+		}
+	}
+}
+
+// lookupHash is [idTable.lookup] for elements that h compares.
+func (tab *idTable) lookupHash[T any](x []T, e T, hv uint64, h maphash.Hasher[T]) int {
+	tag := hv &^ idMask
+	for j := hv & tab.mask; ; j = (j + 1) & tab.mask {
+		slot := tab.slots[j]
+		if slot == 0 {
+			return -1
+		}
+		if slot&^idMask == tag {
+			id := int(slot&idMask) - 1
+			if h.Equal(x[tab.reps[id]], e) {
 				return id
 			}
 		}

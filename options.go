@@ -60,7 +60,8 @@ func Minimal() Option {
 // because the default already use the underlying heuristic to speed up large
 // inputs.
 //
-// The heuristic only works for comparable types.
+// The heuristic needs comparable or hashable elements: it isn't supported by
+// [HunksFunc] and [EditsFunc].
 //
 // Performance impact: This option changes the complexity to O(N log N).
 func Fast() Option {
