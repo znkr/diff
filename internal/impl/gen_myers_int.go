@@ -175,7 +175,7 @@ func (m *myersInt) split(smin, smax, tmin, tmax int, optimal bool) (s0, s1, t0, 
 				ps := vf[pk+v0]
 				pt := ps - pk
 				diag := min(s-ps, t-pt)
-				if diag < goodDiagMinLen {
+				if diag >= goodDiagMinLen {
 					best.v = v
 					best.s0 = s - diag
 					best.s1 = s

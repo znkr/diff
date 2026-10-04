@@ -273,7 +273,7 @@ func (m *myers[T]) split(smin, smax, tmin, tmax int, optimal bool, eq func(x, y 
 				ps := vf[pk+v0]
 				pt := ps - pk
 				diag := min(s-ps, t-pt) // number of diagonal steps
-				if diag < goodDiagMinLen {
+				if diag >= goodDiagMinLen {
 					best.v = v
 					best.s0 = s - diag
 					best.s1 = s

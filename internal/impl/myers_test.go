@@ -168,6 +168,11 @@ func TestMyersSplit_largeSimilarInputs(t *testing.T) {
 			if !slices.Equal(x[s0:s1], y[t0:t1]) {
 				t.Errorf("splitting resulted in non-matching middle in iteration %d, [s0=%d, s1=%d, t0=%d, t1=%d, opt0=%v, opt1=%v]", i, s0, s1, t0, t1, opt0, opt1)
 			}
+			// The inputs share runs of 25 elements, so the GOOD_DIAGONAL
+			// heuristic finds a middle of at least goodDiagMinLen.
+			if s1-s0 < goodDiagMinLen {
+				t.Errorf("splitting resulted in a middle of %d elements in iteration %d, want at least %d", s1-s0, i, goodDiagMinLen)
+			}
 		})
 	}
 }
