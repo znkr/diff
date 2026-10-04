@@ -12,33 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package indentheuristic is an implementation of the indentation heuristic by Michael Haggerty
-// (https://github.com/mhagger/diff-slider-tools).
+// Package indentheuristic is an implementation of the indentation heuristic by
+// Michael Haggerty (https://github.com/mhagger/diff-slider-tools).
 //
-// The idea behind the heuristic is that, since there's usually not a single solution, we can
-// locally vary the solution we found to improve the aesthetics. We can vary the solution around the
-// following degrees of freedom:
+// The idea behind the heuristic is that, since there's usually not a single
+// solution, we can locally vary the solution we found to improve the
+// aesthetics. We can vary the solution around the following degrees of freedom:
 //
-//	a. A deletion of a line X, followed by an insertion of line Y is the same as an insertion of
-//	   line Y followed by a deletion of line X.
-//	b. A deletion of a line X, followed by zero or more deletions, followed by a match Y with
-//	   X == Y allows us to swap the deletion and the match. The same is true for insertions. The
-//	   same is true the other way around (match of line X, followed by zero or more deletions,
-//	   followed by a deletion of line Y with X == Y).
+//	a. A deletion of a line X, followed by an insertion of line Y is the same as
+//	   an insertion of line Y followed by a deletion of line X.
+//	b. A deletion of a line X, followed by zero or more deletions, followed by a
+//	   match Y with X == Y allows us to swap the deletion and the match. The
+//	   same is true for insertions. The same is true the other way around (match
+//	   of line X, followed by zero or more deletions, followed by a deletion of
+//	   line Y with X == Y).
 //
 // The heuristics use these degrees of freedom to achieve the following goals:
 //
-//  1. Group deletions and insertions using (we do this implicitly by how we construct the diff
-//     from the result slices).
-//  2. Make deletion and insertion groups as large as possible by merging adjacent groups if
-//     using.
-//  3. If possible align deletions and insertions such that deletions are followed by insertions
-//     without a matching line in between using.
-//  4. If it's not possible to align deletions and insertions, shift beginnings and ends of
-//     deletions / insertion groups to a line that has significance to humans based on indention at
-//     the line and around the line.
+//  1. Group deletions and insertions using (we do this implicitly by how we
+//     construct the diff from the result slices).
+//  2. Make deletion and insertion groups as large as possible by merging
+//     adjacent groups if using.
+//  3. If possible align deletions and insertions such that deletions are
+//     followed by insertions without a matching line in between using.
+//  4. If it's not possible to align deletions and insertions, shift beginnings
+//     and ends of deletions / insertion groups to a line that has significance
+//     to humans based on indention at the line and around the line.
 //
-// The most intricate piece of these heuristics are in (4) which is based on human rated diffs.
+// The most intricate piece of these heuristics are in (4) which is based on
+// human rated diffs.
 package indentheuristic
 
 import (
@@ -50,28 +52,49 @@ import (
 // Never move a group more than this many lines.
 const maxSliding = 100
 
-// We don't care if a line is indented more than this and clamp the value to maxIndent. That way,
-// we don't overflow an int and avoid unnecessary work on input that's not human readable text.
+// We don't care if a line is indented more than this and clamp the value to
+// maxIndent. That way, we don't overflow an int and avoid unnecessary work on
+// input that's not human readable text.
 const maxIndent = 200
 
-// Don't consider more than this number of consecutive blank lines. This is to bound the work
-// and avoid integer overflows.
+// Don't consider more than this number of consecutive blank lines. This is to
+// bound the work and avoid integer overflows.
 const maxBlanks = 20
 
-const startOfFilePenalty = 1               // No no-blank lines before the split
-const endOfFilePenalty = 21                // No non-blank lines after the split
-const totalBlankWeight = -30               // Weight for number of blank lines around the split
-const postBlankWeight = 6                  // Weight for number of blank lines after the split
-const relativeIndentPenalty = -4           // Indented more than predecessor
-const relativeIndentWithBlankPenalty = 10  // Indented more than predecessor, with blank lines
-const relativeOutdentPenalty = 24          // Indented less than predecessor
-const relativeOutdentWithBlankPenalty = 17 // Indented less than predecessor, with blank lines
-const relativeDedentPenalty = 23           // Indented less than predecessor but not less than successor
-const relativeDedentWithBlankPenalty = 17  // Indented less than predecessor but not less than successor, with blank lines
+// No no-blank lines before the split
+const startOfFilePenalty = 1
 
-// We only consider whether the sum of the effective indents for splits are less than (-1), equal
-// to (0), or greater than (+1) each other. The resulting value is multiplied by the following
-// weight and combined with the penalty to determine the better of two scores.
+// No non-blank lines after the split
+const endOfFilePenalty = 21
+
+// Weight for number of blank lines around the split
+const totalBlankWeight = -30
+
+// Weight for number of blank lines after the split
+const postBlankWeight = 6
+
+// Indented more than predecessor
+const relativeIndentPenalty = -4
+
+// Indented more than predecessor, with blank lines
+const relativeIndentWithBlankPenalty = 10
+
+// Indented less than predecessor
+const relativeOutdentPenalty = 24
+
+// Indented less than predecessor, with blank lines
+const relativeOutdentWithBlankPenalty = 17
+
+// Indented less than predecessor but not less than successor
+const relativeDedentPenalty = 23
+
+// Indented less than predecessor but not less than successor, with blank lines
+const relativeDedentWithBlankPenalty = 17
+
+// We only consider whether the sum of the effective indents for splits are less
+// than (-1), equal to (0), or greater than (+1) each other. The resulting value
+// is multiplied by the following weight and combined with the penalty to
+// determine the better of two scores.
 const indentWeight = 60
 
 // Apply applies the indent heuristics to rx and ry.
@@ -136,9 +159,10 @@ func apply0(lines, lineso []byteview.ByteView, r, ro []bool) {
 				}
 			}
 		default:
-			// The group can be shifted around somewhat, we can use the possible shift range to
-			// apply heuristics that make the diff easier to read. Right now, the group is shifted
-			// to its lowest position, so we only have to consider upward shifts.
+			// The group can be shifted around somewhat, we can use the possible
+			// shift range to apply heuristics that make the diff easier to
+			// read. Right now, the group is shifted to its lowest position, so
+			// we only have to consider upward shifts.
 
 			bestShift := -1
 			var bestScore shiftScore
@@ -169,8 +193,11 @@ func apply0(lines, lineso []byteview.ByteView, r, ro []bool) {
 }
 
 type scanner struct {
-	start int // First changed line of the current group if non-empty, or unchanged line if empty.
-	end   int // First unchanged line after the group. For an empty group, start == end.
+	// First changed line of the current group if non-empty, or unchanged line
+	// if empty.
+	start int
+	// First unchanged line after the group. For an empty group, start == end.
+	end   int
 	lines []byteview.ByteView
 	r     []bool
 }
@@ -187,8 +214,8 @@ func newScanner(lines []byteview.ByteView, r []bool) *scanner {
 // groupLen returns the length of the current group.
 func (s *scanner) groupLen() int { return s.end - s.start }
 
-// nextGroup moves s to the nextGroup (possibly empty) group and returns true. Returns false if
-// the end is reached.
+// nextGroup moves s to the nextGroup (possibly empty) group and returns true.
+// Returns false if the end is reached.
 func (s *scanner) nextGroup() bool {
 	if s.end == len(s.r)-1 {
 		return false
@@ -200,8 +227,8 @@ func (s *scanner) nextGroup() bool {
 	return true
 }
 
-// prevGroup moves g to the previous (possibly empty) group and return true. Returns true if the
-// beginning is reached.
+// prevGroup moves g to the previous (possibly empty) group and return true.
+// Returns true if the beginning is reached.
 func (s *scanner) prevGroup() bool {
 	if s.start == 0 {
 		return false
@@ -213,9 +240,9 @@ func (s *scanner) prevGroup() bool {
 	return true
 }
 
-// slideGroupDown tried to slide g down by one. If the slide up connects g with another group at below
-// it, it merges the two groups. Returns true if sliding up was possible and false if the group
-// could not be slid up.
+// slideGroupDown tried to slide g down by one. If the slide up connects g with
+// another group at below it, it merges the two groups. Returns true if sliding
+// up was possible and false if the group could not be slid up.
 func (s *scanner) slideGroupDown() bool {
 	if s.end < len(s.r)-1 && s.lines[s.start] == s.lines[s.end] {
 		s.r[s.start], s.r[s.end] = false, true
@@ -230,9 +257,9 @@ func (s *scanner) slideGroupDown() bool {
 	}
 }
 
-// slideGroupUp tries to slide g up by one. If the slide up connects g with another group above it, it
-// merges the two groups. Returns true if sliding up was possible and false if the group could not
-// be slid up.
+// slideGroupUp tries to slide g up by one. If the slide up connects g with
+// another group above it, it merges the two groups. Returns true if sliding up
+// was possible and false if the group could not be slid up.
 func (s *scanner) slideGroupUp() bool {
 	if s.start > 0 && s.lines[s.start-1] == s.lines[s.end-1] {
 		s.r[s.start-1], s.r[s.end-1] = true, false
@@ -355,13 +382,14 @@ func (s *shiftScore) add(m measure) {
 	} else if indent == m.preIndent {
 		// Same indentation as previous line, no adjustments need.
 	} else {
-		// Line is indented more than its predecessor. It could be the block terminator of the
-		// previous block, but it could also be the start of a new block (e.g., an "else" block, or
-		// maybe the previous block didn't have a block terminator). Try to distinguish those cases
-		// based on what comes next.
+		// Line is indented more than its predecessor. It could be the block
+		// terminator of the previous block, but it could also be the start of a
+		// new block (e.g., an "else" block, or maybe the previous block didn't
+		// have a block terminator). Try to distinguish those cases based on
+		// what comes next.
 		if m.postIndent != -1 && m.postIndent > indent {
-			// The following line is indented more. So it's likely that this line is the start of a
-			// block.
+			// The following line is indented more. So it's likely that this
+			// line is the start of a block.
 			if totalBlank != 0 {
 				s.penalty += relativeOutdentWithBlankPenalty
 			} else {

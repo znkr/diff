@@ -36,7 +36,9 @@ func (m *myersInt) init(x, y []int) (smin, smax, tmin, tmax int) {
 
 	N, M := smax-smin, tmax-tmin
 	diagonals := N + M
+
 	vlen := 2*diagonals + 3
+
 	buf := make([]int, 2*vlen)
 
 	m.x = x

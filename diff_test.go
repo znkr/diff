@@ -493,8 +493,8 @@ func (s spec) generate(seed []byte) (x, y []int) {
 		y[i] = x[i+delta]
 	}
 
-	// We might already have some changes due to the different sizes for N and M, add D
-	// additional changes.
+	// We might already have some changes due to the different sizes for N and
+	// M, add D additional changes.
 	for d := s.D; d > 0; {
 		i := rng.IntN(len(y))
 		if y[i] >= 0 {

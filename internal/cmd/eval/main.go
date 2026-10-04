@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// eval provides a way to validate the diffing algorithm by applying the resulting diffs using
-// the unix patch tool and checking that they produce the input again.
+// eval provides a way to validate the diffing algorithm by applying the
+// resulting diffs using the unix patch tool and checking that they produce the
+// input again.
 package main
 
 import (

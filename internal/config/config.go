@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package config provides shared configuration mechanisms for packages this module.
+// Package config provides shared configuration mechanisms for packages this
+// module.
 //
-// This package is an implementation detail, the configuration surface for users is provided via
-// diff.Option.
+// This package is an implementation detail, the configuration surface for users
+// is provided via diff.Option.
 package config
 
 // Mode describes the mode of the diff algorithm.
 type Mode int
 
 const (
-	// Limit the cost for large inputs with many differences by applying heuristics that reduce the
-	// time complexity at the cost of non-minimal diffs.
+	// Limit the cost for large inputs with many differences by applying
+	// heuristics that reduce the time complexity at the cost of non-minimal
+	// diffs.
 	ModeDefault Mode = iota
 
 	// Find a minimal diff irrespective of the cost.
@@ -33,9 +35,11 @@ const (
 	ModeFast
 )
 
-// Config collects all configurable parameters for comparison functions in this module.
+// Config collects all configurable parameters for comparison functions in this
+// module.
 type Config struct {
-	// Context is the number of matches to include as a prefix and postfix for hunks returned.
+	// Context is the number of matches to include as a prefix and postfix for
+	// hunks returned.
 	Context int
 
 	// Diff algorithm mode.
@@ -47,8 +51,9 @@ type Config struct {
 	// If not nil, textdiff.Unify will use this to color the output.
 	Colors *ColorConfig
 
-	// If set, internal/myers will always use the anchoring heuristic. This configuration is not
-	// exposed via an option API, it's main use is for testing.
+	// If set, internal/myers will always use the anchoring heuristic. This
+	// configuration is not exposed via an option API, it's main use is for
+	// testing.
 	ForceAnchoringHeuristic bool
 }
 
@@ -66,8 +71,8 @@ var Default = Config{
 	ForceAnchoringHeuristic: false,
 }
 
-// Flag describes a single config entry. This is used to detect if configurations are being set
-// that are not
+// Flag describes a single config entry. This is used to detect if
+// configurations are being set that are not
 type Flag int
 
 const (

@@ -35,12 +35,12 @@ const (
 
 // Edit describes a single edit of a diff.
 //
-//   - For Match, both X and Y contain the matching element. PosX and PosY contain their respective
-//     positions in the input.
-//   - For Delete, X contains the deleted element and Y is unset (zero value). PosX contains its
-//     position in the input and PosY is -1.
-//   - For Insert, Y contains the inserted element and X is unset (zero value). PosY contains its
-//     position in the input and PosX is -1.
+//   - For Match, both X and Y contain the matching element. PosX and PosY
+//     contain their respective positions in the input.
+//   - For Delete, X contains the deleted element and Y is unset (zero value).
+//     PosX contains its position in the input and PosY is -1.
+//   - For Insert, Y contains the inserted element and X is unset (zero value).
+//     PosY contains its position in the input and PosX is -1.
 type Edit[T any] struct {
 	Op         Op
 	PosX, PosY int
@@ -54,40 +54,43 @@ type Hunk[T any] struct {
 	Edits      []Edit[T] // Edits to transform x[PosX:EndX] to y[PosY:EndY]
 }
 
-// Hunks compares the contents of x and y and returns the changes necessary to convert from one to
-// the other.
+// Hunks compares the contents of x and y and returns the changes necessary to
+// convert from one to the other.
 //
-// The output is a sequence of hunks. A hunk represents a contiguous block of changes (insertions
-// and deletions) along with some surrounding context. The amount of context can be configured using
-// [Context].
+// The output is a sequence of hunks. A hunk represents a contiguous block of
+// changes (insertions and deletions) along with some surrounding context. The
+// amount of context can be configured using [Context].
 //
 // If x and y are identical, the output has length zero.
 //
 // The following options are supported: [Context], [Minimal], [Fast]
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func Hunks[T comparable](x, y []T, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast)
 	rx, ry := impl.Diff(x, y, cfg)
 	return hunks(x, y, rx, ry, cfg)
 }
 
-// HunksFunc compares the contents of x and y using the provided equality comparison and returns the
-// changes necessary to convert from one to the other.
+// HunksFunc compares the contents of x and y using the provided equality
+// comparison and returns the changes necessary to convert from one to the
+// other.
 //
-// The output is a sequence of hunks that each describe a number of consecutive edits. Hunks include
-// a number of matching elements before and after the last delete or insert operation. The number of
-// elements can be configured using [Context].
+// The output is a sequence of hunks that each describe a number of consecutive
+// edits. Hunks include a number of matching elements before and after the last
+// delete or insert operation. The number of elements can be configured using
+// [Context].
 //
 // If x and y are identical, the output has length zero.
 //
 // The following options are supported: [Context], [Minimal]
 //
-// Note that this function has generally worse performance than [Hunks] for diffs with many changes.
+// Note that this function has generally worse performance than [Hunks] for
+// diffs with many changes.
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal)
 	rx, ry := impl.DiffFunc(x, y, eq, cfg)
@@ -95,8 +98,8 @@ func HunksFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Hunk[T] 
 }
 
 func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
-	// Compute the number of hunks and edits, this is relatively cheap and allows us to preallocate
-	// the return values.
+	// Compute the number of hunks and edits, this is relatively cheap and
+	// allows us to preallocate the return values.
 	var nhunks, nedits int
 	for hunk := range rvecs.Hunks(rx, ry, cfg) {
 		nhunks++
@@ -152,34 +155,36 @@ func hunks[T any](x, y []T, rx, ry []bool, cfg config.Config) []Hunk[T] {
 	return hout
 }
 
-// Edits compares the contents of x and y and returns the changes necessary to convert from one to
-// the other.
+// Edits compares the contents of x and y and returns the changes necessary to
+// convert from one to the other.
 //
-// Edits returns one edit for every element in the input slices. If x and y are identical, the
-// output will consist of a match edit for every input element.
+// Edits returns one edit for every element in the input slices. If x and y are
+// identical, the output will consist of a match edit for every input element.
 //
 // The following option is supported: [Minimal], [Fast]
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func Edits[T comparable](x, y []T, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal|config.Fast)
 	rx, ry := impl.Diff(x, y, cfg)
 	return edits(x, y, rx, ry)
 }
 
-// EditsFunc compares the contents of x and y using the provided equality comparison and returns the
-// changes necessary to convert from one to the other.
+// EditsFunc compares the contents of x and y using the provided equality
+// comparison and returns the changes necessary to convert from one to the
+// other.
 //
-// EditsFunc returns edits for every element in the input. If both x and y are identical, the output
-// will consist of a match edit for every input element.
+// EditsFunc returns edits for every element in the input. If both x and y are
+// identical, the output will consist of a match edit for every input element.
 //
 // The following option is supported: [Minimal]
 //
-// Note that this function has generally worse performance than [Edits] for diffs with many changes.
+// Note that this function has generally worse performance than [Edits] for
+// diffs with many changes.
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal)
 	rx, ry := impl.DiffFunc(x, y, eq, cfg)
@@ -187,8 +192,8 @@ func EditsFunc[T any](x, y []T, eq func(a, b T) bool, opts ...Option) []Edit[T] 
 }
 
 func edits[T any](x, y []T, rx, ry []bool) []Edit[T] {
-	// Compute the number of edits, this is relatively cheap and allows us to preallocate the return
-	// value.
+	// Compute the number of edits, this is relatively cheap and allows us to
+	// preallocate the return value.
 	n, m := len(rx)-1, len(ry)-1
 	var nedits int
 	for s, t := 0, 0; s < n || t < m; {

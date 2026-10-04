@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// specializemyers is a bit of an abomination, it takes the myers implementation and generates a
-// specialization for int. That specialization is quit a bit faster and reduces run times by -10% to
-// -40%. The problem is that I haven't found a better way to do this optimization.
+// specializemyers is a bit of an abomination, it takes the myers implementation
+// and generates a specialization for int. That specialization is quit a bit
+// faster and reduces run times by -10% to -40%. The problem is that I haven't
+// found a better way to do this optimization.
 package main
 
 import (

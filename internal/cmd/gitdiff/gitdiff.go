@@ -14,19 +14,21 @@
 
 // gitdiff is a tool that can be used with git using GIT_EXTERNAL_DIFF.
 //
-// This is not generally useful and it has some weird defaults. The use case for it is to work with
-// the slider evaluation in https://github.com/mhagger/diff-slider-tools. The evaluation can be used
-// with a small local modification of the repositories run-comparison script:
+// This is not generally useful and it has some weird defaults. The use case for
+// it is to work with the slider evaluation in
+// https://github.com/mhagger/diff-slider-tools. The evaluation can be used with
+// a small local modification of the repositories run-comparison script:
 //
 // Adding this snippet
 //
 //	git_znkr() {
-//	   GIT_EXTERNAL_DIFF=${HOME}/Projects/diff/gitdiff git -C corpus/$1.git $GIT_OPTS diff "$2" "$3" --
+//	   GIT_EXTERNAL_DIFF=${HOME}/Projects/diff/gitdiff \
+//	     git -C corpus/$1.git $GIT_OPTS diff "$2" "$3" --
 //	}
 //
-// allows us to compare against git's implementation of indent heuristics. The comparison is not
-// 100% because we sometimes return different diffs than git, but overall the quality of the
-// result is about the same.
+// allows us to compare against git's implementation of indent heuristics. The
+// comparison is not 100% because we sometimes return different diffs than git,
+// but overall the quality of the result is about the same.
 package main
 
 import (

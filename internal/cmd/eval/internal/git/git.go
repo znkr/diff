@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package git provides a simplified git interface for reading a repository for evaluations
+// Package git provides a simplified git interface for reading a repository for
+// evaluations
 package git
 
 import (

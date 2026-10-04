@@ -14,12 +14,14 @@
 
 // Package textdiff provides functions to efficiently compare text line-by-line.
 //
-// This package is specialized for text comparison and provides unified diff output like the Unix
-// diff command. The main functions are [Hunks] for grouped changes, [Edits] for individual changes,
-// and [Unified] for standard diff format output.
+// This package is specialized for text comparison and provides unified diff
+// output like the Unix diff command. The main functions are [Hunks] for grouped
+// changes, [Edits] for individual changes, and [Unified] for standard diff
+// format output.
 //
-// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With [diff.Minimal], time
-// complexity becomes O(ND) where N = len(x) + len(y) and D is the number of edits.
+// Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With
+// [diff.Minimal], time complexity becomes O(ND) where N = len(x) + len(y) and D
+// is the number of edits.
 package textdiff
 
 import (
@@ -37,12 +39,12 @@ import (
 
 // Edit describes a single edit of a line-by-line diff.
 //
-//   - For Match, Line contains the matching line. LineNoX and LineNoY contain the respective
-//     line numbers (zero-based) in the input.
-//   - For Delete, Line contains the deleted line from x. LineNoX contains the line number in x
-//     and LineNoY is -1.
-//   - For Insert, Line contains the inserted line from y. LineNoY contains the line number in y
-//     and LineNoX is -1.
+//   - For Match, Line contains the matching line. LineNoX and LineNoY contain
+//     the respective line numbers (zero-based) in the input.
+//   - For Delete, Line contains the deleted line from x. LineNoX contains the
+//     line number in x and LineNoY is -1.
+//   - For Insert, Line contains the inserted line from y. LineNoY contains the
+//     line number in y and LineNoX is -1.
 type Edit[T string | []byte] struct {
 	Op               diff.Op
 	LineNoX, LineNoY int
@@ -51,25 +53,30 @@ type Edit[T string | []byte] struct {
 
 // Hunk describes a sequence of consecutive edits.
 type Hunk[T string | []byte] struct {
-	LineNoX, EndLineNoX int       // Start and end line in x (zero-based).
-	LineNoY, EndLineNoY int       // Start and end line in y (zero-based).
-	Edits               []Edit[T] // Edits to transform x lines LineNoX..EndLineNoX to y lines LineNoY..EndLineNoY
+	// Start and end line in x (zero-based).
+	LineNoX, EndLineNoX int
+	// Start and end line in y (zero-based).
+	LineNoY, EndLineNoY int
+	// Edits to transform x lines LineNoX..EndLineNoX to y lines
+	// LineNoY..EndLineNoY
+	Edits []Edit[T]
 }
 
-// Hunks compares the lines in x and y and returns the changes necessary to convert from one to the
-// other.
+// Hunks compares the lines in x and y and returns the changes necessary to
+// convert from one to the other.
 //
-// The output is a sequence of hunks that each describe a number of consecutive edits. Hunks include
-// a number of matching elements before and after the last delete or insert operation. The number of
-// elements can be configured using [diff.Context].
+// The output is a sequence of hunks that each describe a number of consecutive
+// edits. Hunks include a number of matching elements before and after the last
+// delete or insert operation. The number of elements can be configured using
+// [diff.Context].
 //
 // If x and y are identical, the output has length zero.
 //
-// The following options are supported: [diff.Context], [diff.Minimal], [diff.Fast],
-// [IndentHeuristic]
+// The following options are supported: [diff.Context], [diff.Minimal],
+// [diff.Fast], [IndentHeuristic]
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func Hunks[T string | []byte](x, y T, opts ...Option) []Hunk[T] {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
@@ -82,8 +89,8 @@ func Hunks[T string | []byte](x, y T, opts ...Option) []Hunk[T] {
 }
 
 func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg config.Config) []Hunk[T] {
-	// Compute the number of hunks and edits, this is relatively cheap and allows us to preallocate
-	// the return values.
+	// Compute the number of hunks and edits, this is relatively cheap and
+	// allows us to preallocate the return values.
 	var nhunks, nedits int
 	for hunk := range rvecs.Hunks(rx, ry, cfg) {
 		nhunks++
@@ -138,16 +145,17 @@ func hunks[T string | []byte](x, y []byteview.ByteView, rx, ry []bool, cfg confi
 	return hout
 }
 
-// Edits compares the lines in x and y and returns the changes necessary to convert from one to the
-// other.
+// Edits compares the lines in x and y and returns the changes necessary to
+// convert from one to the other.
 //
-// Edits returns edits for every element in the input. If x and y are identical, the output will
-// consist of a match edit for every input element.
+// Edits returns edits for every element in the input. If x and y are identical,
+// the output will consist of a match edit for every input element.
 //
-// The following options are supported: [diff.Minimal], [diff.Fast], [IndentHeuristic]
+// The following options are supported: [diff.Minimal], [diff.Fast],
+// [IndentHeuristic]
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func Edits[T string | []byte](x, y T, opts ...Option) []Edit[T] {
 	cfg := config.FromOptions(opts, config.Minimal|config.Fast|config.IndentHeuristic)
 	xlines, _ := byteview.SplitLines(byteview.From(x))
@@ -160,8 +168,8 @@ func Edits[T string | []byte](x, y T, opts ...Option) []Edit[T] {
 }
 
 func edits[T string | []byte](x, y []byteview.ByteView, rx, ry []bool) []Edit[T] {
-	// Compute the number of edits, this is relatively cheap and allows us to preallocate the return
-	// value.
+	// Compute the number of edits, this is relatively cheap and allows us to
+	// preallocate the return value.
 	n, m := len(rx)-1, len(ry)-1
 	var nedits int
 	for s, t := 0, 0; s < n || t < m; {
@@ -225,14 +233,14 @@ const (
 
 const missingNewline = "\n\\ No newline at end of file\n"
 
-// Unified compares the lines in x and y and returns the changes necessary to convert from one to
-// the other in unified format.
+// Unified compares the lines in x and y and returns the changes necessary to
+// convert from one to the other in unified format.
 //
-// The following options are supported: [diff.Context], [diff.Minimal], [diff.Fast],
-// [IndentHeuristic], [TerminalColors]
+// The following options are supported: [diff.Context], [diff.Minimal],
+// [diff.Fast], [IndentHeuristic], [TerminalColors]
 //
-// Important: The output is not guaranteed to be stable and may change with minor version upgrades.
-// DO NOT rely on the output being stable.
+// Important: The output is not guaranteed to be stable and may change with
+// minor version upgrades. DO NOT rely on the output being stable.
 func Unified[T string | []byte](x, y T, opts ...Option) T {
 	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic|config.TerminalColors)
 
@@ -343,9 +351,9 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 	return b.Build()
 }
 
-// rangeStart returns the line number that starts the hunk range [lo, hi) in a hunk
-// header. Line numbers are 1-based, except that an empty range names the line
-// before it, the same as GNU diff.
+// rangeStart returns the line number that starts the hunk range [lo, hi) in a
+// hunk header. Line numbers are 1-based, except that an empty range names the
+// line before it, the same as GNU diff.
 func rangeStart(lo, hi int) int {
 	if lo == hi {
 		return lo
