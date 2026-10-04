@@ -182,11 +182,14 @@ func run(cfg *config) error {
 		go func() {
 			defer processWG.Done()
 			for change := range changes {
-				variants := map[string][]diff.Option{
-					"default":          nil,
-					"minimal":          {diff.Minimal()},
-					"fast":             {diff.Fast()},
-					"indent-heuristic": {textdiff.IndentHeuristic()},
+				variants := []struct {
+					name string
+					opts []diff.Option
+				}{
+					{"default", nil},
+					{"minimal", []diff.Option{diff.Minimal()}},
+					{"fast", []diff.Option{diff.Fast()}},
+					{"indent-heuristic", []diff.Option{textdiff.IndentHeuristic()}},
 				}
 
 				lines := func(s string) int {
@@ -208,7 +211,14 @@ func run(cfg *config) error {
 				}
 				N, M := lines(old), lines(new)
 
-				for variant, opts := range variants {
+				if results != nil {
+					// The first diff of a change takes several times longer
+					// than the following ones, so each variant is timed after
+					// an untimed diff.
+					_ = textdiff.Hunks(change.old, change.new)
+				}
+				for _, v := range variants {
+					variant, opts := v.name, v.opts
 					if results != nil {
 						start := time.Now()
 						hunks := textdiff.Hunks(change.old, change.new, opts...)
