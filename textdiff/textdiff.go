@@ -22,7 +22,7 @@
 //
 // Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With
 // [diff.Minimal], time complexity becomes O(ND) where N = len(x) + len(y) and D
-// is the number of edits. With [Fast], time complexity is O(N log N).
+// is the number of edits. With [diff.Fast], time complexity is O(N log N).
 package textdiff
 
 import (
