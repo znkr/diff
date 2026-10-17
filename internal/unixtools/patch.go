@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package unixpatch provides a simple wrapper around the unix patch tool.
+// Package unixtools runs the patch and git tools on PATH.
 //
 // This package is only for testing.
-package unixpatch
+package unixtools
 
 import (
 	"fmt"
@@ -25,6 +25,8 @@ import (
 	"strings"
 )
 
+// Patch applies diff to orig with patch and returns the result. It ignores the
+// file names in the header of diff.
 func Patch(orig, diff string) (string, error) {
 	// Using patch with an empty diff will not create an output file.
 	if len(diff) == 0 {
@@ -59,4 +61,49 @@ func Patch(orig, diff string) (string, error) {
 	}
 
 	return string(out), nil
+}
+
+// PatchFile applies diff with "patch -p1" to a file named name with the content
+// orig, and returns the new content of the file. patch finds the file from the
+// header of diff.
+func PatchFile(name, orig, diff string) (string, error) {
+	return applyToFile(name, orig, diff, func(dir string) *exec.Cmd {
+		cmd := exec.Command("patch", "-p1", "-s", "-f", "-i", "patch.diff")
+		cmd.Dir = dir
+		return cmd
+	})
+}
+
+// IsGNUPatch reports whether patch is GNU patch.
+func IsGNUPatch() bool {
+	out, err := exec.Command("patch", "--version").Output()
+	return err == nil && strings.Contains(string(out), "GNU patch")
+}
+
+// applyToFile writes orig to a file named name and diff to patch.diff in a
+// temporary directory, runs the command that cmd returns for that directory,
+// and returns the new content of the file.
+func applyToFile(name, orig, diff string, cmd func(dir string) *exec.Cmd) (string, error) {
+	dir, err := os.MkdirTemp("", "apply-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(dir)
+
+	file := filepath.Join(dir, name)
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(file, []byte(orig), 0o644); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(dir, "patch.diff"), []byte(diff), 0o644); err != nil {
+		return "", err
+	}
+	c := cmd(dir)
+	if out, err := c.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("%s: %v\n%s", strings.Join(c.Args, " "), err, out)
+	}
+	out, err := os.ReadFile(file)
+	return string(out), err
 }

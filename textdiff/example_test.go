@@ -110,3 +110,17 @@ func ExampleWriteUnified() {
 	// +2
 	//  three
 }
+
+func ExampleUnifiedHeader() {
+	x := "one\ntwo\nthree\n"
+	y := "one\n2\nthree\n"
+	fmt.Print(textdiff.Unified(x, y, textdiff.UnifiedHeader("a/numbers.txt", "b/numbers.txt")))
+	// Output:
+	// --- a/numbers.txt
+	// +++ b/numbers.txt
+	// @@ -1,3 +1,3 @@
+	//  one
+	// -two
+	// +2
+	//  three
+}

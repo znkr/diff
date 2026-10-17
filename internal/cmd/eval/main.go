@@ -33,7 +33,7 @@ import (
 
 	"znkr.io/diff"
 	"znkr.io/diff/internal/cmd/eval/internal/git"
-	"znkr.io/diff/internal/unixpatch"
+	"znkr.io/diff/internal/unixtools"
 	"znkr.io/diff/textdiff"
 )
 
@@ -244,7 +244,7 @@ func run(cfg *config) error {
 
 					if cfg.validate {
 						unified := textdiff.Unified(change.old, change.new, opts...)
-						patched, err := unixpatch.Patch(change.old, unified)
+						patched, err := unixtools.Patch(change.old, unified)
 						if err != nil {
 							notes <- note{
 								prefix: change.commitID + ":" + change.filename,
