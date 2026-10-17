@@ -41,6 +41,36 @@ func IndentHeuristic() Option {
 	}
 }
 
+// UnifiedHeader starts the output of a unified diff with a file header.
+//
+// The header has the format:
+//
+//	--- <x>
+//	+++ <y>
+//
+// If both sides of the diff are equal, the output is empty and has no header.
+//
+// Labels are written so that git apply and GNU patch read them back
+// unchanged:
+//
+//   - A label containing a control character, a double quote or a backslash
+//     is written in double quotes with C-style escapes. BSD patch doesn't
+//     decode such a label.
+//   - Other labels are written as given, including non-ASCII bytes.
+//   - A label containing a space is followed by a tab. Without it, patch reads
+//     the file name only up to the first space.
+//
+// The output matches git's with core.quotePath set to false.
+func UnifiedHeader(x, y string) Option {
+	return func(c *config.Config) config.Flag {
+		if c.Unified == nil {
+			c.Unified = new(config.Unified)
+		}
+		c.Unified.Header = &config.UnifiedHeaderConfig{X: x, Y: y}
+		return config.UnifiedHeader
+	}
+}
+
 // TerminalColors uses ANSI escape codes to color the output of [Unified].
 //
 // By default, the colors try to emulate git's color scheme, but the colors can
@@ -54,17 +84,20 @@ func IndentHeuristic() Option {
 // [github.com/mattn/go-isatty]: https://pkg.go.dev/github.com/mattn/go-isatty
 func TerminalColors(opts ...color.Option) Option {
 	return func(c *config.Config) config.Flag {
-		colors := config.ColorConfig{
+		if c.Unified == nil {
+			c.Unified = new(config.Unified)
+		}
+		c.Unified.Color = config.ColorConfig{
 			Reset:      "\033[m",
+			FileHeader: "\033[1m",  // Bold
 			HunkHeader: "\033[36m", // Cyan
 			Match:      "",         // Normal
 			Delete:     "\033[31m", // Red
 			Insert:     "\033[32m", // Green
 		}
 		for _, opt := range opts {
-			opt(&colors)
+			opt(&c.Unified.Color)
 		}
-		c.Colors = &colors
 		return config.TerminalColors
 	}
 }

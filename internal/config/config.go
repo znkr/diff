@@ -48,8 +48,8 @@ type Config struct {
 	// If set, textdiff will apply ident heuristics.
 	IndentHeuristic bool
 
-	// If not nil, textdiff.Unify will use this to color the output.
-	Colors *ColorConfig
+	// Unified diff output configuration.
+	Unified *Unified
 
 	// If set, internal/myers will always use the anchoring heuristic. This
 	// configuration is not exposed via an option API, it's main use is for
@@ -57,8 +57,24 @@ type Config struct {
 	ForceAnchoringHeuristic bool
 }
 
+// Unified configures the output of textdiff.Unified, textdiff.AppendUnified
+// and textdiff.WriteUnified.
+type Unified struct {
+	// If not nil, the output starts with the file header "--- X" and "+++ Y".
+	Header *UnifiedHeaderConfig
+
+	// Color escape sequences. The zero value disables colors.
+	Color ColorConfig
+}
+
+// UnifiedHeaderConfig holds the labels of the file header of a unified diff.
+type UnifiedHeaderConfig struct {
+	X, Y string
+}
+
 type ColorConfig struct {
 	Reset                 string
+	FileHeader            string
 	HunkHeader            string
 	Match, Delete, Insert string
 }
@@ -81,6 +97,7 @@ const (
 	Fast
 	IndentHeuristic
 	TerminalColors
+	UnifiedHeader
 )
 
 // Option is the mechanism used to expose the configuration to users.
@@ -113,6 +130,8 @@ func printFlag(flag Flag) string {
 		return "textdiff.IndentHeuristic"
 	case TerminalColors:
 		return "textdiff.TerminalColors"
+	case UnifiedHeader:
+		return "textdiff.UnifiedHeader"
 	default:
 		panic("never reached")
 	}

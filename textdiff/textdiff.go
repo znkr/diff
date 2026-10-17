@@ -235,7 +235,7 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // convert from one to the other in unified format.
 //
 // The following options are supported: [diff.Context], [diff.Minimal],
-// [diff.Fast], [IndentHeuristic], [TerminalColors]
+// [diff.Fast], [IndentHeuristic], [TerminalColors], [UnifiedHeader]
 //
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
@@ -248,7 +248,7 @@ func Unified[T string | []byte](x, y T, opts ...Option) T {
 // extended buffer. If x and y are identical, it returns dst.
 //
 // The following options are supported: [diff.Context], [diff.Minimal],
-// [diff.Fast], [IndentHeuristic], [TerminalColors]
+// [diff.Fast], [IndentHeuristic], [TerminalColors], [UnifiedHeader]
 //
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
@@ -263,7 +263,7 @@ func AppendUnified[T string | []byte](dst []byte, x, y T, opts ...Option) []byte
 // the first error from w and returns it.
 //
 // The following options are supported: [diff.Context], [diff.Minimal],
-// [diff.Fast], [IndentHeuristic], [TerminalColors]
+// [diff.Fast], [IndentHeuristic], [TerminalColors], [UnifiedHeader]
 //
 // Important: The output is not guaranteed to be stable and may change with
 // minor version upgrades. DO NOT rely on the output being stable.
@@ -292,7 +292,7 @@ func formatUnified[T string | []byte](dst []byte, w io.Writer, x, y T, opts []Op
 		flushAt = flushSize
 	}
 
-	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic|config.TerminalColors)
+	cfg := config.FromOptions(opts, config.Context|config.Minimal|config.Fast|config.IndentHeuristic|config.TerminalColors|config.UnifiedHeader)
 
 	d := diffLines(x, y, cfg)
 	defer d.release()
@@ -301,16 +301,25 @@ func formatUnified[T string | []byte](dst []byte, w io.Writer, x, y T, opts []Op
 	xMissingNewline := len(x) > 0 && x[len(x)-1] != '\n'
 	yMissingNewline := len(y) > 0 && y[len(y)-1] != '\n'
 
-	var colors config.ColorConfig
-	if cfg.Colors != nil {
-		colors = *cfg.Colors
+	var unified config.Unified
+	if cfg.Unified != nil {
+		unified = *cfg.Unified
 	}
+	colors := unified.Color
 
 	var hbuf [16]rvecs.Hunk
 	hs := rvecs.AppendHunks(hbuf[:0], rx, ry, cfg)
+	// Equal inputs have an empty diff, without a header.
+	writeHeader := unified.Header != nil && len(hs) > 0
 
 	// Precompute output buffer size.
 	n := 0
+	var lx, ly fileLabel
+	if writeHeader {
+		lx, ly = scanLabel(unified.Header.X), scanLabel(unified.Header.Y)
+		n += 2 * (len("--- \n") + len(colors.FileHeader) + len(colors.Reset))
+		n += lx.size + ly.size
+	}
 	for _, h := range hs {
 		n += len("@@ - + @@\n")
 		n += rangeLen(h.S0, h.S1) + rangeLen(h.T0, h.T1)
@@ -349,6 +358,10 @@ func formatUnified[T string | []byte](dst []byte, w io.Writer, x, y T, opts []Op
 
 	// Format output.
 	b := slices.Grow(dst, min(n, flushAt))
+	if writeHeader {
+		b = appendFileHeader(b, "--- ", lx, colors)
+		b = appendFileHeader(b, "+++ ", ly, colors)
+	}
 	for _, h := range hs {
 		b = append(b, colors.HunkHeader...)
 		b = append(b, "@@ -"...)
@@ -454,6 +467,90 @@ func rangeLen(lo, hi int) int {
 		n += len(",") + numDigits(hi-lo)
 	}
 	return n
+}
+
+// appendFileHeader appends the file header line prefix+l to b and returns the
+// extended buffer.
+func appendFileHeader(b []byte, prefix string, l fileLabel, colors config.ColorConfig) []byte {
+	b = append(b, colors.FileHeader...)
+	b = append(b, prefix...)
+	if l.quote {
+		b = appendQuoted(b, l.text)
+	} else {
+		b = append(b, l.text...)
+	}
+	b = append(b, colors.Reset...)
+	if l.tab {
+		// Like git, write the tab after the reset.
+		b = append(b, '\t')
+	}
+	return append(b, '\n')
+}
+
+// appendQuoted appends label in double quotes with C-style escapes to b and
+// returns the extended buffer.
+func appendQuoted(b []byte, label string) []byte {
+	// strconv.Quote doesn't fit: git and GNU patch don't decode its \x and \u
+	// escapes.
+	b = append(b, '"')
+	for i := range len(label) {
+		switch c := label[i]; {
+		case '\a' <= c && c <= '\r':
+			b = append(b, '\\', "abtnvfr"[c-'\a'])
+		case c == '"' || c == '\\':
+			b = append(b, '\\', c)
+		case isControl(c):
+			b = append(b, '\\', '0'+c>>6, '0'+c>>3&7, '0'+c&7)
+		default:
+			b = append(b, c)
+		}
+	}
+	return append(b, '"')
+}
+
+// fileLabel is a label of a file header with the layout [appendFileHeader]
+// writes it in.
+type fileLabel struct {
+	text  string
+	size  int  // Number of bytes written for text, including quotes and tab.
+	quote bool // Reports whether text is written quoted.
+	tab   bool // Reports whether text is followed by a tab.
+}
+
+// scanLabel returns the layout of label.
+func scanLabel(label string) fileLabel {
+	// Quote as git does with core.quotePath=false: a control character, '"'
+	// or '\\' causes quoting, and a non-ASCII byte does not.
+	l := fileLabel{text: label}
+	quotedSize := len(`""`)
+	for i := range len(label) {
+		switch c := label[i]; {
+		case c == ' ':
+			l.tab = true
+			quotedSize++
+		case c == '"' || c == '\\', '\a' <= c && c <= '\r':
+			l.quote = true
+			quotedSize += 2
+		case isControl(c):
+			l.quote = true
+			quotedSize += 4
+		default:
+			quotedSize++
+		}
+	}
+	l.size = len(label)
+	if l.quote {
+		l.size = quotedSize
+	}
+	if l.tab {
+		l.size++
+	}
+	return l
+}
+
+// isControl reports whether c is an ASCII control character.
+func isControl(c byte) bool {
+	return c < 0x20 || c == 0x7f
 }
 
 func numDigits(v int) (n int) {

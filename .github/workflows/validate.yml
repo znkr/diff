@@ -1,0 +1,25 @@
+name: Validate
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate:
+    strategy:
+      matrix:
+        # Linux has GNU patch, macOS has BSD patch.
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Validate unified diffs with patch and git
+      run: go test -vet=off ./textdiff ./internal/cmd/gitdiff -validate

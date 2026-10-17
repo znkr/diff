@@ -2,9 +2,9 @@
 // ANSI escape sequences.
 //
 // Specifying colors uses [Select Graphic Rendition parameters]. For example the
-// code below, presents the header in bold yellow:
+// code below, presents the hunk header in bold yellow:
 //
-//	HunkHeader(1, 33)
+//	HunkHeaders(1, 33)
 //
 // This is equivalent to the following raw ANSI sequence: \033[1;33m.
 //
@@ -28,6 +28,18 @@ import (
 // [textdiff.TerminalColors]:
 // https://pkg.go.dev/znkr.io/diff/textdiff#TerminalColors
 type Option func(*config.ColorConfig)
+
+// FileHeaders colors the file header, the "--- " and "+++ " lines written with
+// [textdiff.UnifiedHeader].
+//
+// [textdiff.UnifiedHeader]:
+// https://pkg.go.dev/znkr.io/diff/textdiff#UnifiedHeader
+func FileHeaders(params ...int) Option {
+	code := format(params)
+	return func(cc *config.ColorConfig) {
+		cc.FileHeader = code
+	}
+}
 
 // HunkHeaders colors hunk headers, the "@@ ... @@" part of the unified diff.
 func HunkHeaders(params ...int) Option {
@@ -53,7 +65,7 @@ func Deletes(params ...int) Option {
 	}
 }
 
-// Inserts colors deleted lines.
+// Inserts colors inserted lines.
 func Inserts(params ...int) Option {
 	code := format(params)
 	return func(cc *config.ColorConfig) {

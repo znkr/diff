@@ -31,7 +31,7 @@ import (
 	"golang.org/x/tools/txtar"
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
-	"znkr.io/diff/internal/unixpatch"
+	"znkr.io/diff/internal/unixtools"
 	"znkr.io/diff/textdiff/color"
 )
 
@@ -52,7 +52,7 @@ func TestUnified(t *testing.T) {
 						t.Errorf("Unified(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, diff)
 					}
 					if *validate && len(got) > 0 {
-						patched, err := unixpatch.Patch(string(tt.x), string(got))
+						patched, err := unixtools.Patch(string(tt.x), string(got))
 						if err != nil {
 							t.Fatalf("failed to run patch: %v", err)
 						}
@@ -122,7 +122,7 @@ func TestAppendUnified(t *testing.T) {
 }
 
 func TestWriteUnified(t *testing.T) {
-	colors := TerminalColors(color.HunkHeaders(33), color.Matches(1), color.Deletes(34), color.Inserts(35))
+	colors := TerminalColors(color.FileHeaders(4), color.HunkHeaders(33), color.Matches(1), color.Deletes(34), color.Inserts(35))
 	for _, tt := range parseTests(t) {
 		for _, st := range tt.subtests {
 			var buf bytes.Buffer
@@ -135,14 +135,14 @@ func TestWriteUnified(t *testing.T) {
 				t.Errorf("%s/%s: WriteUnified(...) differs from Unified(...)", tt.name, st.name)
 			}
 
-			// With colors, every piece of the output is non-empty.
-			opts := append(slices.Clone(st.opts), colors)
+			// With colors and a header, every piece of the output is non-empty.
+			opts := append(slices.Clone(st.opts), colors, UnifiedHeader("x", "y"))
 			buf.Reset()
 			if err := WriteUnified(w, tt.x, tt.y, opts...); err != nil {
-				t.Fatalf("%s/%s: WriteUnified(..., TerminalColors(...)) = %v", tt.name, st.name, err)
+				t.Fatalf("%s/%s: WriteUnified(..., TerminalColors(...), UnifiedHeader(...)) = %v", tt.name, st.name, err)
 			}
 			if want := Unified(tt.x, tt.y, opts...); !bytes.Equal(buf.Bytes(), want) {
-				t.Errorf("%s/%s: WriteUnified(..., TerminalColors(...)) differs from Unified", tt.name, st.name)
+				t.Errorf("%s/%s: WriteUnified(..., TerminalColors(...), UnifiedHeader(...)) differs from Unified", tt.name, st.name)
 			}
 		}
 	}
@@ -315,7 +315,7 @@ func TestUnifiedEdgeCases(t *testing.T) {
 				t.Errorf("Unified(...) if different:\ngot:  %q\nwant: %q", got, tt.want)
 			}
 			if *validate && len(got) > 0 {
-				patched, err := unixpatch.Patch(tt.x, got)
+				patched, err := unixtools.Patch(tt.x, got)
 				if err != nil {
 					t.Fatalf("failed to run patch: %v", err)
 				}
@@ -458,6 +458,308 @@ new hunk
 				t.Errorf("Unified(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, tt.want, diff)
 			}
 		})
+	}
+}
+
+func TestUnifiedHeader(t *testing.T) {
+	tests := []struct {
+		name string
+		x, y string
+		opts []diff.Option
+		want string
+	}{
+		{
+			name: "labels",
+			x:    "a\nb\n",
+			y:    "a\nc\n",
+			opts: []diff.Option{UnifiedHeader("x.txt", "y.txt")},
+			want: `--- x.txt
++++ y.txt
+@@ -1,2 +1,2 @@
+ a
+-b
++c
+`,
+		},
+		{
+			name: "identical",
+			x:    "a\n",
+			y:    "a\n",
+			opts: []diff.Option{UnifiedHeader("x.txt", "y.txt")},
+			want: "",
+		},
+		{
+			name: "empty",
+			x:    "",
+			y:    "",
+			opts: []diff.Option{UnifiedHeader("x.txt", "y.txt")},
+			want: "",
+		},
+		{
+			name: "empty-labels",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("", "")},
+			want: "--- \n+++ \n" + `@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "tab",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("x\t.txt", "y.txt\t")},
+			want: `--- "x\t.txt"
++++ "y.txt\t"
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "quoted",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("a/x\ny\t\"q\"\\", "b/\x00\x1b\x7f\r\a\b\v\fé")},
+			want: `--- "a/x\ny\t\"q\"\\"
++++ "b/\000\033\177\r\a\b\v\fé"
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "leading-quote",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader(`"a/x\ny"`, `"b".txt`)},
+			want: `--- "\"a/x\\ny\""
++++ "\"b\".txt"
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "space",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("a/x y.txt", "b/x y.txt")},
+			want: `--- a/x y.txt` + "\t" + `
++++ b/x y.txt` + "\t" + `
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "space-tab",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("x y\t.txt", "y y.txt\t")},
+			want: `--- "x y\t.txt"` + "\t" + `
++++ "y y.txt\t"` + "\t" + `
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "space-quoted",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("a/x y\n", "b/x y\tz\n")},
+			want: `--- "a/x y\n"` + "\t" + `
++++ "b/x y\tz\n"` + "\t" + `
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "quote-and-backslash",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader(`a/"x"`, `b/x\y`)},
+			want: `--- "a/\"x\""
++++ "b/x\\y"
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "not-quoted",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("a/é-ü.txt", "b/x'y$z.txt")},
+			want: `--- a/é-ü.txt
++++ b/x'y$z.txt
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "last-wins",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("old", "old"), UnifiedHeader("x.txt", "y.txt")},
+			want: `--- x.txt
++++ y.txt
+@@ -1 +1 @@
+-a
++b
+`,
+		},
+		{
+			name: "colors",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("x.txt", "y.txt"), TerminalColors()},
+			want: "\x1b[1m" + `--- x.txt` + "\x1b[m" + `
+` + "\x1b[1m" + `+++ y.txt` + "\x1b[m" + `
+` + "\x1b[36m" + `@@ -1 +1 @@` + "\x1b[m" + `
+` + "\x1b[31m" + `-a
+` + "\x1b[m\x1b[32m" + `+b
+` + "\x1b[m",
+		},
+		{
+			name: "colors-custom",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("x.txt", "y.txt"), TerminalColors(color.FileHeaders(33))},
+			want: "\x1b[33m" + `--- x.txt` + "\x1b[m" + `
+` + "\x1b[33m" + `+++ y.txt` + "\x1b[m" + `
+` + "\x1b[36m" + `@@ -1 +1 @@` + "\x1b[m" + `
+` + "\x1b[31m" + `-a
+` + "\x1b[m\x1b[32m" + `+b
+` + "\x1b[m",
+		},
+		{
+			name: "colors-space",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{UnifiedHeader("x y.txt", "y y.txt"), TerminalColors()},
+			want: "\x1b[1m" + `--- x y.txt` + "\x1b[m\t" + `
+` + "\x1b[1m" + `+++ y y.txt` + "\x1b[m\t" + `
+` + "\x1b[36m" + `@@ -1 +1 @@` + "\x1b[m" + `
+` + "\x1b[31m" + `-a
+` + "\x1b[m\x1b[32m" + `+b
+` + "\x1b[m",
+		},
+		{
+			name: "colors-before-labels",
+			x:    "a\n",
+			y:    "b\n",
+			opts: []diff.Option{TerminalColors(), UnifiedHeader("x.txt", "y.txt")},
+			want: "\x1b[1m" + `--- x.txt` + "\x1b[m" + `
+` + "\x1b[1m" + `+++ y.txt` + "\x1b[m" + `
+` + "\x1b[36m" + `@@ -1 +1 @@` + "\x1b[m" + `
+` + "\x1b[31m" + `-a
+` + "\x1b[m\x1b[32m" + `+b
+` + "\x1b[m",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Unified(tt.x, tt.y, tt.opts...)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Unified(...) result are different:\ngot:  %q\nwant: %q\ndiff [-got,+want]:\n%s", got, tt.want, diff)
+			}
+
+			prefix := []byte("prefix\n")
+			gotAppend := AppendUnified(slices.Clone(prefix), tt.x, tt.y, tt.opts...)
+			if want := string(prefix) + tt.want; string(gotAppend) != want {
+				t.Errorf("AppendUnified(...) = %q, want %q", gotAppend, want)
+			}
+
+			var w chunkWriter
+			if err := WriteUnified(&w, tt.x, tt.y, tt.opts...); err != nil {
+				t.Fatalf("WriteUnified(...) = %v", err)
+			}
+			if w.buf.String() != tt.want {
+				t.Errorf("WriteUnified(...) wrote %q, want %q", w.buf.String(), tt.want)
+			}
+			if tt.want == "" && len(w.chunks) != 0 {
+				t.Errorf("WriteUnified(...) made %d writes for an empty diff, want 0", len(w.chunks))
+			}
+		})
+	}
+}
+
+// TestScanLabelSize checks that the size from scanLabel equals the number of
+// bytes appendFileHeader writes for the label.
+func TestScanLabelSize(t *testing.T) {
+	labels := []string{"", "a/x y.txt", "\"a/x\ny\"", "x y\tz"}
+	// Every byte, alone and after a space, which adds a tab.
+	for c := range 256 {
+		labels = append(labels, string([]byte{byte(c)}), " "+string([]byte{byte(c)}))
+	}
+	for _, label := range labels {
+		l := scanLabel(label)
+		got := len(appendFileHeader(nil, "", l, config.ColorConfig{})) - len("\n")
+		if got != l.size {
+			t.Errorf("scanLabel(%q).size = %d, appendFileHeader wrote %d bytes", label, l.size, got)
+		}
+	}
+}
+
+// TestUnifiedHeaderApply checks that git apply and patch find the file to
+// patch from the header alone.
+func TestUnifiedHeaderApply(t *testing.T) {
+	if !*validate {
+		t.Skip("requires -validate")
+	}
+	const x, y = "one\ntwo\nthree\n", "one\n2\nthree\n"
+	tests := []struct {
+		name   string
+		quoted bool // Reports whether the header writes name in double quotes.
+	}{
+		{name: "plain.txt"},
+		{name: "dir/plain.txt"},
+		{name: "with space.txt"},
+		{name: `quo"te.txt`, quoted: true},
+		{name: `back\slash.txt`, quoted: true},
+		{name: "nön-ascii.txt"},
+		{name: "new\nline.txt", quoted: true},
+		{name: "esc\x1b.txt", quoted: true},
+		{name: `"leading-quote".txt`, quoted: true},
+		{name: "space and\nnewline.txt", quoted: true},
+		{name: "tab\t.txt", quoted: true},
+	}
+	tools := []struct {
+		name  string
+		apply func(name, orig, diff string) (string, error)
+		// BSD patch, the default on macOS, reads a quoted name literally,
+		// quotes and escapes included. git apply and GNU patch decode it.
+		decodesQuotes bool
+	}{
+		{"git apply", unixtools.GitApply, true},
+		{"patch", unixtools.PatchFile, unixtools.IsGNUPatch()},
+	}
+	for _, tool := range tools {
+		for _, tt := range tests {
+			if tt.quoted && !tool.decodesQuotes {
+				continue
+			}
+			// GNU patch 2.8 decodes a name with a newline, then fails with
+			// EILSEQ to rename its temporary file to that name.
+			if tool.name == "patch" && strings.Contains(tt.name, "\n") {
+				continue
+			}
+			t.Run(tool.name+"/"+strconv.Quote(tt.name), func(t *testing.T) {
+				d := Unified(x, y, UnifiedHeader("a/"+tt.name, "b/"+tt.name))
+				got, err := tool.apply(tt.name, x, d)
+				if err != nil {
+					t.Fatalf("%s failed: %v\ndiff:\n%s", tool.name, err, d)
+				}
+				if got != y {
+					t.Errorf("%s produced %q, want %q\ndiff:\n%s", tool.name, got, y, d)
+				}
+			})
+		}
 	}
 }
 
