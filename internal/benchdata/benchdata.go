@@ -36,7 +36,7 @@ var files = map[string]string{
 	"large01":  "internal/benchmarks/testdata/large_01.test",
 	"large02":  "internal/benchmarks/testdata/large_02.test",
 	"large04":  "internal/benchmarks/testdata/large_04.test",
-	"manifest": "textdiff/testdata/go_78eadf5b3de568297456fe137b65ff16e8cc8bb6_src_cmd_vendor_golang.org_x_tools_internal_stdlib_manifest.go.test",
+	"manifest": "textdiff/testdata/unified/go_78eadf5b3de568297456fe137b65ff16e8cc8bb6_src_cmd_vendor_golang.org_x_tools_internal_stdlib_manifest.go.test",
 }
 
 // Load returns the inputs x and y with the given name, one of [Names]. "few" is
@@ -81,7 +81,7 @@ type Pair struct{ X, Y []byte }
 func All(tb testing.TB, maxSize int) []Pair {
 	tb.Helper()
 	dir := root(tb)
-	files, _ := filepath.Glob(filepath.Join(dir, "textdiff/testdata/*.test"))
+	files, _ := filepath.Glob(filepath.Join(dir, "textdiff/testdata/unified/*.test"))
 	more, _ := filepath.Glob(filepath.Join(dir, "internal/benchmarks/testdata/*.test"))
 	var ps []Pair
 	for _, f := range append(files, more...) {

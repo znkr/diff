@@ -1264,7 +1264,7 @@ type subtest struct {
 
 func parseTests(t testing.TB) []test {
 	t.Helper()
-	testFiles, err := filepath.Glob("testdata/*.test")
+	testFiles, err := filepath.Glob("testdata/unified/*.test")
 	if err != nil {
 		t.Fatalf("Failed to read testdata: %v", err)
 	}
@@ -1274,7 +1274,7 @@ func parseTests(t testing.TB) []test {
 		if err != nil {
 			t.Fatalf("failed to parse test case: %v", err)
 		}
-		name := strings.TrimPrefix(filename, "testdata/")
+		name := strings.TrimPrefix(filename, "testdata/unified/")
 		test := test{
 			name:     name,
 			filename: filename,
