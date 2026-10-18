@@ -30,13 +30,13 @@ import (
 	"math"
 	"slices"
 	"strconv"
-	"unsafe"
 
 	"znkr.io/diff"
 	"znkr.io/diff/internal/config"
 	"znkr.io/diff/internal/impl"
 	"znkr.io/diff/internal/indentheuristic"
 	"znkr.io/diff/internal/lines"
+	"znkr.io/diff/internal/mem"
 	"znkr.io/diff/internal/pool"
 	"znkr.io/diff/internal/rvecs"
 )
@@ -241,7 +241,7 @@ const missingNewline = "\n\\ No newline at end of file\n"
 // minor version upgrades. DO NOT rely on the output being stable.
 func Unified[T string | []byte](x, y T, opts ...Option) T {
 	out, _ := formatUnified(nil, nil, x, y, opts)
-	return unsafeFromBytes[T](out)
+	return mem.Own[T](out)
 }
 
 // AppendUnified is [Unified], but it appends the output to dst and returns the
@@ -611,16 +611,4 @@ func (d *lineDiff[T]) release() {
 	d.x.Release()
 	d.y.Release()
 	rvecs.Release(d.rx, d.ry)
-}
-
-// unsafeFromBytes returns b as a T without copying. If T is string, b must not
-// be modified afterwards.
-func unsafeFromBytes[T string | []byte](b []byte) T {
-	switch any((*T)(nil)).(type) {
-	case *string:
-		return T(unsafe.String(unsafe.SliceData(b), len(b)))
-	case *[]byte:
-		return T(b)
-	}
-	panic("never reached")
 }

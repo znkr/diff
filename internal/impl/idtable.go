@@ -19,6 +19,7 @@ import (
 	"math/bits"
 
 	"znkr.io/diff/internal/lines"
+	"znkr.io/diff/internal/mem"
 	"znkr.io/diff/internal/pool"
 )
 
@@ -143,7 +144,7 @@ func (tab *idTable) lookupHash[T any](x []T, e T, hv uint64, h maphash.Hasher[T]
 
 // insertLine returns the ID of line i of x, adding it to tab if it's not
 // present. e is the line and h is its hash.
-func (tab *idTable) insertLine(x *lines.Lines, i int, e string, h uint64) int {
+func (tab *idTable) insertLine(x *lines.Lines, i int, e mem.UnsafeString, h uint64) int {
 	tag := h &^ idMask
 	for j := h & tab.mask; ; j = (j + 1) & tab.mask {
 		slot := tab.slots[j]
@@ -161,7 +162,7 @@ func (tab *idTable) insertLine(x *lines.Lines, i int, e string, h uint64) int {
 
 // lookupLine returns the ID of line e or -1 if it's not in tab. x holds the
 // lines tab was built from. h is the hash of e.
-func (tab *idTable) lookupLine(x *lines.Lines, e string, h uint64) int {
+func (tab *idTable) lookupLine(x *lines.Lines, e mem.UnsafeString, h uint64) int {
 	tag := h &^ idMask
 	for j := h & tab.mask; ; j = (j + 1) & tab.mask {
 		slot := tab.slots[j]

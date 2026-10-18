@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"znkr.io/diff/internal/lines"
+	"znkr.io/diff/internal/mem"
 )
 
 func TestIDTableCollisions(t *testing.T) {
@@ -40,7 +41,7 @@ func TestIDTableCollisions(t *testing.T) {
 		t.Errorf("insertLine IDs = %v, want %v", got, want)
 	}
 	for _, tt := range []struct {
-		line string
+		line mem.UnsafeString
 		want int
 	}{
 		{"a\n", 0},

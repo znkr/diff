@@ -47,6 +47,7 @@ import (
 	"cmp"
 
 	"znkr.io/diff/internal/lines"
+	"znkr.io/diff/internal/mem"
 	"znkr.io/diff/internal/rvecs"
 )
 
@@ -322,7 +323,7 @@ func measureShift(lines *lines.Lines, shift int) measure {
 	return m
 }
 
-func getIndent(line string) int {
+func getIndent(line mem.UnsafeString) int {
 	indent := 0
 	for i := range len(line) {
 		switch line[i] {

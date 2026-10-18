@@ -206,7 +206,7 @@ func TestSplitPairExamples(t *testing.T) {
 func all(l *Lines) []string {
 	out := make([]string, l.Len())
 	for i := range out {
-		out[i] = l.Line(i)
+		out[i] = l.Line(i).Clone()
 	}
 	return out
 }

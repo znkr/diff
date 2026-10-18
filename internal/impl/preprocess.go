@@ -95,12 +95,12 @@ func preprocessLines(rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y *lines.L
 	// read them with At, which inlines.
 	for i := smin; i < smax; i++ {
 		e := x.At(i)
-		id := tab.insertLine(x, i, e, maphash.String(seed, e))
+		id := tab.insertLine(x, i, e, maphash.String(seed, string(e)))
 		p.addX(id)
 	}
 	for i := tmin; i < tmax; i++ {
 		e := y.At(i)
-		id := tab.lookupLine(x, e, maphash.String(seed, e))
+		id := tab.lookupLine(x, e, maphash.String(seed, string(e)))
 		if id < 0 {
 			ry.Set(i)
 			continue

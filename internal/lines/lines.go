@@ -18,9 +18,8 @@ package lines
 
 import (
 	"math/bits"
-	"strings"
-	"unsafe"
 
+	"znkr.io/diff/internal/mem"
 	"znkr.io/diff/internal/pool"
 )
 
@@ -31,7 +30,7 @@ type Lines struct {
 	// instead of having a type parameter for the input, because generic code
 	// converts a []byte with a type switch on every call, and the diff reads
 	// every line several times.
-	s string
+	s mem.UnsafeString
 	b []int // line i is s[b[i]:b[i+1]]
 
 	// b[lo:hi+1] are computed. SplitPair doesn't compute the boundaries of the
@@ -44,32 +43,32 @@ type Lines struct {
 
 // Split returns the lines of s. The result must only be used while s is not
 // modified. Call [Lines.Release] when the result is no longer needed.
-func Split[T string | []byte](s T) Lines { return split(unsafeString(s), 0, 0, 0, 0) }
+func Split[T string | []byte](s T) Lines { return split(mem.Of(s), 0, 0, 0, 0) }
 
 // SplitPair returns the lines of x and y and the number of lines in their
 // longest common prefix and suffix. The prefix and suffix don't overlap. The
 // results must only be used while x and y are not modified. Call
 // [Lines.Release] on both results when they are no longer needed.
 func SplitPair[T string | []byte](x, y T) (xl, yl Lines, prefix, suffix int) {
-	xs, ys := unsafeString(x), unsafeString(y)
+	xs, ys := mem.Of(x), mem.Of(y)
 
 	// Comparing bytes finds the common prefix and suffix without splitting
 	// their lines. They consist of whole lines in both x and y, and they are
 	// the longest such prefix and suffix.
 	p := commonPrefix(xs, ys)
-	p = strings.LastIndexByte(xs[:p], '\n') + 1
+	p = xs[:p].LastIndexByte('\n') + 1
 	q := commonSuffix(xs[p:], ys[p:])
 	if q > 0 && !(lineStart(xs, len(xs)-q) && lineStart(ys, len(ys)-q)) {
 		// The suffix starts in the middle of a line in x or y. Both have the
 		// same bytes after the next newline, so starting after it is a line
 		// start in both.
-		if i := strings.IndexByte(xs[len(xs)-q:], '\n'); i < 0 {
+		if i := xs[len(xs)-q:].IndexByte('\n'); i < 0 {
 			q = 0
 		} else {
 			q -= i + 1
 		}
 	}
-	prefix = strings.Count(xs[:p], "\n")
+	prefix = xs[:p].Count("\n")
 	suffix = countLines(xs[len(xs)-q:])
 	return split(xs, prefix, suffix, p, q), split(ys, prefix, suffix, p, q), prefix, suffix
 }
@@ -77,7 +76,7 @@ func SplitPair[T string | []byte](x, y T) (xl, yl Lines, prefix, suffix int) {
 // split returns the lines of s. The first npre lines end at byte p and the last
 // nsuf lines start q bytes before the end of s. Only the boundaries of the
 // lines between them are computed.
-func split(s string, npre, nsuf, p, q int) Lines {
+func split(s mem.UnsafeString, npre, nsuf, p, q int) Lines {
 	mid := s[p : len(s)-q]
 	n := npre + countLines(mid) + nsuf
 	// b[npre] is the start of mid and b[n-nsuf] is its end. lineStarts writes
@@ -94,7 +93,7 @@ func split(s string, npre, nsuf, p, q int) Lines {
 // lineStarts stores off plus the offset after each newline in s in starts, and
 // then one more value. starts must have room for the number of newlines in s
 // plus one.
-func lineStarts(s string, off int, starts []int) {
+func lineStarts(s mem.UnsafeString, off int, starts []int) {
 	k, i := 0, 0
 	// Two words per iteration halve the loop overhead. More don't help.
 	for ; i+16 <= len(s); i += 16 {
@@ -116,7 +115,7 @@ func lineStarts(s string, off int, starts []int) {
 
 // newlineMask reads the 8 bytes of w as a little-endian word and returns a
 // mask with the high bit set in each byte that is a newline.
-func newlineMask(w string) uint64 {
+func newlineMask(w mem.UnsafeString) uint64 {
 	const lo7 = 0x7f7f7f7f7f7f7f7f
 	const newlines = 0x0a0a0a0a0a0a0a0a
 	_ = w[7]
@@ -159,7 +158,7 @@ func (l *Lines) Release() { pool.Ints.Put(l.b) }
 func (l *Lines) Len() int { return len(l.b) - 1 }
 
 // Line returns line i. The result shares memory with the input of l.
-func (l *Lines) Line(i int) string {
+func (l *Lines) Line(i int) mem.UnsafeString {
 	if i < l.lo || i >= l.hi {
 		l.extend(i, i+1)
 	}
@@ -170,7 +169,7 @@ func (l *Lines) Line(i int) string {
 // that it inlines. Line i must be one whose boundaries are always computed: any
 // line of [Split], or a line between the common prefix and suffix of
 // [SplitPair].
-func (l *Lines) At(i int) string { return l.s[l.b[i]:l.b[i+1]] }
+func (l *Lines) At(i int) mem.UnsafeString { return l.s[l.b[i]:l.b[i+1]] }
 
 // Span returns the offsets of the first byte of line i and of the byte after it
 // in the input.
@@ -196,11 +195,11 @@ func (l *Lines) extend(i, j int) {
 	for i < l.lo {
 		// The lines before lo are in the common prefix, so line lo-1 ends with
 		// a newline.
-		l.b[l.lo-1] = strings.LastIndexByte(l.s[:l.b[l.lo]-1], '\n') + 1
+		l.b[l.lo-1] = l.s[:l.b[l.lo]-1].LastIndexByte('\n') + 1
 		l.lo--
 	}
 	for j > l.hi {
-		m := strings.IndexByte(l.s[l.b[l.hi]:], '\n') + 1
+		m := l.s[l.b[l.hi]:].IndexByte('\n') + 1
 		if m == 0 {
 			m = len(l.s) - l.b[l.hi] // last line without a newline
 		}
@@ -211,8 +210,8 @@ func (l *Lines) extend(i, j int) {
 
 // countLines returns the number of lines in s. The last line may be missing a
 // newline character.
-func countLines(s string) int {
-	n := strings.Count(s, "\n")
+func countLines(s mem.UnsafeString) int {
+	n := s.Count("\n")
 	if len(s) > 0 && s[len(s)-1] != '\n' {
 		n++
 	}
@@ -220,22 +219,10 @@ func countLines(s string) int {
 }
 
 // lineStart reports whether a line starts at s[i].
-func lineStart(s string, i int) bool { return i == 0 || s[i-1] == '\n' }
-
-// unsafeString returns v as a string without copying. The result must only be
-// read while v is not modified.
-func unsafeString[T string | []byte](v T) string {
-	switch v := any(v).(type) {
-	case string:
-		return v
-	case []byte:
-		return unsafe.String(unsafe.SliceData(v), len(v))
-	}
-	panic("never reached")
-}
+func lineStart(s mem.UnsafeString, i int) bool { return i == 0 || s[i-1] == '\n' }
 
 // commonPrefix returns the length of the common prefix of a and b.
-func commonPrefix(a, b string) int {
+func commonPrefix(a, b mem.UnsafeString) int {
 	n := min(len(a), len(b))
 	i := 0
 	// Compare blocks first, which uses the runtime's vectorized comparison.
@@ -250,7 +237,7 @@ func commonPrefix(a, b string) int {
 }
 
 // commonSuffix returns the length of the common suffix of a and b.
-func commonSuffix(a, b string) int {
+func commonSuffix(a, b mem.UnsafeString) int {
 	n := min(len(a), len(b))
 	i := 0
 	const block = 256
