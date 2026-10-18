@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"hash/maphash"
 	"math/rand/v2"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -502,11 +503,12 @@ func TestHashMatchesComparable(t *testing.T) {
 	for range 2000 {
 		x, y := gen(), gen()
 		for _, opts := range [][]Option{nil, {Minimal()}, {Fast()}} {
-			if diff := cmp.Diff(Hunks(x, y, opts...), HunksHash(x, y, h, opts...)); diff != "" {
-				t.Fatalf("HunksHash(%v, %v) differs from Hunks [-Hunks, +HunksHash]:\n%s", x, y, diff)
+			// cmp.Diff is slow, so it only runs to report a difference.
+			if want, got := Hunks(x, y, opts...), HunksHash(x, y, h, opts...); !reflect.DeepEqual(want, got) {
+				t.Fatalf("HunksHash(%v, %v) differs from Hunks [-Hunks, +HunksHash]:\n%s", x, y, cmp.Diff(want, got))
 			}
-			if diff := cmp.Diff(Edits(x, y, opts...), EditsHash(x, y, h, opts...)); diff != "" {
-				t.Fatalf("EditsHash(%v, %v) differs from Edits [-Edits, +EditsHash]:\n%s", x, y, diff)
+			if want, got := Edits(x, y, opts...), EditsHash(x, y, h, opts...); !reflect.DeepEqual(want, got) {
+				t.Fatalf("EditsHash(%v, %v) differs from Edits [-Edits, +EditsHash]:\n%s", x, y, cmp.Diff(want, got))
 			}
 		}
 	}
@@ -558,8 +560,9 @@ func TestHashCustom(t *testing.T) {
 			for _, opts := range [][]Option{nil, {Minimal()}, {Fast()}} {
 				want := pos(Edits(lower(x), lower(y), opts...))
 				got := EditsHash(x, y, h, opts...)
-				if diff := cmp.Diff(want, pos(got)); diff != "" {
-					t.Fatalf("EditsHash(%q, %q, %+v) differs from Edits on lowercase inputs [-want, +got]:\n%s", x, y, h, diff)
+				// cmp.Diff is slow, so it only runs to report a difference.
+				if gotPos := pos(got); !reflect.DeepEqual(want, gotPos) {
+					t.Fatalf("EditsHash(%q, %q, %+v) differs from Edits on lowercase inputs [-want, +got]:\n%s", x, y, h, cmp.Diff(want, gotPos))
 				}
 				for _, e := range got {
 					if e.Op == Match && !h.Equal(e.X, e.Y) {

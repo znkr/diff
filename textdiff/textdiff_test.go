@@ -48,16 +48,18 @@ func TestUnified(t *testing.T) {
 				t.Run(st.name, func(t *testing.T) {
 					t.Parallel()
 					got := Unified(tt.x, tt.y, st.opts...)
-					if diff := cmp.Diff(st.want, got); diff != "" {
-						t.Errorf("Unified(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, diff)
+					// cmp.Diff takes seconds on the large testdata files, so it
+					// only runs to report a difference.
+					if !bytes.Equal(st.want, got) {
+						t.Errorf("Unified(...) result are different:\ngot:\n%s\nwant:\n%s\ndiff [-got,+want]:\n%s", got, st.want, cmp.Diff(st.want, got))
 					}
 					if *validate && len(got) > 0 {
 						patched, err := unixtools.Patch(string(tt.x), string(got))
 						if err != nil {
 							t.Fatalf("failed to run patch: %v", err)
 						}
-						if diff := cmp.Diff(tt.y, []byte(patched)); diff != "" {
-							t.Errorf("file is different after applying patch [-got,+want]:\n%s", diff)
+						if !bytes.Equal(tt.y, []byte(patched)) {
+							t.Errorf("file is different after applying patch [-got,+want]:\n%s", cmp.Diff(tt.y, []byte(patched)))
 						}
 					}
 					if *update {
