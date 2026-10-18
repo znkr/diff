@@ -1,0 +1,12 @@
+A "--- " line at the end of the patch after a hunk.
+-- x --
+-- y --
+-- diff --
+--- x
++++ y
+@@ -1 +1 @@
+-a
++b
+--- z
+-- error --
+line 7: missing "+++ " line after "--- " line

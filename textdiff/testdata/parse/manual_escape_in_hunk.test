@@ -1,0 +1,11 @@
+A colored body line, which git apply rejects as a corrupt patch.
+-- x --
+-- y --
+-- diff --
+--- a
++++ b
+@@ -1,2 +1,2 @@
+-a
+[1m
+-- error --
+line 5: unknown line prefix '\x1b'

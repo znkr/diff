@@ -1,0 +1,9 @@
+Text instead of a hunk after the file header.
+-- x --
+-- y --
+-- diff --
+--- x
++++ y
+hello
+-- error --
+line 3: missing hunk header after file header

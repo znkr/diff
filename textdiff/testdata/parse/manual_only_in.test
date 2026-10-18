@@ -1,0 +1,13 @@
+The output of diff -r without -N, where a file exists only in one directory.
+-- x --
+-- y --
+-- diff --
+diff -u -r a/f b/f
+--- a/f
++++ b/f
+@@ -1 +1 @@
+-a
++b
+Only in b: g
+-- error --
+line 7: unexpected text after hunk

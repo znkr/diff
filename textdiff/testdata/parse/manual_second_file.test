@@ -1,0 +1,26 @@
+A second file header after a hunk.
+-- x --
+a
+-- y --
+b
+-- x2 --
+c
+-- y2 --
+d
+-- diff --
+--- x
++++ y
+@@ -1 +1 @@
+-a
++b
+--- z
++++ w
+@@ -1 +1 @@
+-c
++d
+-- headers --
+X: "x"
+Y: "y"
+
+X: "z"
+Y: "w"

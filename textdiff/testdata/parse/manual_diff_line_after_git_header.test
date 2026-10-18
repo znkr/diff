@@ -1,0 +1,15 @@
+A "diff " line after a git diff without a content change.
+-- x --
+-- y --
+-- diff --
+diff --git a/f b/f
+old mode 100644
+new mode 100755
+diff -r x y
+--- x
++++ y
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 4: unexpected text after git diff header

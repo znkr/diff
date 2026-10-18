@@ -1,0 +1,15 @@
+A hunk that starts in y before the previous hunk ends, as go-udiff writes.
+-- x --
+-- y --
+-- diff --
+--- a
++++ b
+@@ -1 +1,2 @@
+-a
++b
++c
+@@ -3 +2 @@
+-d
++e
+-- error --
+line 7: hunk overlaps the previous hunk

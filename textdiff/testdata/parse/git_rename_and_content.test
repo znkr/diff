@@ -1,0 +1,48 @@
+A rename with a content change.
+
+Command: git diff --cached -M
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+TEN
+-- diff --
+diff --git a/f b/g
+similarity index 91%
+rename from f
+rename to g
+index c9e9e05..edf6008 100644
+--- a/f
++++ b/g
+@@ -7,4 +7,4 @@ six
+ seven
+ eight
+ nine
+-ten
++TEN
+-- headers --
+X: "a/f"
+Y: "b/g"
+Extended: "diff --git a/f b/g"
+Extended: "similarity index 91%"
+Extended: "rename from f"
+Extended: "rename to g"
+Extended: "index c9e9e05..edf6008 100644"

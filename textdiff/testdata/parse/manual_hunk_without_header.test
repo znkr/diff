@@ -1,0 +1,9 @@
+A hunk without a file header, which git apply rejects.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 1: hunk without file header

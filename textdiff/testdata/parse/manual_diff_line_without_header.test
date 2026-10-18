@@ -1,0 +1,13 @@
+A "diff " line after a hunk that is not followed by a file header.
+-- x --
+-- y --
+-- diff --
+--- x
++++ y
+@@ -1 +1 @@
+-a
++b
+diff -u z w
+hello
+-- error --
+line 7: missing file header after "diff " line

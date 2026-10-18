@@ -1,0 +1,13 @@
+A signature after the hunks of a raw patch.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+-a
++b
+-- 
+2.54.0
+-- mode --
+headerless
+-- error --
+line 4: unexpected text after hunk

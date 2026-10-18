@@ -1,0 +1,16 @@
+A second file after the hunks of a raw patch.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+-a
++b
+--- c
++++ d
+@@ -1 +1 @@
+-a
++b
+-- mode --
+headerless
+-- error --
+line 4: unexpected text after hunk

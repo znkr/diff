@@ -51,6 +51,9 @@ func (s UnsafeString) LastIndexByte(c byte) int { return strings.LastIndexByte(s
 // Count returns the number of non-overlapping instances of substr in s.
 func (s UnsafeString) Count(substr string) int { return strings.Count(string(s), substr) }
 
+// HasPrefix reports whether s begins with prefix.
+func (s UnsafeString) HasPrefix(prefix string) bool { return strings.HasPrefix(string(s), prefix) }
+
 // Own returns b as a T without copying. b must not be modified afterwards.
 func Own[T string | []byte](b []byte) T {
 	switch any((*T)(nil)).(type) {

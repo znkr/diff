@@ -1,0 +1,13 @@
+A file header in a raw patch.
+-- x --
+-- y --
+-- diff --
+--- a
++++ b
+@@ -1 +1 @@
+-a
++b
+-- mode --
+headerless
+-- error --
+line 1: missing hunk header

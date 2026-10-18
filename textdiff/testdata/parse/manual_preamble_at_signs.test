@@ -1,0 +1,13 @@
+A line in the preamble that starts like a hunk header.
+-- x --
+-- y --
+-- diff --
+Subject: x
+@@ bogus
+--- a
++++ b
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 2: malformed hunk header

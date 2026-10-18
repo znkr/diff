@@ -1,0 +1,53 @@
+A diff of two files, where the first has no hunks.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- x2 --
+line
+-- y2 --
+line
+line
+-- diff --
+diff --git a/a b/a
+old mode 100644
+new mode 100755
+diff --git a/b b/b
+index a999a0c..13e3d3a 100644
+--- a/b
++++ b/b
+@@ -1 +1,2 @@
+ line
++line
+-- headers --
+X: ""
+Y: ""
+Extended: "diff --git a/a b/a"
+Extended: "old mode 100644"
+Extended: "new mode 100755"
+
+X: "a/b"
+Y: "b/b"
+Extended: "diff --git a/b b/b"
+Extended: "index a999a0c..13e3d3a 100644"

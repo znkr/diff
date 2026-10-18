@@ -1,0 +1,18 @@
+BSD diff writes a file name with a newline unquoted, which splits the header.
+
+Command: diff -u x 'y
+y'
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+a
+-- y --
+b
+-- diff --
+--- x	2026-01-02 03:04:05
++++ y
+y	2026-01-02 03:04:06
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 3: missing hunk header after file header

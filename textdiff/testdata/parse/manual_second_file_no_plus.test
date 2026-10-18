@@ -1,0 +1,15 @@
+A "--- " line after a hunk without a "+++ " line.
+-- x --
+-- y --
+-- diff --
+--- x
++++ y
+@@ -1 +1 @@
+-a
++b
+--- z
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 7: missing "+++ " line after "--- " line

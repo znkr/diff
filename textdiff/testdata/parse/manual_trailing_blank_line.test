@@ -1,0 +1,12 @@
+An empty line after the last hunk.
+-- x --
+-- y --
+-- diff --
+--- a
++++ b
+@@ -1 +1 @@
+-a
++b
+
+-- error --
+line 6: unexpected text after hunk
