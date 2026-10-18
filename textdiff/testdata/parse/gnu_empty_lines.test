@@ -1,0 +1,26 @@
+Empty lines as context.
+
+Command: diff -u x y
+Tool: diff (GNU diffutils) 3.12
+-- x --
+a
+
+b
+
+-- y --
+a
+
+c
+
+-- diff --
+--- x	2026-01-02 03:04:05.000000000 +0000
++++ y	2026-01-02 03:04:06.000000000 +0000
+@@ -1,4 +1,4 @@
+ a
+ 
+-b
++c
+ 
+-- header --
+"x"
+"y"

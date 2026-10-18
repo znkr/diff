@@ -1,0 +1,14 @@
+A label with a quote but no closing quote is kept as written.
+-- x --
+a
+-- y --
+b
+-- diff --
+--- "x
++++ y
+@@ -1 +1 @@
+-a
++b
+-- header --
+"\"x"
+"y"

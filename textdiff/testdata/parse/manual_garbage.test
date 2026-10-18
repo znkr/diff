@@ -1,0 +1,8 @@
+Text without a file header or hunk.
+-- x --
+-- y --
+-- diff --
+hello
+world
+-- error --
+line 2: no file header or hunk

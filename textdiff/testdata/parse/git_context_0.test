@@ -1,0 +1,37 @@
+No context, so the insertion has an empty range.
+
+Command: git diff --cached -U0
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+new
+six
+seven
+eight
+nine
+ten
+-- diff --
+diff --git a/f b/f
+index c9e9e05..3e0a6c8 100644
+--- a/f
++++ b/f
+@@ -5,0 +6 @@ five
++new
+-- header --
+"a/f"
+"b/f"

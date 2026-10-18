@@ -1,0 +1,22 @@
+Lines end in CRLF.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+a
+b
+-- y --
+a
+c
+-- diff --
+diff --git a/f b/f
+index c30dea8..06c9c76 100644
+--- a/f
++++ b/f
+@@ -1,2 +1,2 @@
+ a
+-b
++c
+-- header --
+"a/f"
+"b/f"

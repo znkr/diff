@@ -1,0 +1,9 @@
+A non-empty range that starts at line 0.
+-- x --
+-- y --
+-- diff --
+@@ -0 +1 @@
+-a
++b
+-- error --
+line 1: malformed hunk header

@@ -1,0 +1,13 @@
+A hunk after the "\" line that ends y.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+-a
++b
+\ No newline at end of file
+@@ -2 +2 @@
+-c
++d
+-- error --
+line 5: hunk after end of file

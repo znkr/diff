@@ -1,0 +1,9 @@
+A range whose end does not fit in an int.
+-- x --
+-- y --
+-- diff --
+@@ -2,9223372036854775807 +1 @@
+-a
++b
+-- error --
+line 1: malformed hunk header

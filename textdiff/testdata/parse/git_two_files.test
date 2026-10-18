@@ -1,0 +1,53 @@
+A diff of two files.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+TWO
+three
+four
+five
+six
+seven
+eight
+NINE
+ten
+-- diff --
+diff --git a/f b/f
+index c9e9e05..061a3ba 100644
+--- a/f
++++ b/f
+@@ -1,10 +1,10 @@
+ one
+-two
++TWO
+ three
+ four
+ five
+ six
+ seven
+ eight
+-nine
++NINE
+ ten
+diff --git a/g b/g
+index a999a0c..13e3d3a 100644
+--- a/g
++++ b/g
+@@ -1 +1,2 @@
+ line
++line
+-- error --
+line 18: patch contains more than one file

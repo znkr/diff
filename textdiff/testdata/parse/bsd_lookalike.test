@@ -1,0 +1,35 @@
+Body lines that look like patch syntax without their prefix.
+
+Command: diff -u x y
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+x
+-- a
+++ b
+@@ -1 +1 @@
+\ c
+diff --git a b
+y
+-- y --
+x
+y
+-- a
+++ b
+@@ -1 +1 @@
+\ c
+diff --git a b
+-- diff --
+--- x	2026-01-02 03:04:05
++++ y	2026-01-02 03:04:06
+@@ -1,7 +1,7 @@
+ x
++y
+ -- a
+ ++ b
+ @@ -1 +1 @@
+ \ c
+ diff --git a b
+-y
+-- header --
+"x"
+"y"

@@ -1,0 +1,14 @@
+Two hunks without a line between them.
+-- x --
+a
+c
+-- y --
+b
+d
+-- diff --
+@@ -1 +1 @@
+-a
++b
+@@ -2 +2 @@
+-c
++d

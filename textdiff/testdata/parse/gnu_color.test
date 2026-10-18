@@ -1,0 +1,44 @@
+Colored output.
+
+Command: diff -u --color=always x y
+Tool: diff (GNU diffutils) 3.12
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+TWO
+three
+four
+five
+six
+seven
+eight
+NINE
+ten
+-- diff --
+[1m--- x	2026-01-02 03:04:05.000000000 +0000[0m
+[1m+++ y	2026-01-02 03:04:06.000000000 +0000[0m
+[36m@@ -1,10 +1,10 @@[0m
+ one
+[31m-two[0m
+[32m+TWO[0m
+ three
+ four
+ five
+ six
+ seven
+ eight
+[31m-nine[0m
+[32m+NINE[0m
+ ten
+-- error --
+line 1: ANSI escape sequence

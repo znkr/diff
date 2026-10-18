@@ -18,7 +18,8 @@
 // output like the Unix diff command. The main functions are [Hunks] for grouped
 // changes, [Edits] for individual changes, and [Unified] for standard diff
 // format output. [AppendUnified] and [WriteUnified] write the same output to a
-// buffer or an [io.Writer].
+// buffer or an [io.Writer]. [ParseUnified] reads a unified diff, as written by
+// [Unified], git diff or diff -u, into hunks.
 //
 // Performance: Default complexity is O(N^1.5 log N) time and O(N) space. With
 // [diff.Minimal], time complexity becomes O(ND) where N = len(x) + len(y) and D
@@ -487,6 +488,9 @@ func appendFileHeader(b []byte, prefix string, l fileLabel, colors config.ColorC
 	return append(b, '\n')
 }
 
+// escapes holds the letters of the C escapes for '\a' to '\r', in order.
+const escapes = "abtnvfr"
+
 // appendQuoted appends label in double quotes with C-style escapes to b and
 // returns the extended buffer.
 func appendQuoted(b []byte, label string) []byte {
@@ -496,7 +500,7 @@ func appendQuoted(b []byte, label string) []byte {
 	for i := range len(label) {
 		switch c := label[i]; {
 		case '\a' <= c && c <= '\r':
-			b = append(b, '\\', "abtnvfr"[c-'\a'])
+			b = append(b, '\\', escapes[c-'\a'])
 		case c == '"' || c == '\\':
 			b = append(b, '\\', c)
 		case isControl(c):

@@ -1,0 +1,19 @@
+git quotes file names with special characters.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+a
+-- y --
+b
+-- diff --
+diff --git "a/f\t\"\\" "b/f\t\"\\"
+index 7898192..6178079 100644
+--- "a/f\t\"\\"
++++ "b/f\t\"\\"
+@@ -1 +1 @@
+-a
++b
+-- header --
+"a/f\t\"\\"
+"b/f\t\"\\"

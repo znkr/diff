@@ -1,0 +1,10 @@
+A hunk with more lines of x than its header counts.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1,2 @@
+-a
+-b
++c
+-- error --
+line 3: hunk is longer than its header

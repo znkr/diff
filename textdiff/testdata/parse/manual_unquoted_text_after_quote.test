@@ -1,0 +1,14 @@
+A label with text after the closing quote is kept as written, up to a tab.
+-- x --
+a
+-- y --
+b
+-- diff --
+--- "x"y	2026-01-02
++++ y
+@@ -1 +1 @@
+-a
++b
+-- header --
+"\"x\"y"
+"y"

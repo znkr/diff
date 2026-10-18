@@ -1,0 +1,17 @@
+x is empty.
+
+Command: diff -u x y
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+-- y --
+a
+b
+-- diff --
+--- x	2026-01-02 03:04:05
++++ y	2026-01-02 03:04:06
+@@ -0,0 +1,2 @@
++a
++b
+-- header --
+"x"
+"y"

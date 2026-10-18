@@ -1,0 +1,20 @@
+A new file is diffed against /dev/null.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+-- y --
+a
+b
+-- diff --
+diff --git a/f b/f
+new file mode 100644
+index 0000000..422c2b7
+--- /dev/null
++++ b/f
+@@ -0,0 +1,2 @@
++a
++b
+-- header --
+"/dev/null"
+"b/f"

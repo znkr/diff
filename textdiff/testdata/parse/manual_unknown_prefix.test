@@ -1,0 +1,8 @@
+A body line with an unknown prefix.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+*a
+-- error --
+line 2: unknown line prefix '*'

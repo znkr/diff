@@ -1,0 +1,19 @@
+Labels without a/ and b/.
+
+Command: git diff --cached --no-prefix
+Tool: git version 2.54.0
+-- x --
+a
+-- y --
+b
+-- diff --
+diff --git f f
+index 7898192..6178079 100644
+--- f
++++ f
+@@ -1 +1 @@
+-a
++b
+-- header --
+"f"
+"f"

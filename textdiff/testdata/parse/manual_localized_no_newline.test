@@ -1,0 +1,10 @@
+A "\" line in the language of the diff tool.
+-- x-noeol --
+a
+-- y --
+a
+-- diff --
+@@ -1 +1 @@
+-a
+\ Kein Zeilenumbruch am Dateiende.
++a

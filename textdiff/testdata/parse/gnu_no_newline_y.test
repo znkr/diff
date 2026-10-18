@@ -1,0 +1,21 @@
+y has no newline at the end.
+
+Command: diff -u x y
+Tool: diff (GNU diffutils) 3.12
+-- x --
+a
+b
+-- y-noeol --
+a
+b
+-- diff --
+--- x	2026-01-02 03:04:05.000000000 +0000
++++ y	2026-01-02 03:04:06.000000000 +0000
+@@ -1,2 +1,2 @@
+ a
+-b
++b
+\ No newline at end of file
+-- header --
+"x"
+"y"

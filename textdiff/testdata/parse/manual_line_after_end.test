@@ -1,0 +1,11 @@
+A line of x after the "\" line that ends x.
+-- x --
+-- y --
+-- diff --
+@@ -1,2 +1 @@
+-a
+\ No newline at end of file
+-b
++c
+-- error --
+line 4: line after end of file

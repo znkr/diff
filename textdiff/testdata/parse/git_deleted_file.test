@@ -1,0 +1,20 @@
+A deleted file is diffed against /dev/null.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+a
+b
+-- y --
+-- diff --
+diff --git a/f b/f
+deleted file mode 100644
+index 422c2b7..0000000
+--- a/f
++++ /dev/null
+@@ -1,2 +0,0 @@
+-a
+-b
+-- header --
+"a/f"
+"/dev/null"

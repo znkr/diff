@@ -1,0 +1,9 @@
+A hunk header with a signed line number.
+-- x --
+-- y --
+-- diff --
+@@ -+1 +1 @@
+-a
++b
+-- error --
+line 1: malformed hunk header

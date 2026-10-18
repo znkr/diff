@@ -1,0 +1,22 @@
+Neither input has a newline at the end, and the last line changes.
+
+Command: diff -u x y
+Tool: Apple diff (based on FreeBSD diff)
+-- x-noeol --
+a
+b
+-- y-noeol --
+a
+c
+-- diff --
+--- x	2026-01-02 03:04:05
++++ y	2026-01-02 03:04:06
+@@ -1,2 +1,2 @@
+ a
+-b
+\ No newline at end of file
++c
+\ No newline at end of file
+-- header --
+"x"
+"y"

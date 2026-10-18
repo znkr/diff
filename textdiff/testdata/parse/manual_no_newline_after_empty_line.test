@@ -1,0 +1,9 @@
+A "\" line after an empty line, which would leave a line without content.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+ 
+\ No newline at end of file
+-- error --
+line 3: "\" line follows an empty line

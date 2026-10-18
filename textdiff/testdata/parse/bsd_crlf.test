@@ -1,0 +1,20 @@
+Lines end in CRLF.
+
+Command: diff -u x y
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+a
+b
+-- y --
+a
+c
+-- diff --
+--- x	2026-01-02 03:04:05
++++ y	2026-01-02 03:04:06
+@@ -1,2 +1,2 @@
+ a
+-b
++c
+-- header --
+"x"
+"y"

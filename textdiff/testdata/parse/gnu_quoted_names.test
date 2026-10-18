@@ -1,0 +1,18 @@
+GNU diff quotes file names with special characters.
+
+Command: diff -u 'x	x' 'y
+"é\'
+Tool: diff (GNU diffutils) 3.12
+-- x --
+a
+-- y --
+b
+-- diff --
+--- "x\tx"	2026-01-02 03:04:05.000000000 +0000
++++ "y\n\"\303\251\\"	2026-01-02 03:04:06.000000000 +0000
+@@ -1 +1 @@
+-a
++b
+-- header --
+"x\tx"
+"y\n\"é\\"

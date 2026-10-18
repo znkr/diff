@@ -1,0 +1,10 @@
+A "\" line right after the hunk header.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1 @@
+\ No newline at end of file
+-a
++b
+-- error --
+line 2: "\" line does not follow a body line

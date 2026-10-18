@@ -1,0 +1,13 @@
+A hunk that starts before the previous hunk ends.
+-- x --
+-- y --
+-- diff --
+@@ -1,2 +1,2 @@
+-a
++b
+ c
+@@ -2 +2 @@
+-c
++d
+-- error --
+line 5: hunk overlaps the previous hunk

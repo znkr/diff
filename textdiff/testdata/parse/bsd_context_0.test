@@ -1,0 +1,35 @@
+No context, so the insertion has an empty range.
+
+Command: diff -u -U0 x y
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+new
+six
+seven
+eight
+nine
+ten
+-- diff --
+--- x	2026-01-02 03:04:05
++++ y	2026-01-02 03:04:06
+@@ -5,0 +6 @@
++new
+-- header --
+"x"
+"y"

@@ -1,0 +1,23 @@
+x has no newline at the end.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x-noeol --
+a
+b
+-- y --
+a
+b
+-- diff --
+diff --git a/f b/f
+index 0a207c0..422c2b7 100644
+--- a/f
++++ b/f
+@@ -1,2 +1,2 @@
+ a
+-b
+\ No newline at end of file
++b
+-- header --
+"a/f"
+"b/f"

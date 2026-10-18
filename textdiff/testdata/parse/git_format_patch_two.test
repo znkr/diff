@@ -1,0 +1,88 @@
+git format-patch output for two commits.
+
+Command: git format-patch --stdout --root
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+TWO
+three
+four
+five
+six
+seven
+eight
+NINE
+ten
+-- diff --
+From dfd5a2f2a213945bd737edf5e2ae6fd4bf77c7c6 Mon Sep 17 00:00:00 2001
+From: corpus <corpus@example.com>
+Date: Fri, 2 Jan 2026 03:04:05 +0000
+Subject: [PATCH 1/2] x
+
+---
+ f | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+ create mode 100644 f
+
+diff --git a/f b/f
+new file mode 100644
+index 0000000..c9e9e05
+--- /dev/null
++++ b/f
+@@ -0,0 +1,10 @@
++one
++two
++three
++four
++five
++six
++seven
++eight
++nine
++ten
+-- 
+2.54.0
+
+
+From afc6602945c5d9b74100cb146089077c85240c5c Mon Sep 17 00:00:00 2001
+From: corpus <corpus@example.com>
+Date: Fri, 2 Jan 2026 03:04:05 +0000
+Subject: [PATCH 2/2] y
+
+---
+ f | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/f b/f
+index c9e9e05..061a3ba 100644
+--- a/f
++++ b/f
+@@ -1,10 +1,10 @@
+ one
+-two
++TWO
+ three
+ four
+ five
+ six
+ seven
+ eight
+-nine
++NINE
+ ten
+-- 
+2.54.0
+
+-- error --
+line 31: patch contains more than one file

@@ -16,6 +16,7 @@
 package mem
 
 import (
+	"iter"
 	"strings"
 	"unsafe"
 )
@@ -50,6 +51,20 @@ func (s UnsafeString) LastIndexByte(c byte) int { return strings.LastIndexByte(s
 
 // Count returns the number of non-overlapping instances of substr in s.
 func (s UnsafeString) Count(substr string) int { return strings.Count(string(s), substr) }
+
+// HasPrefix reports whether s begins with prefix.
+func (s UnsafeString) HasPrefix(prefix string) bool { return strings.HasPrefix(string(s), prefix) }
+
+// Lines returns an iterator over the lines of s, as [strings.Lines] does.
+func (s UnsafeString) Lines() iter.Seq[UnsafeString] {
+	return func(yield func(UnsafeString) bool) {
+		for l := range strings.Lines(string(s)) {
+			if !yield(UnsafeString(l)) {
+				return
+			}
+		}
+	}
+}
 
 // Own returns b as a T without copying. b must not be modified afterwards.
 func Own[T string | []byte](b []byte) T {

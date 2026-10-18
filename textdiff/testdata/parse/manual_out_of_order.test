@@ -1,0 +1,12 @@
+Hunks in decreasing order.
+-- x --
+-- y --
+-- diff --
+@@ -5 +5 @@
+-a
++b
+@@ -1 +1 @@
+-c
++d
+-- error --
+line 4: hunk overlaps the previous hunk

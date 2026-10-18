@@ -1,0 +1,27 @@
+Equal inputs have an empty diff.
+
+Command: diff -u x y
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- diff --

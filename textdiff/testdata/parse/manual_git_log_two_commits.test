@@ -1,0 +1,27 @@
+The output of git log -p for two commits, where the first changes only the mode of a file.
+-- x --
+-- y --
+-- diff --
+commit 1111111111111111111111111111111111111111
+Author: A <a@example.com>
+
+    change mode
+
+diff --git a/f b/f
+old mode 100644
+new mode 100755
+
+commit 2222222222222222222222222222222222222222
+Author: A <a@example.com>
+
+    change g
+
+diff --git a/g b/g
+index 7898192..6178079 100644
+--- a/g
++++ b/g
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 15: patch contains more than one file

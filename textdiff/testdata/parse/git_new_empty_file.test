@@ -1,0 +1,12 @@
+A new empty file has no file header and no hunks.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+-- y --
+-- diff --
+diff --git a/f b/f
+new file mode 100644
+index 0000000..e69de29
+-- error --
+line 3: git diff without a content change

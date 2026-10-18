@@ -1,0 +1,23 @@
+Neither input has a newline at the end, and the last line is context.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x-noeol --
+a
+b
+-- y-noeol --
+c
+b
+-- diff --
+diff --git a/f b/f
+index 0a207c0..d2ffb66 100644
+--- a/f
++++ b/f
+@@ -1,2 +1,2 @@
+-a
++c
+ b
+\ No newline at end of file
+-- header --
+"a/f"
+"b/f"

@@ -1,0 +1,19 @@
+git writes a tab after a file name with a space.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+a
+-- y --
+b
+-- diff --
+diff --git a/f f b/f f
+index 7898192..6178079 100644
+--- a/f f	
++++ b/f f	
+@@ -1 +1 @@
+-a
++b
+-- header --
+"a/f f"
+"b/f f"

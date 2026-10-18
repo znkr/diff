@@ -1,0 +1,32 @@
+A mode change without a content change has no file header and no hunks.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- diff --
+diff --git a/f b/f
+old mode 100644
+new mode 100755
+-- error --
+line 3: git diff without a content change

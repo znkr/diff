@@ -1,0 +1,45 @@
+A context larger than the input.
+
+Command: diff -u -U100 x y
+Tool: diff (GNU diffutils) 3.12
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+TWO
+three
+four
+five
+six
+seven
+eight
+NINE
+ten
+-- diff --
+--- x	2026-01-02 03:04:05.000000000 +0000
++++ y	2026-01-02 03:04:06.000000000 +0000
+@@ -1,10 +1,10 @@
+ one
+-two
++TWO
+ three
+ four
+ five
+ six
+ seven
+ eight
+-nine
++NINE
+ ten
+-- header --
+"x"
+"y"

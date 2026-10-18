@@ -1,0 +1,39 @@
+A diff of two files, where the first has no hunks.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- diff --
+diff --git a/a b/a
+old mode 100755
+new mode 100644
+diff --git a/b b/b
+index a999a0c..13e3d3a 100644
+--- a/b
++++ b/b
+@@ -1 +1,2 @@
+ line
++line
+-- error --
+line 4: patch contains more than one file

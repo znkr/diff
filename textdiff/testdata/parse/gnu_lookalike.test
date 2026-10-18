@@ -1,0 +1,35 @@
+Body lines that look like patch syntax without their prefix.
+
+Command: diff -u x y
+Tool: diff (GNU diffutils) 3.12
+-- x --
+x
+-- a
+++ b
+@@ -1 +1 @@
+\ c
+diff --git a b
+y
+-- y --
+x
+y
+-- a
+++ b
+@@ -1 +1 @@
+\ c
+diff --git a b
+-- diff --
+--- x	2026-01-02 03:04:05.000000000 +0000
++++ y	2026-01-02 03:04:06.000000000 +0000
+@@ -1,7 +1,7 @@
+ x
++y
+ -- a
+ ++ b
+ @@ -1 +1 @@
+ \ c
+ diff --git a b
+-y
+-- header --
+"x"
+"y"

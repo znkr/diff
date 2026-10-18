@@ -1,0 +1,7 @@
+A hunk without lines.
+-- x --
+-- y --
+-- diff --
+@@ -0,0 +0,0 @@
+-- error --
+line 1: empty hunk

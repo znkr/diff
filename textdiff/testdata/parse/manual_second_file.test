@@ -1,0 +1,16 @@
+A second file header after a hunk.
+-- x --
+-- y --
+-- diff --
+--- x
++++ y
+@@ -1 +1 @@
+-a
++b
+--- z
++++ w
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 6: patch contains more than one file

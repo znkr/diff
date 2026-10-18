@@ -1,0 +1,33 @@
+A rename without a content change has no file header and no hunks.
+
+Command: git diff --cached -M
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- diff --
+diff --git a/f b/g
+similarity index 100%
+rename from f
+rename to g
+-- error --
+line 4: git diff without a content change

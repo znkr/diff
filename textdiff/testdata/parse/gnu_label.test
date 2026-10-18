@@ -1,0 +1,17 @@
+Labels set with --label, written without a timestamp.
+
+Command: diff -u --label 'old file' --label new x y
+Tool: diff (GNU diffutils) 3.12
+-- x --
+a
+-- y --
+b
+-- diff --
+--- old file
++++ new
+@@ -1 +1 @@
+-a
++b
+-- header --
+"old file"
+"new"

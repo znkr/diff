@@ -1,0 +1,17 @@
+File names with a space.
+
+Command: diff -u 'x x' 'y y'
+Tool: Apple diff (based on FreeBSD diff)
+-- x --
+a
+-- y --
+b
+-- diff --
+--- x x	2026-01-02 03:04:05
++++ y y	2026-01-02 03:04:06
+@@ -1 +1 @@
+-a
++b
+-- header --
+"x x"
+"y y"

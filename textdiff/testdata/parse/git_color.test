@@ -1,0 +1,46 @@
+Colored output.
+
+Command: git diff --cached --color=always
+Tool: git version 2.54.0
+-- x --
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+-- y --
+one
+TWO
+three
+four
+five
+six
+seven
+eight
+NINE
+ten
+-- diff --
+[1mdiff --git a/f b/f[m
+[1mindex c9e9e05..061a3ba 100644[m
+[1m--- a/f[m
+[1m+++ b/f[m
+[36m@@ -1,10 +1,10 @@[m
+ one[m
+[31m-two[m
+[32m+[m[32mTWO[m
+ three[m
+ four[m
+ five[m
+ six[m
+ seven[m
+ eight[m
+[31m-nine[m
+[32m+[m[32mNINE[m
+ ten[m
+-- error --
+line 1: ANSI escape sequence

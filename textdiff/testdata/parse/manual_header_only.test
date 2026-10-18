@@ -1,0 +1,9 @@
+A file header without hunks.
+-- x --
+-- y --
+-- diff --
+--- x
++++ y
+-- header --
+"x"
+"y"

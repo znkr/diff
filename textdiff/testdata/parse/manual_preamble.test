@@ -1,0 +1,21 @@
+A commit message before the diff, with lines that start with dashes.
+-- x --
+a
+-- y --
+b
+-- diff --
+Subject: fix
+
+---
+--- not a header
+ f | 2 +-
+
+diff --git a/f b/f
+--- a/f
++++ b/f
+@@ -1 +1 @@
+-a
++b
+-- header --
+"a/f"
+"b/f"

@@ -1,0 +1,37 @@
+Text after the hunk header.
+
+Command: git diff --cached
+Tool: git version 2.54.0
+-- x --
+int f()
+{
+	1;
+	2;
+	3;
+	4;
+	5;
+}
+-- y --
+int f()
+{
+	1;
+	2;
+	3;
+	4;
+	X;
+}
+-- diff --
+diff --git a/f b/f
+index e30fdfc..de52045 100644
+--- a/f
++++ b/f
+@@ -4,5 +4,5 @@ int f()
+ 	2;
+ 	3;
+ 	4;
+-	5;
++	X;
+ }
+-- header --
+"a/f"
+"b/f"

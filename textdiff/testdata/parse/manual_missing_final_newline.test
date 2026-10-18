@@ -1,0 +1,9 @@
+The patch does not end in a newline.
+-- x --
+-- y --
+-- diff-noeol --
+@@ -1 +1 @@
+-a
++b
+-- error --
+line 3: missing newline at end of patch

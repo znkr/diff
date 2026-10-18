@@ -1,0 +1,9 @@
+A hunk header without the closing @@.
+-- x --
+-- y --
+-- diff --
+@@ -1 +1
+-a
++b
+-- error --
+line 1: malformed hunk header

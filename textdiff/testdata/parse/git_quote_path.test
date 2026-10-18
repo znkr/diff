@@ -1,0 +1,19 @@
+With core.quotePath, git quotes non-ASCII file names with octal escapes.
+
+Command: git -c core.quotePath=true diff --cached
+Tool: git version 2.54.0
+-- x --
+a
+-- y --
+b
+-- diff --
+diff --git "a/\303\251 f" "b/\303\251 f"
+index 7898192..6178079 100644
+--- "a/\303\251 f"	
++++ "b/\303\251 f"	
+@@ -1 +1 @@
+-a
++b
+-- header --
+"a/é f"
+"b/é f"
