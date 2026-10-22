@@ -12,20 +12,22 @@ on:
 jobs:
 
   test:
-    name: test (${{ matrix.go-version || 'go.mod' }})
+    name: test (${{ matrix.go-version }})
     strategy:
       matrix:
-        # The empty version selects the version in go.mod. Files for newer
-        # versions have build constraints, so stable tests them.
-        go-version: ['', stable]
+        # The module supports the two latest Go releases. Files for stable
+        # have build constraints, so only the stable job builds them.
+        go-version: [oldstable, stable]
     runs-on: ubuntu-latest
+    env:
+      # Fail instead of downloading a newer toolchain if go.mod requires one.
+      GOTOOLCHAIN: local
     steps:
     - uses: actions/checkout@v5
 
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version-file: 'go.mod'
         go-version: ${{ matrix.go-version }}
 
     - name: Build
