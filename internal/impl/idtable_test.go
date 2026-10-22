@@ -102,13 +102,13 @@ func TestIDTableProbing(t *testing.T) {
 	hash := func(e string) uint64 { return uint64(e[0])<<48 | tab.mask }
 	var got []int
 	for i, e := range x {
-		got = append(got, tab.insert(x, i, hash(e)))
+		got = append(got, insert(tab, x, i, hash(e)))
 	}
 	if want := []int{0, 1, 2, 0, 3}; !cmp.Equal(got, want) {
 		t.Errorf("insert IDs = %v, want %v", got, want)
 	}
 	for e, want := range map[string]int{"a": 0, "c": 2, "d": 3, "e": -1} {
-		if got := tab.lookup(x, e, hash(e)); got != want {
+		if got := lookup(tab, x, e, hash(e)); got != want {
 			t.Errorf("lookup(%q) = %v, want %v", e, got, want)
 		}
 	}
@@ -128,7 +128,7 @@ func checkIDTable[T comparable](t *testing.T, x, extra []T) {
 			want = len(ids)
 			ids[e] = want
 		}
-		if got := tab.insert(x, i, maphash.Comparable(seed, e)); got != want {
+		if got := insert(tab, x, i, maphash.Comparable(seed, e)); got != want {
 			t.Fatalf("insert(%v) = %v, want %v", e, got, want)
 		}
 	}
@@ -137,7 +137,7 @@ func checkIDTable[T comparable](t *testing.T, x, extra []T) {
 		if !ok {
 			want = -1
 		}
-		if got := tab.lookup(x, e, maphash.Comparable(seed, e)); got != want {
+		if got := lookup(tab, x, e, maphash.Comparable(seed, e)); got != want {
 			t.Fatalf("lookup(%v) = %v, want %v", e, got, want)
 		}
 	}

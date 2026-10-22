@@ -15,7 +15,6 @@
 package diff
 
 import (
-	"hash/maphash"
 	"strings"
 	"testing"
 
@@ -50,20 +49,6 @@ func BenchmarkGenericFunc(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				_ = HunksFunc(xs, ys, eq)
-			}
-		})
-	}
-}
-
-// BenchmarkGenericHash runs HunksHash with maphash.ComparableHasher on the
-// lines of inputs of package benchdata as []string.
-func BenchmarkGenericHash(b *testing.B) {
-	for _, name := range genericInputs {
-		b.Run(name, func(b *testing.B) {
-			xs, ys := benchLines(b, name)
-			b.ReportAllocs()
-			for b.Loop() {
-				_ = HunksHash(xs, ys, maphash.ComparableHasher[string]{})
 			}
 		})
 	}
