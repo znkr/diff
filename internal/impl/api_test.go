@@ -15,6 +15,7 @@
 package impl
 
 import (
+	"hash/maphash"
 	"math"
 	"math/rand/v2"
 	"slices"
@@ -155,56 +156,34 @@ func TestDiffMatchesDiffFunc(t *testing.T) {
 	// Diff assigns IDs with ==, DiffFunc compares with ==. For types where ==
 	// is unusual, both must produce valid edit scripts, and in minimal mode
 	// both must produce the same number of edits.
-	for _, in := range unusualInputs() {
-		checkDiffMatchesDiffFunc(t, in.fx, in.fy)
-		checkDiffMatchesDiffFunc(t, in.ax, in.ay)
-		checkDiffMatchesDiffFunc(t, in.px, in.py)
+	type withPtr struct {
+		p *int
+		n int
 	}
-}
-
-// withPtr is a comparable type whose == compares a pointer.
-type withPtr struct {
-	p *int
-	n int
-}
-
-// unusualInput holds pairs of inputs of element types where == is unusual.
-type unusualInput struct {
-	fx, fy []float64
-	ax, ay []any
-	px, py []withPtr
-}
-
-// unusualInputs returns random inputs of element types where == is unusual:
-// floats with NaN and signed zeros, interfaces holding values of different
-// types, and structs with pointers.
-func unusualInputs() []unusualInput {
 	rng := rand.New(rand.NewPCG(7, 8))
 	nan := math.NaN()
 	floats := []float64{0, math.Copysign(0, -1), 1, nan, math.Inf(1), 2.5}
 	anys := []any{1, "1", 1.0, int64(1), nil, [2]int{1, 2}, struct{}{}, nan}
 	ptrs := []*int{new(int), new(int), nil}
-	ins := make([]unusualInput, 300)
-	for k := range ins {
+	for range 300 {
 		n, m := rng.IntN(30), rng.IntN(30)
-		in := unusualInput{
-			fx: make([]float64, n), fy: make([]float64, m),
-			ax: make([]any, n), ay: make([]any, m),
-			px: make([]withPtr, n), py: make([]withPtr, m),
-		}
+		fx, fy := make([]float64, n), make([]float64, m)
+		ax, ay := make([]any, n), make([]any, m)
+		px, py := make([]withPtr, n), make([]withPtr, m)
 		for i := range n {
-			in.fx[i] = floats[rng.IntN(len(floats))]
-			in.ax[i] = anys[rng.IntN(len(anys))]
-			in.px[i] = withPtr{ptrs[rng.IntN(len(ptrs))], rng.IntN(2)}
+			fx[i] = floats[rng.IntN(len(floats))]
+			ax[i] = anys[rng.IntN(len(anys))]
+			px[i] = withPtr{ptrs[rng.IntN(len(ptrs))], rng.IntN(2)}
 		}
 		for i := range m {
-			in.fy[i] = floats[rng.IntN(len(floats))]
-			in.ay[i] = anys[rng.IntN(len(anys))]
-			in.py[i] = withPtr{ptrs[rng.IntN(len(ptrs))], rng.IntN(2)}
+			fy[i] = floats[rng.IntN(len(floats))]
+			ay[i] = anys[rng.IntN(len(anys))]
+			py[i] = withPtr{ptrs[rng.IntN(len(ptrs))], rng.IntN(2)}
 		}
-		ins[k] = in
+		checkDiffMatchesDiffFunc(t, fx, fy)
+		checkDiffMatchesDiffFunc(t, ax, ay)
+		checkDiffMatchesDiffFunc(t, px, py)
 	}
-	return ins
 }
 
 func TestDiffLinesPrefixSuffix(t *testing.T) {
@@ -320,6 +299,17 @@ func checkDiffMatchesDiffFunc[T comparable](t *testing.T, x, y []T) {
 	} {
 		rx, ry := Diff(x, y, cfg)
 		got := countEdits(t, x, y, rx, ry)
+		hx, hy := DiffHash(x, y, maphash.ComparableHasher[T]{}, cfg)
+		for i := range len(x) {
+			if rx.Get(i) != hx.Get(i) {
+				t.Fatalf("DiffHash(%v, %v, %+v) differs from Diff at x[%d]", x, y, cfg, i)
+			}
+		}
+		for j := range len(y) {
+			if ry.Get(j) != hy.Get(j) {
+				t.Fatalf("DiffHash(%v, %v, %+v) differs from Diff at y[%d]", x, y, cfg, j)
+			}
+		}
 		rx, ry = DiffFunc(x, y, eq, cfg)
 		want := countEdits(t, x, y, rx, ry)
 		if cfg.Mode == config.ModeMinimal && got != want {
@@ -331,10 +321,19 @@ func checkDiffMatchesDiffFunc[T comparable](t *testing.T, x, y []T) {
 func TestDiffMinimal(t *testing.T) {
 	// In minimal mode, the number of edits is the number of elements that
 	// aren't part of a longest common subsequence.
+	rng := rand.New(rand.NewPCG(9, 10))
 	eq := func(a, b int) bool { return a == b }
 	cfg := config.Config{Mode: config.ModeMinimal}
-	for _, in := range minimalInputs() {
-		x, y := in[0], in[1]
+	for range 5000 {
+		alphabet := 2 + rng.IntN(4)
+		gen := func() []int {
+			x := make([]int, rng.IntN(40))
+			for i := range x {
+				x[i] = rng.IntN(alphabet)
+			}
+			return x
+		}
+		x, y := gen(), gen()
 		want := len(x) + len(y) - 2*lcsLen(x, y)
 		rx, ry := Diff(x, y, cfg)
 		if got := countEdits(t, x, y, rx, ry); got != want {
@@ -344,25 +343,11 @@ func TestDiffMinimal(t *testing.T) {
 		if got := countEdits(t, x, y, rx, ry); got != want {
 			t.Fatalf("DiffFunc(%v, %v) has %d edits, want %d", x, y, got, want)
 		}
-	}
-}
-
-// minimalInputs returns random pairs of inputs over small alphabets.
-func minimalInputs() [][2][]int {
-	rng := rand.New(rand.NewPCG(9, 10))
-	ins := make([][2][]int, 5000)
-	for k := range ins {
-		alphabet := 2 + rng.IntN(4)
-		gen := func() []int {
-			x := make([]int, rng.IntN(40))
-			for i := range x {
-				x[i] = rng.IntN(alphabet)
-			}
-			return x
+		rx, ry = DiffHash(x, y, maphash.ComparableHasher[int]{}, cfg)
+		if got := countEdits(t, x, y, rx, ry); got != want {
+			t.Fatalf("DiffHash(%v, %v) has %d edits, want %d", x, y, got, want)
 		}
-		ins[k] = [2][]int{gen(), gen()}
 	}
-	return ins
 }
 
 // lcsLen returns the length of a longest common subsequence of x and y.

@@ -16,6 +16,7 @@ package diff_test
 
 import (
 	"fmt"
+	"hash/maphash"
 	"strings"
 
 	"znkr.io/diff"
@@ -159,4 +160,34 @@ func ExampleContext() {
 	}
 	// Output:
 	// [-calm-] {+restless+} seas … sky {+defiantly+}
+}
+
+// caseInsensitive is a maphash.Hasher[string] whose equivalence relation
+// ignores letter case.
+type caseInsensitive struct{}
+
+func (caseInsensitive) Hash(h *maphash.Hash, s string) { h.WriteString(strings.ToLower(s)) }
+
+func (caseInsensitive) Equal(a, b string) bool { return strings.ToLower(a) == strings.ToLower(b) }
+
+// Compare two slices of words, ignoring letter case.
+func ExampleEditsHash() {
+	x := []string{"Hello", "World", "and", "goodbye"}
+	y := []string{"hello", "world", "or", "Goodbye"}
+	for _, e := range diff.EditsHash(x, y, caseInsensitive{}) {
+		switch e.Op {
+		case diff.Match:
+			fmt.Printf(" %s\n", e.X)
+		case diff.Delete:
+			fmt.Printf("-%s\n", e.X)
+		case diff.Insert:
+			fmt.Printf("+%s\n", e.Y)
+		}
+	}
+	// Output:
+	//  Hello
+	//  World
+	// -and
+	// +or
+	//  goodbye
 }
