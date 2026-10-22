@@ -64,13 +64,13 @@ func preprocess[T comparable](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y
 	// Step 1: Create an ID for every element in x[smin:smax] and count the
 	// number of occurrences.
 	for i, e := range x[smin:smax] {
-		id := tab.insert(x, smin+i, maphash.Comparable(seed, e))
+		id := insert(tab, x, smin+i, maphash.Comparable(seed, e))
 		p.addX(id)
 	}
 	// Step 2: Do the same for y, but already ignore everything that's not in x,
 	// except for marking these elements as insertions.
 	for i, e := range y[tmin:tmax] {
-		id := tab.lookup(x, e, maphash.Comparable(seed, e))
+		id := lookup(tab, x, e, maphash.Comparable(seed, e))
 		if id < 0 {
 			// Not in x, this is always an insertion.
 			ry.Set(i + tmin)
@@ -106,35 +106,6 @@ func preprocessLines(rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y *lines.L
 			continue
 		}
 		p.addY(id, i)
-	}
-	p.filterX(rx, smin)
-	return p
-}
-
-// preprocessHash is [preprocess] for elements that h compares and hashes.
-func preprocessHash[T any](rx, ry rvecs.Vec, smin, smax, tmin, tmax int, x, y []T, h maphash.Hasher[T]) preprocessed {
-	p := newPreprocessed(smax-smin, tmax-tmin)
-
-	// The zero Hash has a random seed, and Reset keeps it.
-	var mh maphash.Hash
-	tab := newIDTable(smax - smin)
-	defer tab.release()
-
-	for i, e := range x[smin:smax] {
-		mh.Reset()
-		h.Hash(&mh, e)
-		id := tab.insertHash(x, smin+i, mh.Sum64(), h)
-		p.addX(id)
-	}
-	for i, e := range y[tmin:tmax] {
-		mh.Reset()
-		h.Hash(&mh, e)
-		id := tab.lookupHash(x, e, mh.Sum64(), h)
-		if id < 0 {
-			ry.Set(i + tmin)
-			continue
-		}
-		p.addY(id, i+tmin)
 	}
 	p.filterX(rx, smin)
 	return p
