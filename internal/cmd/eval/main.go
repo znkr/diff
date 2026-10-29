@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// eval provides a way to validate the diffing algorithm by applying the
-// resulting diffs using the unix patch tool and checking that they produce the
-// input again.
+// eval validates the diffing algorithm and the unified diff parser on the
+// history of a git repository. For each changed file, it checks that the unix
+// patch tool turns the old file into the new one with the diff of Unified,
+// that ParseUnified returns the hunks of that diff, and that the hunks of
+// git's diff, read by ParseUnified, turn the old file into the new one.
 package main
 
 import (
@@ -24,6 +26,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"os"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -134,13 +137,14 @@ func run(cfg *config) error {
 
 	// Process commits.
 	type change struct {
-		commitID string
-		filename string
-		old, new string
+		commitID   string
+		filename   string
+		old, new   string
+		gitPatches [][]textdiff.Hunk[string] // Hunks of git's diffs of the file, in the order they apply.
 	}
 	changes := make(chan change)
 	var changesWG sync.WaitGroup
-	chunkSize := len(commitIDs) / (4 * runtime.GOMAXPROCS(0))
+	chunkSize := max(1, len(commitIDs)/(4*runtime.GOMAXPROCS(0)))
 	for chunk := range slices.Chunk(commitIDs, chunkSize) {
 		changesWG.Add(1)
 		go func() {
@@ -159,10 +163,11 @@ func run(cfg *config) error {
 					}
 					git.Read([]string{file.OldID, file.NewID}, func(res []string) {
 						changes <- change{
-							commitID: commitID,
-							filename: file.Name,
-							old:      res[0],
-							new:      res[1],
+							commitID:   commitID,
+							filename:   file.Name,
+							old:        res[0],
+							new:        res[1],
+							gitPatches: file.Patches,
 						}
 					})
 				}
@@ -182,6 +187,14 @@ func run(cfg *config) error {
 		go func() {
 			defer processWG.Done()
 			for change := range changes {
+				if cfg.validate {
+					if got, err := applyPatches(change.old, change.gitPatches); err != nil || got != change.new {
+						notes <- note{
+							prefix: change.commitID + ":" + change.filename,
+							msg:    fmt.Sprintf("hunks of git's diff don't turn the old file into the new one: %v", err),
+						}
+					}
+				}
 				variants := []struct {
 					name string
 					opts []diff.Option
@@ -254,7 +267,13 @@ func run(cfg *config) error {
 						if change.new != patched {
 							notes <- note{
 								prefix: change.commitID + ":" + change.filename,
-								msg:    fmt.Sprintf("file is different after applying patch. got:\n%s\nwant:\n%s", change.new, patched),
+								msg:    fmt.Sprintf("file is different after applying patch. got:\n%s\nwant:\n%s", patched, change.new),
+							}
+						}
+						if err := checkParse(unified, textdiff.Hunks(change.old, change.new, opts...)); err != nil {
+							notes <- note{
+								prefix: change.commitID + ":" + change.filename,
+								msg:    err.Error(),
 							}
 						}
 					}
@@ -344,4 +363,56 @@ func run(cfg *config) error {
 	ioWG.Wait()
 
 	return nil
+}
+
+// checkParse returns an error if ParseUnified doesn't return hunks for
+// unified, the diff that Unified writes for hunks.
+func checkParse(unified string, hunks []textdiff.Hunk[string]) error {
+	files, err := textdiff.ParseUnified(unified, textdiff.ParseHeaderless())
+	if err != nil {
+		return fmt.Errorf("parsing unified diff: %v", err)
+	}
+	var got []textdiff.Hunk[string]
+	if len(files) == 1 {
+		got = files[0].Hunks
+	}
+	if len(got) != len(hunks) || len(got) > 0 && !reflect.DeepEqual(got, hunks) {
+		return fmt.Errorf("parsed hunks differ from Hunks")
+	}
+	return nil
+}
+
+// applyPatches returns x with each patch applied in order.
+func applyPatches(x string, patches [][]textdiff.Hunk[string]) (string, error) {
+	for _, hunks := range patches {
+		var err error
+		if x, err = applyHunks(x, hunks); err != nil {
+			return "", err
+		}
+	}
+	return x, nil
+}
+
+// applyHunks returns x with hunks applied at their exact positions.
+func applyHunks(x string, hunks []textdiff.Hunk[string]) (string, error) {
+	xl := slices.Collect(strings.Lines(x))
+	var b strings.Builder
+	pos := 0
+	for _, h := range hunks {
+		if h.EndLineNoX > len(xl) {
+			return "", fmt.Errorf("hunk ends at line %d after the end of the file", h.EndLineNoX)
+		}
+		b.WriteString(strings.Join(xl[pos:h.LineNoX], ""))
+		for _, e := range h.Edits {
+			if e.Op != diff.Insert && xl[e.LineNoX] != e.Line {
+				return "", fmt.Errorf("line %d is %q, hunk has %q", e.LineNoX, xl[e.LineNoX], e.Line)
+			}
+			if e.Op != diff.Delete {
+				b.WriteString(e.Line)
+			}
+		}
+		pos = h.EndLineNoX
+	}
+	b.WriteString(strings.Join(xl[pos:], ""))
+	return b.String(), nil
 }

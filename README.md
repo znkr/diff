@@ -252,29 +252,33 @@ in [internal/benchmarks](internal/benchmarks/README.md).
 
 | Test Case | znkr (baseline) | znkr-minimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
 |-----------|-----------------|--------------|-----------|-------------|----------------|---------|-----|-------|
-| **large_01** | 1.248ms | 8.214ms<br>(+558.06%) | 1.254ms<br>(±0%) | 4.403ms<br>(+252.75%) | 43.629ms<br>(+3395.29%) | 1296.260ms<br>(+103747.24%) | 81.315ms<br>(+6414.37%) | 6.746ms<br>(+440.44%) |
-| **large_02** | 18.609ms | 42.815ms<br>(+130.08%) | 1.078ms<br>(-94.21%) | 3.984ms<br>(-78.59%) | 627.153ms<br>(+3270.16%) | 6147.497ms<br>(+32935.03%) | 1420.640ms<br>(+7534.15%) | 6.814ms<br>(-63.38%) |
-| **large_03** | 1.859ms | 11.836ms<br>(+536.58%) | 1.845ms<br>(±0%) | 4.201ms<br>(+125.96%) | 31.971ms<br>(+1619.53%) | 1555.402ms<br>(+83554.82%) | 97.524ms<br>(+5145.16%) | 11.104ms<br>(+497.19%) |
-| **large_04** | 4.804ms | 221.140ms<br>(+4503.06%) | 3.394ms<br>(-29.34%) | 7.636ms<br>(+58.95%) | 1016.767ms<br>(+21064.14%) | 10813.805ms<br>(+224990.69%) | 2109.423ms<br>(+43807.90%) | 19.696ms<br>(+309.97%) |
-| **medium** | 24.67µs | 24.96µs<br>(±0%) | 24.87µs<br>(±0%) | 70.98µs<br>(+187.78%) | 273.56µs<br>(+1009.07%) | 532.74µs<br>(+2059.80%) | 247.59µs<br>(+903.76%) | 181.60µs<br>(+636.23%) |
-| **small** | 13.01µs | 12.92µs<br>(±0%) | 11.67µs<br>(-10.29%) | 36.42µs<br>(+179.88%) | 82.31µs<br>(+532.49%) | 106.58µs<br>(+719.03%) | 49.99µs<br>(+284.19%) | 103.46µs<br>(+695.09%) |
+| **large_01** | 1.159ms | 7.658ms<br>(+560.66%) | 1.131ms<br>(-2.39%) | 4.035ms<br>(+248.14%) | 39.774ms<br>(+3331.36%) | 174.424ms<br>(+14947.80%) | 74.167ms<br>(+6298.50%) | 8.027ms<br>(+592.53%) |
+| **large_02** | 17.242ms | 39.808ms<br>(+130.87%) | 0.968ms<br>(-94.38%) | 3.547ms<br>(-79.43%) | 566.932ms<br>(+3188.00%) | 2878.312ms<br>(+16593.18%) | 1289.645ms<br>(+7379.48%) | 8.676ms<br>(-49.68%) |
+| **large_03** | 1.680ms | 10.837ms<br>(+545.19%) | 1.678ms<br>(±0%) | 3.823ms<br>(+127.63%) | 29.117ms<br>(+1633.55%) | 169.900ms<br>(+10015.25%) | 89.043ms<br>(+5201.35%) | 13.489ms<br>(+703.10%) |
+| **large_04** | 4.352ms | 204.955ms<br>(+4609.26%) | 2.977ms<br>(-31.59%) | 6.825ms<br>(+56.83%) | 1012.962ms<br>(+23174.84%) | 16419.444ms<br>(+377169.93%) | 1894.043ms<br>(+43419.46%) | 22.867ms<br>(+425.41%) |
+| **medium** | 23.03µs | 22.67µs<br>(-1.56%) | 22.64µs<br>(-1.69%) | 58.34µs<br>(+153.33%) | 244.37µs<br>(+961.15%) | 733.59µs<br>(+3085.50%) | 231.05µs<br>(+903.30%) | 185.45µs<br>(+705.27%) |
+| **small** | 12.01µs | 11.91µs<br>(-0.82%) | 10.56µs<br>(-12.09%) | 31.62µs<br>(+163.35%) | 71.33µs<br>(+494.09%) | 190.14µs<br>(+1483.54%) | 49.79µs<br>(+314.68%) | 98.79µs<br>(+722.80%) |
 
 #### Diff Minimality (number of edits produced)
 
 | Test Case | znkr (baseline) | znkr-minimal | znkr-fast | go-internal | diffmatchpatch | godebug | mb0 | udiff |
 |-----------|-----------------|--------------|-----------|-------------|----------------|---------|-----|-------|
-| **large_01** | 5.615k edits | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.617k edits<br>(+0.04%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 19.04k edits<br>(+239.15%) |
-| **large_02** | 28.87k edits | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.15%) | 31.81k edits<br>(+10.17%) | 28.83k edits<br>(-0.15%) | 28.83k edits<br>(-0.15%) | 28.83k edits<br>(-0.15%) | 31.75k edits<br>(+9.97%) |
-| **large_03** | 5.504k edits | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.506k edits<br>(+0.04%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 55.69k edits<br>(+911.74%) |
-| **large_04** | 26.99k edits | 26.99k edits<br>(-0.01%) | 27.80k edits<br>(+2.99%) | 27.80k edits<br>(+2.99%) | 60.36k edits<br>(+123.65%) | 26.99k edits<br>(-0.01%) | 26.99k edits<br>(-0.01%) | 100.94k edits<br>(+274.01%) |
-| **medium** | 277 edits | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 283 edits<br>(+2.17%) | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 369 edits<br>(+33.21%) |
-| **small** | 108 edits | 108 edits<br>(±0%) | 114 edits<br>(+5.56%) | 120 edits<br>(+11.11%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) | 110 edits<br>(+1.85%) |
+| **large_01** | 5.615k edits | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 5.615k edits<br>(±0%) | 19.04k edits<br>(+239.11%) |
+| **large_02** | 28.87k edits | 28.83k edits<br>(-0.15%) | 31.80k edits<br>(+10.15%) | 31.80k edits<br>(+10.16%) | 28.83k edits<br>(-0.15%) | 28.83k edits<br>(-0.15%) | 28.83k edits<br>(-0.15%) | 31.75k edits<br>(+9.96%) |
+| **large_03** | 5.504k edits | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 5.504k edits<br>(±0%) | 55.68k edits<br>(+911.70%) |
+| **large_04** | 26.99k edits | 26.99k edits<br>(-0.01%) | 27.80k edits<br>(+2.99%) | 27.80k edits<br>(+2.99%) | 60.07k edits<br>(+122.55%) | 26.99k edits<br>(-0.01%) | 26.99k edits<br>(-0.01%) | 100.94k edits<br>(+274.00%) |
+| **medium** | 277 edits | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 281 edits<br>(+1.44%) | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 277 edits<br>(±0%) | 367 edits<br>(+32.49%) |
+| **small** | 108 edits | 108 edits<br>(±0%) | 114 edits<br>(+5.56%) | 118 edits<br>(+9.26%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) | 108 edits<br>(±0%) |
 
 ## Correctness
 
 I tested this diff implementation against every commit in the [Go
 repository](http://go.googlesource.com/go) using the standard unix `patch` tool to ensure that all
 diff results are correct.
+
+The eval command also checks the unified diff parser: `textdiff.ParseUnified` must return the hunks of each
+diff that `textdiff.Unified` writes, and the hunks it reads from git's own diff of each commit must
+turn the old file into the new one.
 
 This test is part of the test suite for this module and can be run with
 

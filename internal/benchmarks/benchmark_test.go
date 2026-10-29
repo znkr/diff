@@ -1,7 +1,6 @@
 package benchmarks
 
 import (
-	"bytes"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -70,11 +69,18 @@ func BenchmarkDiffs(b *testing.B) {
 					}
 					b.StopTimer()
 
-					out := impl.Diff(td.x, td.y)
+					files, err := textdiff.ParseUnified(impl.Diff(td.x, td.y), impl.ParseOpts...)
+					if err != nil {
+						b.Fatalf("%s wrote a malformed diff: %v", impl.Name, err)
+					}
 					edits := 0
-					for _, line := range bytes.Split(out, []byte("\n")) {
-						if bytes.HasPrefix(line, []byte{'+'}) || bytes.HasPrefix(line, []byte{'-'}) {
-							edits++
+					for _, f := range files {
+						for _, h := range f.Hunks {
+							for _, e := range h.Edits {
+								if e.Op != diff.Match {
+									edits++
+								}
+							}
 						}
 					}
 					b.ReportMetric(float64(edits), "edits")

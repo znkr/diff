@@ -26,6 +26,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"znkr.io/diff/textdiff"
 )
 
 type Repo struct {
@@ -69,27 +71,74 @@ type FileDiff struct {
 	Name  string
 	OldID string
 	NewID string
+	// Hunks of git's diffs of the file, in the order they apply. A type
+	// change, such as a file that becomes a symlink, is a deletion and an
+	// addition.
+	Patches [][]textdiff.Hunk[string]
 }
 
+// DiffTree returns the files that commit changes, without submodules, and the
+// hunks of git's diff of each file. Binary files are diffed as text.
 func (r *Repo) DiffTree(commit string) ([]FileDiff, error) {
-	out, err := git("-C", r.dir, "diff-tree", "-r", commit)
+	out, err := git("-C", r.dir, "diff-tree", "-r", "--raw", "-p", "-z", "--full-index", "--text", commit)
 	if err != nil {
 		return nil, err
 	}
-	lines := strings.Split(out, "\n")[1:]
-	ret := make([]FileDiff, 0, len(lines))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
+	// With -z, the output is the commit ID, a raw line and a path for each
+	// file, and the patch. Each field ends in a NUL, and an empty field ends
+	// the raw lines:
+	//
+	//	<commit>\0
+	//	:100644 100644 <old id> <new id> M\0<path>\0
+	//	...
+	//	\0
+	//	diff --git a/<path> b/<path>
+	//	index <old id>..<new id> 100644
+	//	...
+	raw, out, _ := strings.Cut(out, "\x00\x00")
+	patch, err := textdiff.ParseUnified(out)
+	if err != nil {
+		return nil, fmt.Errorf("parsing diff-tree patch: %v", err)
+	}
+	// The index line of a file's diff names the same blob IDs as its raw line.
+	hunks := make(map[string][]textdiff.Hunk[string]) // Keyed by "<old id>..<new id>".
+	for _, f := range patch {
+		for _, l := range f.Extended {
+			if rest, ok := strings.CutPrefix(l, "index "); ok {
+				ids, _, _ := strings.Cut(rest, " ")
+				hunks[ids] = f.Hunks
+			}
 		}
-		if line[0] != ':' {
+	}
+	fields := strings.Split(raw, "\x00")[1:] // Without the commit ID.
+	if len(fields)%2 != 0 {
+		return nil, fmt.Errorf("diff-tree raw output has a line without a path: %q", raw)
+	}
+	var ret []FileDiff
+	for i := 0; i < len(fields); i += 2 {
+		line, name := fields[i], fields[i+1]
+		if !strings.HasPrefix(line, ":") {
 			return nil, fmt.Errorf("diff-tree file not starting with ':': %q", line)
 		}
-		fields := strings.Fields(line[1:])
+		// f is old mode, new mode, old ID, new ID and status. Mode 160000 is
+		// a submodule, a commit that this repository doesn't contain.
+		f := strings.Fields(line[1:])
+		if f[0] == "160000" || f[1] == "160000" {
+			continue
+		}
+		old, new := f[2], f[3]
+		patches := [][]textdiff.Hunk[string]{hunks[old+".."+new]}
+		if f[4] == "T" {
+			// git writes a type change as two diffs: old ID to the zero ID,
+			// and the zero ID to new ID.
+			zero := strings.Repeat("0", len(old))
+			patches = [][]textdiff.Hunk[string]{hunks[old+".."+zero], hunks[zero+".."+new]}
+		}
 		ret = append(ret, FileDiff{
-			Name:  fields[5],
-			OldID: fields[2],
-			NewID: fields[3],
+			Name:    name,
+			OldID:   old,
+			NewID:   new,
+			Patches: patches,
 		})
 	}
 	return ret, nil
