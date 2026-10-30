@@ -214,13 +214,43 @@ provided to skip these heuristics to get a minimal diff independent of the costs
 use a fast heuristic to get a non-minimal diff as fast as possible.
 
 On an M1 Mac, the default settings almost always result in runtimes &lt; 1 ms, but truly large diffs
-(e.g. caused by changing generators for generated files) can result in runtimes of about 100 ms.
-Below is the distribution of runtimes applying `textdiff.Unified` to every commit in the [Go
-repository](http://go.googlesource.com/go)  (y-axis is in log scale). It's produced by `go run
-./internal/cmd/eval -repo <repo> -stats stats.csv -validate=false` and the notebook in
-[plots](plots/perf_go_repo.ipynb):
+(e.g. caused by changing generators for generated files) can result in runtimes of about 70 ms.
+Below is the distribution of runtimes of `textdiff.Hunks` on every commit in the [Go
+repository](http://go.googlesource.com/go), with a summary for the default settings, `diff.Minimal`,
+and `diff.Fast`. It's produced by `go run ./internal/cmd/eval -repo <repo> -bench stats.csv` and the
+notebook in [plots](plots/perf_go_repo.ipynb). Each runtime is the fastest of up to 5 runs:
 
-![histogram of textdiff.Unified runtime](plots/perf_go_repo.png)
+![runtime distribution of textdiff.Hunks](plots/perf_go_repo.png)
+
+The next plots follow the [imara-diff
+benchmarks](https://github.com/pascalkuthe/imara-diff#benchmarks). The complexity of a change is
+`(N + M) D`, where `N` and `M` are the number of lines of both files without their common prefix
+and suffix, and `D` is the number of edits of the minimal diff. The changes are divided into 10
+buckets by complexity, evenly spaced on a log scale, and each point is the mean runtime per diff of
+a bucket. The gray bars in the background show the number of diffs in each bucket.
+
+![runtime of textdiff.Hunks by complexity](plots/perf_go_repo_comparison.png)
+
+The same buckets with the 95th and 99th percentile runtime instead of the mean:
+
+![P95 and P99 runtime of textdiff.Hunks by complexity](plots/perf_go_repo_percentiles.png)
+
+The three modes take the same time up to a complexity of about 10⁷. Above it, the runtime of
+`diff.Minimal` grows fastest: in the bucket with the most complex changes, the mean runtime is
+11 ms by default, 286 ms with `diff.Minimal`, and 2 ms with `diff.Fast`.
+
+The same buckets with the size of each diff relative to the minimal diff, the number of edits
+divided by the number of edits of `diff.Minimal`, and the share of diffs with more edits than the
+minimal diff:
+
+![size of textdiff.Hunks diffs relative to the minimal diff by complexity](plots/perf_go_repo_size.png)
+
+Up to a complexity of 10⁶, more than 99% of the default diffs are minimal. Above it, the share of
+non-minimal default diffs rises to 48% in the bucket with the most complex changes, but the mean
+size of the default diffs stays within 1.01 of the minimal diff, and P99 within 1.25. `diff.Fast`
+returns non-minimal diffs from a complexity of 10³ on, up to 60% of them, and at P99 they have up to
+4.5 times the minimal number of edits. `textdiff.IndentHeuristic` moves edits without adding any, so
+its diffs have the same size as the default diffs.
 
 ### Comparison with other Implementations
 

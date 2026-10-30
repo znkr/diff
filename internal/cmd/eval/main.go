@@ -17,6 +17,9 @@
 // patch tool turns the old file into the new one with the diff of Unified,
 // that ParseUnified returns the hunks of that diff, and that the hunks of
 // git's diff, read by ParseUnified, turn the old file into the new one.
+//
+// With -bench, eval times Hunks on each changed file instead, one file at a
+// time, and writes the timings to a CSV file.
 package main
 
 import (
@@ -44,17 +47,15 @@ type config struct {
 	repo     string
 	sample   int
 	parallel int
-	stats    string
-	validate bool
+	bench    string
 }
 
 func main() {
 	var cfg config
 	flag.StringVar(&cfg.repo, "repo", "", "repository to use for evaluation")
 	flag.IntVar(&cfg.sample, "sample", 0, "if >0, sample commits to the value of the flag")
-	flag.IntVar(&cfg.parallel, "parallel", runtime.GOMAXPROCS(0), "number of evaluations to run in parallel")
-	flag.StringVar(&cfg.stats, "stats", "", "file to store stats in")
-	flag.BoolVar(&cfg.validate, "validate", true, "if validation should be performed")
+	flag.IntVar(&cfg.parallel, "parallel", runtime.GOMAXPROCS(0), "number of files to validate in parallel")
+	flag.StringVar(&cfg.bench, "bench", "", "time the diffs instead of validating them and write the timings to this CSV `file`")
 	flag.Parse()
 
 	if len(flag.CommandLine.Args()) > 0 {
@@ -102,12 +103,13 @@ func run(cfg *config) error {
 	var processed atomic.Int64
 
 	var stats *os.File
-	if cfg.stats != "" {
+	if cfg.bench != "" {
 		var err error
-		stats, err = os.Create(cfg.stats)
+		stats, err = os.Create(cfg.bench)
 		if err != nil {
 			return fmt.Errorf("creating stats file: %v", err)
 		}
+		defer stats.Close()
 	}
 
 	git, err := git.Open(cfg.repo)
@@ -179,15 +181,19 @@ func run(cfg *config) error {
 	// Process diffs.
 	var processWG sync.WaitGroup
 	var results chan result
-	if cfg.stats != "" {
+	workers := cfg.parallel
+	if cfg.bench != "" {
 		results = make(chan result)
+		// Diffs that run at the same time slow each other down.
+		workers = 1
 	}
-	for range cfg.parallel {
+	validate := cfg.bench == ""
+	for range workers {
 		processWG.Add(1)
 		go func() {
 			defer processWG.Done()
 			for change := range changes {
-				if cfg.validate {
+				if validate {
 					if got, err := applyPatches(change.old, change.gitPatches); err != nil || got != change.new {
 						notes <- note{
 							prefix: change.commitID + ":" + change.filename,
@@ -224,20 +230,28 @@ func run(cfg *config) error {
 				}
 				N, M := lines(old), lines(new)
 
+				// Each round times every variant once, and each variant keeps
+				// its fastest time. A single timing often includes a garbage
+				// collection, a pause of the goroutine, or a cold cache.
+				durations := make([]time.Duration, len(variants))
+				hunks := make([][]textdiff.Hunk[string], len(variants))
 				if results != nil {
-					// The first diff of a change takes several times longer
-					// than the following ones, so each variant is timed after
-					// an untimed diff.
-					_ = textdiff.Hunks(change.old, change.new)
+					start := time.Now()
+					for round := 0; round < 5 && (round < 2 || time.Since(start) < 100*time.Millisecond); round++ {
+						for i, v := range variants {
+							start := time.Now()
+							hunks[i] = textdiff.Hunks(change.old, change.new, v.opts...)
+							if d := time.Since(start); round == 0 || d < durations[i] {
+								durations[i] = d
+							}
+						}
+					}
 				}
-				for _, v := range variants {
+				for i, v := range variants {
 					variant, opts := v.name, v.opts
 					if results != nil {
-						start := time.Now()
-						hunks := textdiff.Hunks(change.old, change.new, opts...)
-						duration := time.Since(start)
 						nedits := 0
-						for _, hunk := range hunks {
+						for _, hunk := range hunks[i] {
 							for _, edits := range hunk.Edits {
 								if edits.Op == diff.Delete || edits.Op == diff.Insert {
 									nedits++
@@ -251,11 +265,11 @@ func run(cfg *config) error {
 							N:        N,
 							M:        M,
 							D:        nedits,
-							duration: duration,
+							duration: durations[i],
 						}
 					}
 
-					if cfg.validate {
+					if validate {
 						unified := textdiff.Unified(change.old, change.new, opts...)
 						patched, err := unixtools.Patch(change.old, unified)
 						if err != nil {
@@ -327,27 +341,18 @@ func run(cfg *config) error {
 			}
 		}
 	}()
-	if cfg.stats != "" {
+	var statsErr error
+	if cfg.bench != "" {
+		ioWG.Add(1)
 		go func() {
 			defer ioWG.Done()
+			// w keeps the first write error and returns it from Flush.
 			w := bufio.NewWriter(stats)
 			w.WriteString("commit_id,file,variant,N,M,D,duration_ns\n")
 			for result := range results {
-				_, err := fmt.Fprintf(w, "%s,%s,%s,%d,%d,%d,%d\n", result.commitID, result.file, result.variant, result.N, result.M, result.D, result.duration.Nanoseconds())
-				if err != nil {
-					notes <- note{
-						prefix: result.commitID + ":" + result.file,
-						msg:    fmt.Sprintf("failed to write stats: %v", err),
-					}
-				}
+				fmt.Fprintf(w, "%s,%s,%s,%d,%d,%d,%d\n", result.commitID, result.file, result.variant, result.N, result.M, result.D, result.duration.Nanoseconds())
 			}
-			err := w.Flush()
-			if err != nil {
-				notes <- note{
-					prefix: "",
-					msg:    fmt.Sprintf("failed to flush stats: %v", err),
-				}
-			}
+			statsErr = w.Flush()
 		}()
 	}
 
@@ -362,6 +367,14 @@ func run(cfg *config) error {
 	}
 	ioWG.Wait()
 
+	if statsErr != nil {
+		return fmt.Errorf("writing stats file: %v", statsErr)
+	}
+	if stats != nil {
+		if err := stats.Close(); err != nil {
+			return fmt.Errorf("closing stats file: %v", err)
+		}
+	}
 	return nil
 }
 
